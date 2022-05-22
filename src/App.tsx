@@ -1,25 +1,26 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { useState } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import Home from './pages/Home';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import { CssBaseline } from '@mui/material';
+import { UserContext } from './context'
 
 function App() {
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') ?? '{}') as { [name: string]: any })
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <CssBaseline>
+      <UserContext.Provider value={{ user, setUser } as any}>
+        <BrowserRouter>
+          <Routes>
+            <Route path='/'>
+              <Route index element={user.id ? <Dashboard /> : <Home />} />
+              <Route path='login' element={<Login />} />
+            </Route>
+          </Routes>
+        </BrowserRouter >
+      </UserContext.Provider>
+    </CssBaseline>
   );
 }
 
