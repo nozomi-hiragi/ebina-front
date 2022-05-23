@@ -72,7 +72,6 @@ const Login = () => {
               return
             }
             userContext.setUser(res.data)
-            localStorage.setItem('user', JSON.stringify(res.data))
             navigate('/')
           })
         })

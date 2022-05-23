@@ -26,8 +26,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuButtonClick }) => {
           EbinaStation
         </Typography>
         <Button color="inherit" onClick={() => {
-          localStorage.removeItem('user')
-          userContext.setUser({})
+          userContext.setUser(null)
           navigate('/')
         }}>Logout</Button>
       </Toolbar>
