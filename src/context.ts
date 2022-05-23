@@ -2,6 +2,9 @@ import { createContext } from "react";
 
 export type User = {
   id: string,
+  name: string,
+  created_at: string,
+  updated_at: string,
   iat: number,
   exp: number,
 } | null

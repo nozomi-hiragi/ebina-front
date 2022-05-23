@@ -1,23 +1,18 @@
-import { Box, Button, Typography } from "@mui/material"
-import { pink } from "@mui/material/colors"
-import React from "react"
-import { Link } from "react-router-dom"
+import { Typography } from "@mui/material";
+import { useContext } from "react";
+import DashboardBase from "../components/DashboardBase";
+import { UserContext } from "../context";
 
-const Home = () => {
+const Dashboard = () => {
+  const userContext = useContext(UserContext)
+
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: pink[200],
-        height: "100vh",
-      }}>
-      <Typography variant="h1">EbinaStation</Typography>
-      <Button color="inherit" component={Link} to="/login">Login</Button>
-    </Box>
+    <DashboardBase>
+      <Typography paragraph>
+        Hello {userContext.user?.name}
+      </Typography>
+    </DashboardBase>
   )
 }
 
-export default Home
+export default Dashboard

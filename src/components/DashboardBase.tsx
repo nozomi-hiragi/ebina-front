@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { Box } from "@mui/system";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
-import { CssBaseline, Drawer, Toolbar, Typography } from "@mui/material";
+import { CssBaseline, Drawer, Toolbar } from "@mui/material";
 
-const Dashboard = () => {
+const DashboardBase = ({ children }: { children: ReactNode }) => {
   const [isDrawerOpen, setDrawerOpen] = useState(false)
   const drawerWidth = 240;
   return (
@@ -39,12 +39,10 @@ const Dashboard = () => {
         component="main"
         sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
         <Toolbar />
-        <Typography paragraph>
-          Hello
-        </Typography>
+        {children}
       </Box>
     </Box>
   )
 }
 
-export default Dashboard
+export default DashboardBase

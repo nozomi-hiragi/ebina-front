@@ -33,6 +33,7 @@ const Login = () => {
         required
         id="outlined-required id"
         label="ID"
+        type="id"
         margin="normal"
         inputRef={idRef}
       />
@@ -66,14 +67,8 @@ const Login = () => {
             return
           }
           localStorage.setItem('server', url)
-          axios.post(url + 'ebina/user/verify').then((res) => {
-            if (res.status !== 200) {
-              console.log('error')
-              return
-            }
-            userContext.setUser(res.data)
-            navigate('/')
-          })
+          userContext.setUser(res.data)
+          navigate('/')
         })
       })}>
         Login
