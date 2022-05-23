@@ -3,6 +3,7 @@ import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import MenuIcon from '@mui/icons-material/Menu';
 import { UserContext } from "../context";
+import axios from "axios";
 
 type HeaderProps = {
   onMenuButtonClick?: (e: any) => void
@@ -26,6 +27,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuButtonClick }) => {
           EbinaStation
         </Typography>
         <Button color="inherit" onClick={() => {
+          const url = localStorage.getItem('server')
+          axios.post(url + 'ebina/user/logout')
           userContext.setUser(null)
           navigate('/')
         }}>Logout</Button>
