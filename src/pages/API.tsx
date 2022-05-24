@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import axios from "axios"
 import { Box, Button, Divider, Fab, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader, Toolbar, Tooltip, Typography } from "@mui/material"
 import { Add, Refresh } from "@mui/icons-material"
+import { Link } from "react-router-dom"
 
 const API = () => {
   const [apiState, setApiState] = useState<any>({})
@@ -69,11 +70,13 @@ const API = () => {
         <ListSubheader component="div" id="nested-list-subheader">
           API List
         </ListSubheader>
-        {apis.map((item) =>
-          (<ListItemButton key={item.path}><ListItemText primary={item.name} secondary={item.path} /></ListItemButton>)
+        {apis.map((item) => (
+          <ListItemButton key={item.path} component={Link} to={`edit?path=${item.path}`}>
+            <ListItemText primary={item.name} secondary={item.path} />
+          </ListItemButton>)
         )}
       </List>
-      <Fab color="primary" aria-label="add" sx={{ position: 'absolute', bottom: 16, right: 16, }}>
+      <Fab color="primary" aria-label="add" sx={{ position: 'absolute', bottom: 16, right: 16, }} component={Link} to="edit">
         <Add />
       </Fab>
     </Box >

@@ -8,6 +8,7 @@ import Users from './pages/Users';
 import API from './pages/API';
 import DashboardBase from './components/DashboardBase';
 import Enter from './pages/Enter';
+import APIEdit from './pages/APIEdit';
 
 function App() {
   const userString = localStorage.getItem('user')
@@ -31,7 +32,10 @@ function App() {
               <Route path='dashboard' element={<RequireAuth><DashboardBase /></RequireAuth>}>
                 <Route index element={<Home />} />
                 <Route path='users' element={<Users />} />
-                <Route path='api' element={<API />} />
+                <Route path='api'>
+                  <Route index element={<API />} />
+                  <Route path='edit' element={<APIEdit />} />
+                </Route>
               </Route>
             </Route>
           </Routes>

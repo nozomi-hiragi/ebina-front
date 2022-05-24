@@ -7,7 +7,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { UserContext } from "../context"
 import CreateUserDialog from "../components/CreateUserDialog"
-import DeleteUserDialog from "../DeleteUserDialog"
+import DeleteUserDialog from "../components/DeleteUserDialog"
 
 const Users = () => {
   const userContext = useContext(UserContext)
@@ -74,7 +74,7 @@ const Users = () => {
         />
       </Box>
       <CreateUserDialog open={createDialogOpen} onClose={() => { setCreateDialogOpen(false) }} onCreated={() => { setRefreshUser(true) }} />
-      <DeleteUserDialog open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false) }} onCreated={() => { setRefreshUser(true) }} ids={selected} />
+      <DeleteUserDialog open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false) }} onDeleted={() => { setRefreshUser(true) }} ids={selected} />
     </Box>
   )
 }

@@ -1,14 +1,14 @@
 import axios from "axios"
 import { Dialog, DialogTitle, DialogContent, Typography, DialogActions, Button } from "@mui/material"
 
-type DeleteUserDialogProps = {
+type DeleteApiPathDialogProps = {
   open: boolean,
-  ids: string[],
+  path: string,
   onClose?: () => void,
-  onCreated?: () => void
+  onDeleted?: () => void
 }
 
-const DeleteUserDialog = (props: DeleteUserDialogProps) => {
+const DeleteApiPathDialog = (props: DeleteApiPathDialogProps) => {
   return (<>
     <Dialog open={props.open} onClose={props.onClose}>
       <DialogTitle>Delete User</DialogTitle>
@@ -16,16 +16,16 @@ const DeleteUserDialog = (props: DeleteUserDialogProps) => {
         <Typography variant="h6">
           Delete?
         </Typography>
-        {props.ids.map((id) => (<Typography key={id} color='red'>{id}</Typography>))}
+        <Typography color='red'>{props.path}</Typography>
       </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
         <Button onClick={(() => {
           const url = localStorage.getItem('server')
-          axios.delete(url + 'ebina/users/users', { params: { ids: props.ids.join() } }).then((res) => {
+          axios.delete(url + 'ebina/api/path', { params: { path: props.path } }).then((res) => {
             if (res.status === 202) {
               props.onClose && props.onClose()
-              props.onCreated && props.onCreated()
+              props.onDeleted && props.onDeleted()
             } else {
               console.log(res.data)
             }
@@ -36,4 +36,4 @@ const DeleteUserDialog = (props: DeleteUserDialogProps) => {
   </>)
 }
 
-export default DeleteUserDialog
+export default DeleteApiPathDialog
