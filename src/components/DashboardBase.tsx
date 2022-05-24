@@ -1,48 +1,29 @@
-import { ReactNode, useState } from "react";
+import React, { useCallback } from "react";
+import { useState } from "react";
 import { Box } from "@mui/system";
-import Sidebar from "../components/Sidebar";
+import SideMenu from "./SideMenu";
 import Header from "../components/Header";
-import { CssBaseline, Drawer, Toolbar } from "@mui/material";
+import { Outlet } from "react-router-dom";
 
-const DashboardBase = ({ children }: { children: ReactNode }) => {
+function useClientRect(): [DOMRect | null, (node: HTMLDivElement) => void] {
+  const [rect, setRect] = React.useState<DOMRect | null>(null);
+  const ref = useCallback((node: HTMLElement | undefined) => { node && setRect(node.getBoundingClientRect()) }, []);
+  return [rect, ref];
+}
+
+const DashboardBase = () => {
+  const [rect, ref] = useClientRect()
   const [isDrawerOpen, setDrawerOpen] = useState(false)
-  const drawerWidth = 240;
-  return (
-    <Box sx={{ display: 'flex' }}>
-      <CssBaseline />
-      <Header onMenuButtonClick={() => { setDrawerOpen(!isDrawerOpen) }} />
-      <Box
-        component="nav"
-        sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}>
-        <Drawer
-          variant="temporary"
-          open={isDrawerOpen}
-          onClose={() => { setDrawerOpen(false) }}
-          ModalProps={{ keepMounted: true, }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}>
-          <Sidebar />
-        </Drawer>
-        <Drawer
-          variant="permanent"
-          open
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-          }}>
-          <Sidebar />
-        </Drawer>
-      </Box>
-      <Box
-        component="main"
-        sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}>
-        <Toolbar />
-        {children}
-      </Box>
+  return (<>
+    <Box>
+      <Header menuButton hideMenuAtWide onMenuButtonClick={() => { setDrawerOpen(!isDrawerOpen) }} />
+      <SideMenu open={isDrawerOpen} onClose={() => { setDrawerOpen(false) }} >
+        <Box component="main" ref={ref} width='100%' height={`calc(100vh - ${rect?.y}px)`}>
+          <Outlet />
+        </Box>
+      </SideMenu>
     </Box>
-  )
+  </>)
 }
 
 export default DashboardBase

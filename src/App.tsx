@@ -1,11 +1,13 @@
 import React, { ReactElement, ReactNode, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import Home from './pages/Enter';
 import Login from './pages/Login';
-import Dashboard from './pages/Home';
+import Home from './pages/Home';
 import { CssBaseline } from '@mui/material';
 import { User, UserContext } from './context'
 import Users from './pages/Users';
+import API from './pages/API';
+import DashboardBase from './components/DashboardBase';
+import Enter from './pages/Enter';
 
 function App() {
   const userString = localStorage.getItem('user')
@@ -24,9 +26,13 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path='/'>
-              <Route index element={isExpired ? <Home /> : <Dashboard />} />
+              <Route index element={<Enter />} />
               <Route path='login' element={<Login />} />
-              <Route path='users' element={<RequireAuth><Users /></RequireAuth>} />
+              <Route path='dashboard' element={<RequireAuth><DashboardBase /></RequireAuth>}>
+                <Route index element={<Home />} />
+                <Route path='users' element={<Users />} />
+                <Route path='api' element={<API />} />
+              </Route>
             </Route>
           </Routes>
         </BrowserRouter >

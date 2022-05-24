@@ -1,8 +1,11 @@
 import { Box, Button, Typography } from "@mui/material"
 import { pink } from "@mui/material/colors"
+import { useContext } from "react"
 import { Link } from "react-router-dom"
+import { UserContext } from "../context"
 
-const Home = () => {
+const Enter = () => {
+  const userContext = useContext(UserContext)
   return (
     <Box
       sx={{
@@ -14,9 +17,9 @@ const Home = () => {
         height: "100vh",
       }}>
       <Typography variant="h1">EbinaStation</Typography>
-      <Button color="inherit" component={Link} to="/login">Login</Button>
+      <Button color="inherit" component={Link} to={userContext.user ? "/dashboard" : "/login"}>Enter</Button>
     </Box>
   )
 }
 
-export default Home
+export default Enter

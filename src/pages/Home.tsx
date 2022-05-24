@@ -1,17 +1,17 @@
 import { Typography } from "@mui/material";
+import { Box } from "@mui/system";
 import { useContext } from "react";
-import DashboardBase from "../components/DashboardBase";
 import { UserContext } from "../context";
 
 const Dashboard = () => {
   const userContext = useContext(UserContext)
 
   return (
-    <DashboardBase>
+    <Box p={1} >
       <Typography paragraph>
         Hello {userContext.user?.name}
       </Typography>
-    </DashboardBase>
+    </Box>
   )
 }
 

@@ -6,23 +6,25 @@ import { UserContext } from "../context";
 import axios from "axios";
 
 type HeaderProps = {
+  menuButton?: boolean,
+  hideMenuAtWide?: boolean,
   onMenuButtonClick?: (e: any) => void
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuButtonClick }) => {
+const Header: React.FC<HeaderProps> = (props) => {
   const navigate = useNavigate()
   const userContext = useContext(UserContext)
-  return (
-    <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+  return (<>
+    <AppBar position="sticky" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
       <Toolbar>
-        <IconButton
+        {props.menuButton && <IconButton
           size="large"
           edge="start"
           color="inherit"
-          sx={{ mr: 2, display: { sm: 'none' } }}
-          onClick={onMenuButtonClick}>
+          sx={{ mr: 2, display: props.hideMenuAtWide ? { sm: 'none' } : undefined }}
+          onClick={props.onMenuButtonClick}>
           <MenuIcon />
-        </IconButton>
+        </IconButton>}
         <Typography variant='h6' component='div' sx={{ flexGrow: 1 }}>
           EbinaStation
         </Typography>
@@ -34,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuButtonClick }) => {
         }}>Logout</Button>
       </Toolbar>
     </AppBar>
-  )
+  </>)
 }
 
 export default Header
