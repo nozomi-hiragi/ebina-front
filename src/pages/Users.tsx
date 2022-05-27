@@ -1,16 +1,17 @@
-import { useContext, useEffect, useState } from "react"
-import axios from "axios"
+import { useEffect, useState } from "react"
+import { useRecoilValue } from 'recoil'
 import { Box } from "@mui/system"
 import { alpha, IconButton, Toolbar, Tooltip, Typography } from "@mui/material"
 import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid"
 import DeleteIcon from '@mui/icons-material/Delete';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import { UserContext } from "../context"
+import { userSelector } from "../atoms"
 import CreateUserDialog from "../components/CreateUserDialog"
 import DeleteUserDialog from "../components/DeleteUserDialog"
+import EbinaAPI from "../EbinaAPI";
 
 const Users = () => {
-  const userContext = useContext(UserContext)
+  const user = useRecoilValue(userSelector)
   const [users, setUsers] = useState([])
   const [selected, setSelected] = useState<string[]>([])
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -18,8 +19,7 @@ const Users = () => {
   const [refreshUser, setRefreshUser] = useState(true)
 
   useEffect(() => {
-    const url = localStorage.getItem('server')
-    axios.get(url + 'ebina/users/users').then((res) => {
+    EbinaAPI.getUsers().then((res) => {
       if (res.status === 200) { setUsers(res.data) }
     })
     setRefreshUser(false)
@@ -28,8 +28,8 @@ const Users = () => {
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', flex: 0, },
     { field: 'name', headerName: 'Name', minWidth: 100, flex: 5, },
-    { field: 'created_at', headerName: 'Create Date', minWidth: 160, flex: 1, },
-    { field: 'updated_at', headerName: 'Update Date', minWidth: 160, flex: 1, },
+    { field: 'created_at', headerName: 'Create Date', minWidth: 200, flex: 1, },
+    { field: 'updated_at', headerName: 'Update Date', minWidth: 200, flex: 1, },
   ];
   const hasSelectItem = selected.length > 0
   return (
@@ -70,7 +70,7 @@ const Users = () => {
           rowsPerPageOptions={[20]}
           checkboxSelection
           onSelectionModelChange={(selectionModel, details) => setSelected(selectionModel as string[])}
-          isRowSelectable={((param: GridRowParams) => param.id !== userContext.user?.id)}
+          isRowSelectable={((param: GridRowParams) => param.id !== user?.id)}
         />
       </Box>
       <CreateUserDialog open={createDialogOpen} onClose={() => { setCreateDialogOpen(false) }} onCreated={() => { setRefreshUser(true) }} />

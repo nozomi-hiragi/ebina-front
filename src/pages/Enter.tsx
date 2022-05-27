@@ -1,11 +1,11 @@
+import { useRecoilValue } from 'recoil'
 import { Box, Button, Typography } from "@mui/material"
 import { pink } from "@mui/material/colors"
-import { useContext } from "react"
 import { Link } from "react-router-dom"
-import { UserContext } from "../context"
+import { userSelector } from "../atoms"
 
 const Enter = () => {
-  const userContext = useContext(UserContext)
+  const user = useRecoilValue(userSelector)
   return (
     <Box
       sx={{
@@ -17,7 +17,7 @@ const Enter = () => {
         height: "100vh",
       }}>
       <Typography variant="h1">EbinaStation</Typography>
-      <Button color="inherit" component={Link} to={userContext.user ? "/dashboard" : "/login"}>Enter</Button>
+      <Button color="inherit" component={Link} to={user ? "/dashboard" : "/login"}>Enter</Button>
     </Box>
   )
 }

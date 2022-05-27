@@ -1,15 +1,14 @@
+import { useRecoilValue } from 'recoil'
 import { Typography } from "@mui/material";
 import { Box } from "@mui/system";
-import { useContext } from "react";
-import { UserContext } from "../context";
+import { userSelector } from "../atoms";
 
 const Dashboard = () => {
-  const userContext = useContext(UserContext)
-
+  const user = useRecoilValue(userSelector)
   return (
     <Box p={1} >
       <Typography paragraph>
-        Hello {userContext.user?.name}
+        Hello {user?.name}
       </Typography>
     </Box>
   )

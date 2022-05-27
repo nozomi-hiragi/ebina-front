@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom"
 import { Box, Button, List, ListItem, TextField } from "@mui/material"
-import axios from "axios";
 import DeleteApiPathDialog from "../components/DeleteApiPathDialog";
+import EbinaAPI from "../EbinaAPI";
 
 function useQuery() {
   const { search } = useLocation()
@@ -19,7 +19,6 @@ type TypeApi = {
 const APIEdit = () => {
   const [api, setApiState] = useState<TypeApi>({ path: "", name: "", type: "", value: "" })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const url = localStorage.getItem('server')
   const navigate = useNavigate()
 
   const query = useQuery()
@@ -27,11 +26,11 @@ const APIEdit = () => {
 
   useEffect(() => {
     if (path) {
-      axios.get(url + 'ebina/api/api?path=' + path).then((res) => {
+      EbinaAPI.getPath(path).then((res) => {
         if (res.status === 200) setApiState(res.data)
       })
     }
-  }, [path, url])
+  }, [path])
 
   return (
     <Box m={1}>
@@ -63,11 +62,11 @@ const APIEdit = () => {
         </Button>}
         <Button variant="contained" type="submit" onClick={() => {
           if (path) {
-            axios.put(url + 'ebina/api/path', api).then((res) => {
+            EbinaAPI.updatePath(api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           } else {
-            axios.post(url + 'ebina/api/path', api).then((res) => {
+            EbinaAPI.createPath(api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           }
