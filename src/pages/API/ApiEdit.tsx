@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom"
 import { Box, Button, List, ListItem, TextField } from "@mui/material"
-import DeleteApiPathDialog from "../components/DeleteApiPathDialog";
-import EbinaAPI from "../EbinaAPI";
+import DeleteApiPathDialog from "../../components/DeleteApiPathDialog";
+import EbinaAPI from "../../EbinaAPI";
 
 function useQuery() {
   const { search } = useLocation()
@@ -16,7 +16,7 @@ type TypeApi = {
   value: string,
 }
 
-const APIEdit = () => {
+const ApiEdit = () => {
   const [api, setApiState] = useState<TypeApi>({ path: "", name: "", type: "", value: "" })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const navigate = useNavigate()
@@ -79,4 +79,4 @@ const APIEdit = () => {
   )
 }
 
-export default APIEdit
+export default ApiEdit
