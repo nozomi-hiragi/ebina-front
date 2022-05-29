@@ -9,8 +9,10 @@ import Enter from './pages/Enter';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import Users from './pages/Users';
-import API from './pages/API';
-import APIEdit from './pages/APIEdit';
+import ApiIndex from './pages/API/ApiIndes';
+import ApiEdit from './pages/API/ApiEdit';
+import EditIndex from './pages/Edit/EditIndex';
+import EditEdit from './pages/Edit/EditEdit';
 
 function App() {
   const userStr = LS.get(LS.ITEM.User)
@@ -30,8 +32,12 @@ function App() {
               <Route index element={<Home />} />
               <Route path='users' element={<Users />} />
               <Route path='api'>
-                <Route index element={<API />} />
-                <Route path='edit' element={<APIEdit />} />
+                <Route index element={<ApiIndex />} />
+                <Route path='edit' element={<ApiEdit />} />
+              </Route>
+              <Route path='edit'>
+                <Route index element={<EditIndex />} />
+                <Route path=':path' element={<EditEdit />} />
               </Route>
             </Route>
           </Route>

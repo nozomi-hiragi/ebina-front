@@ -92,6 +92,33 @@ class EbinaAPI {
     if (!this.url) throw Error('URL did not set')
     return this.ax.delete('/ebina/api/path', { params: { path } })
   }
+
+  // Edit
+
+  public createJS(path: string, data: string | undefined = undefined) {
+    if (!this.url) throw Error('URL did not set')
+    return this.ax.post('/ebina/edit/js/' + path, data, { headers: { 'content-type': 'text/plain' } })
+  }
+
+  public getJSList() {
+    if (!this.url) throw Error('URL did not set')
+    return this.ax.get('/ebina/edit/js')
+  }
+
+  public getJS(path: string) {
+    if (!this.url) throw Error('URL did not set')
+    return this.ax.get('/ebina/edit/js/' + path)
+  }
+
+  public updateJS(path: string, data: string) {
+    if (!this.url) throw Error('URL did not set')
+    return this.ax.patch('/ebina/edit/js/' + path, data, { headers: { 'content-type': 'text/plain' } })
+  }
+
+  public deleteJS(path: string) {
+    if (!this.url) throw Error('URL did not set')
+    return this.ax.delete('/ebina/edit/js/' + path)
+  }
 }
 
 export default new EbinaAPI()

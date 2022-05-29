@@ -2,9 +2,9 @@ import { useEffect, useState } from "react"
 import { Box, Button, Divider, Fab, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader, Toolbar, Tooltip, Typography } from "@mui/material"
 import { Add, Refresh } from "@mui/icons-material"
 import { Link } from "react-router-dom"
-import EbinaAPI from "../EbinaAPI"
+import EbinaAPI from "../../EbinaAPI"
 
-const API = () => {
+const ApiIndex = () => {
   const [apiState, setApiState] = useState<any>({})
   const [apis, setApisState] = useState<any[]>([])
   const [refreshState, setRefreshState] = useState(true)
@@ -36,16 +36,16 @@ const API = () => {
       <Toolbar
         sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 }, }}>
         <Typography id="tableTitle" sx={{ flex: '1 1 100%' }} variant="h6" component="div">
-          {`API  `}
+          {`API`}
         </Typography>
-        <Tooltip title="Create User">
+        <Tooltip title="Refresh State">
           <IconButton onClick={() => setRefreshState(true)}>
             <Refresh />
           </IconButton>
         </Tooltip>
       </Toolbar>
+      <Divider />
       <List>
-        <Divider />
         <ListSubheader component="div" id="nested-list-subheader">
           Status
         </ListSubheader>
@@ -82,4 +82,4 @@ const API = () => {
   )
 }
 
-export default API
+export default ApiIndex
