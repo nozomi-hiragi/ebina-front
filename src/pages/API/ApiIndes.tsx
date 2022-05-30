@@ -1,22 +1,21 @@
 import { useEffect, useState } from "react"
-import axios from "axios"
 import { Box, Button, Divider, Fab, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader, Toolbar, Tooltip, Typography } from "@mui/material"
 import { Add, Refresh } from "@mui/icons-material"
 import { Link } from "react-router-dom"
+import EbinaAPI from "../../EbinaAPI"
 
-const API = () => {
+const ApiIndex = () => {
   const [apiState, setApiState] = useState<any>({})
   const [apis, setApisState] = useState<any[]>([])
   const [refreshState, setRefreshState] = useState(true)
-  const url = localStorage.getItem('server')
 
   useEffect(() => {
     if (refreshState) {
-      axios.get(url + 'ebina/api/status').then((res) => { if (res.status === 200) setApiState(res.data) })
-      axios.get(url + 'ebina/api/apis').then((res) => { if (res.status === 200) setApisState(res.data) })
+      EbinaAPI.getAPIStatus().then((res) => { if (res.status === 200) setApiState(res.data) })
+      EbinaAPI.getAPIs().then((res) => { if (res.status === 200) setApisState(res.data) })
       setRefreshState(false)
     }
-  }, [refreshState, url])
+  }, [refreshState])
 
   let labelStartButton: string = ''
   let labelStatus: string = ''
@@ -37,16 +36,16 @@ const API = () => {
       <Toolbar
         sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 }, }}>
         <Typography id="tableTitle" sx={{ flex: '1 1 100%' }} variant="h6" component="div">
-          {`API  `}
+          {`API`}
         </Typography>
-        <Tooltip title="Create User">
+        <Tooltip title="Refresh State">
           <IconButton onClick={() => setRefreshState(true)}>
             <Refresh />
           </IconButton>
         </Tooltip>
       </Toolbar>
+      <Divider />
       <List>
-        <Divider />
         <ListSubheader component="div" id="nested-list-subheader">
           Status
         </ListSubheader>
@@ -55,13 +54,13 @@ const API = () => {
             primary={`${labelStatus}`}
             secondary={` ${apiState.started_at ? 'at ' + (new Date(apiState.started_at)).toLocaleString() : ''}`} />
           <ListItemIcon>
-            <Button variant="contained" onClick={() => axios.post(url + 'ebina/api/start').then((res) => setRefreshState(true))}>
+            <Button variant="contained" onClick={() => EbinaAPI.startAPI().then(() => setRefreshState(true))}>
               {labelStartButton}
             </Button>
           </ListItemIcon>
           <Box width='8pt' />
           <ListItemIcon>
-            <Button variant="contained" onClick={() => axios.post(url + 'ebina/api/stop').then((res) => setRefreshState(true))}>
+            <Button variant="contained" onClick={() => EbinaAPI.stopAPI().then(() => setRefreshState(true))}>
               Stop
             </Button>
           </ListItemIcon>
@@ -83,4 +82,4 @@ const API = () => {
   )
 }
 
-export default API
+export default ApiIndex

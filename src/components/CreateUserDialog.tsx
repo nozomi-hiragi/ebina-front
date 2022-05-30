@@ -1,6 +1,6 @@
 import React from "react"
-import axios from "axios"
 import { Dialog, DialogTitle, DialogContent, TextField, DialogActions, Button } from "@mui/material"
+import EbinaAPI from "../EbinaAPI"
 
 type CreateDialogProps = {
   open: boolean,
@@ -24,8 +24,7 @@ const CreateUserDialog = (props: CreateDialogProps) => {
         <Button onClick={props.onClose}>Cancel</Button>
         <Button onClick={(() => {
           const user = { id: idRef.current?.value, name: nameRef.current?.value, pass: passRef.current?.value }
-          const url = localStorage.getItem('server')
-          axios.post(url + 'ebina/user/regist', user).then((res) => {
+          EbinaAPI.userRegist(user).then((res) => {
             if (res.status === 201) {
               props.onClose && props.onClose()
               props.onCreated && props.onCreated()

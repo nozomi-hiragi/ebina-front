@@ -1,17 +1,21 @@
-import { useRef, useContext } from "react";
+import { useEffect, useRef } from "react";
+import { useRecoilState } from 'recoil'
 import { Box } from "@mui/system";
 import { Button, TextField, Typography } from "@mui/material";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { UserContext } from "../context";
-axios.defaults.withCredentials = true;
+import { userSelector } from "../atoms";
+import EbinaAPI from "../EbinaAPI";
 
 const Login = () => {
   const serverRef = useRef<HTMLInputElement>()
   const idRef = useRef<HTMLInputElement>()
   const passRef = useRef<HTMLInputElement>()
   const navigate = useNavigate()
-  const userContext = useContext(UserContext)
+  const [user, setUser] = useRecoilState(userSelector)
+
+  useEffect(() => {
+    if (user) { navigate('/dashboard') }
+  }, [user, navigate])
 
   return (
     <Box sx={{
@@ -46,9 +50,10 @@ const Login = () => {
         inputRef={passRef}
       />
       <Button variant="contained" onClick={(() => {
+        // TODO varidate
         const server = serverRef.current?.value
-        const id = idRef.current?.value
-        const pass = passRef.current?.value
+        const id = idRef.current?.value!
+        const pass = passRef.current?.value!
         const url = (() => {
           try {
             const url = new URL(server as string)
@@ -61,14 +66,13 @@ const Login = () => {
             return ''
           }
         })()
-        axios.post(url + 'ebina/user/login', { id: id, pass: pass }).then((res) => {
+        EbinaAPI.updateURL(url)
+        EbinaAPI.login(id, pass).then((res) => {
           if (res.status !== 200) {
             console.log('error')
             return
           }
-          localStorage.setItem('server', url)
-          userContext.setUser(res.data)
-          navigate('/')
+          setUser(res.data)
         })
       })}>
         Login

@@ -1,5 +1,5 @@
-import axios from "axios"
 import { Dialog, DialogTitle, DialogContent, Typography, DialogActions, Button } from "@mui/material"
+import EbinaAPI from "../EbinaAPI"
 
 type DeleteUserDialogProps = {
   open: boolean,
@@ -21,8 +21,7 @@ const DeleteUserDialog = (props: DeleteUserDialogProps) => {
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
         <Button onClick={(() => {
-          const url = localStorage.getItem('server')
-          axios.delete(url + 'ebina/users/users', { params: { ids: props.ids.join() } }).then((res) => {
+          EbinaAPI.deleteUsers(props.ids).then((res) => {
             if (res.status === 202) {
               props.onClose && props.onClose()
               props.onDeleted && props.onDeleted()
