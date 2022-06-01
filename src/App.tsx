@@ -10,6 +10,7 @@ import ApiIndex from './pages/API/ApiIndes';
 import ApiEdit from './pages/API/ApiEdit';
 import EditIndex from './pages/Edit/EditIndex';
 import EditEdit from './pages/Edit/EditEdit';
+import Setting from './pages/Setting';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
                 <Route index element={<EditIndex />} />
                 <Route path=':path' element={<EditEdit />} />
               </Route>
+              <Route path='setting' element={<Setting />} />
             </Route>
           </Route>
         </Routes>

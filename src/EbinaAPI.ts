@@ -19,16 +19,20 @@ class EbinaAPI {
   public setURL(url: string | null) {
     this.url = EbinaAPI.stou(url)
     LS.set(LS.ITEM.Server, url)
+    this.apply()
   }
 
-  private setToken(token: string | null) {
-    this.token = token
-    LS.set(LS.ITEM.Token, token)
-  }
-
-  private setRefreshToken(token: string | null) {
-    this.refreshToken = token
-    LS.set(LS.ITEM.RefreshToken, token)
+  private setTokens(tokens: { token: string, refreshToken: string } | null) {
+    if (tokens) {
+      this.token = tokens.token
+      this.refreshToken = tokens.refreshToken
+    } else {
+      this.token = null
+      this.refreshToken = null
+    }
+    LS.set(LS.ITEM.Token, this.token)
+    LS.set(LS.ITEM.RefreshToken, this.refreshToken)
+    this.apply()
   }
 
   private apply() {
@@ -49,20 +53,52 @@ class EbinaAPI {
     this.checkURL()
     const res = await this.ax.post('/ebina/user/login', { id, pass })
     if (res.status === 200) {
-      this.setToken(res.data.tokens.token)
-      this.setRefreshToken(res.data.tokens.refreshToken)
-      this.apply()
+      this.setTokens(res.data.tokens)
     }
+    return res
+  }
+
+  public async getWebAuthnRegistOptions() {
+    this.checkURL()
+    const res = await this.ax.get('/ebina/user/webauthn/regist')
+    return res
+  }
+
+  public async sendWebAuthnRegistCredential(credential: any, deviceName: string) {
+    this.checkURL()
+    const res = await this.ax.post('/ebina/user/webauthn/regist', { ...credential, deviceName })
+    return res
+  }
+
+  public async getWebAuthnVerifyOptions(deviceNames?: string[]) {
+    this.checkURL()
+    const res = await this.ax.get('/ebina/user/webauthn/verify', { params: { deviceNames } })
+    return res
+  }
+
+  public async sendWebAuthnVerifyCredential(credential: any) {
+    this.checkURL()
+    const res = await this.ax.post('/ebina/user/webauthn/verify', credential)
+    return res
+  }
+
+  public async getWebAuthnDeviceNames() {
+    this.checkURL()
+    const res = await this.ax.get('/ebina/user/webauthn/devices')
+    return res
+  }
+
+  public async deleteWebAuthnDevice(deviceName: string) {
+    this.checkURL()
+    const res = await this.ax.delete(`/ebina/user/webauthn/device/${deviceName}`)
     return res
   }
 
   public async logout() {
     this.checkURL()
-    const res = await this.ax.post('/ebina/user/logout');
+    const res = await this.ax.post('/ebina/user/logout')
     if (res.status === 200) {
-      this.setToken(null);
-      this.setRefreshToken(null);
-      this.apply()
+      this.setTokens(null)
     }
     return res
   }
