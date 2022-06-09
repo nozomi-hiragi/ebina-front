@@ -15,7 +15,8 @@ const Login = () => {
 
   useEffect(() => {
     if (user) { navigate('/dashboard') }
-  }, [user, navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   return (
     <Box sx={{
@@ -66,13 +67,13 @@ const Login = () => {
             return ''
           }
         })()
-        EbinaAPI.updateURL(url)
+        EbinaAPI.setURL(url)
         EbinaAPI.login(id, pass).then((res) => {
           if (res.status !== 200) {
             console.log('error')
             return
           }
-          setUser(res.data)
+          setUser(res.data.user)
         })
       })}>
         Login

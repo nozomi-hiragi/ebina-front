@@ -17,6 +17,7 @@ const SideMenu: React.FC<SideMenuProps> = (props: SideMenuProps) => {
     { name: 'Users', path: 'users', },
     { name: 'API', path: 'api', },
     { name: 'Edit', path: 'edit', },
+    { name: 'Setting', path: 'setting', },
   ]
   const ItemElements = (
     <Box width={drawerWidth}>
