@@ -142,19 +142,19 @@ class EbinaAPI {
     return this.ax.post('/ebina/api/path', api)
   }
 
-  public getPath(path: string) {
+  public getAPI(name: string) {
     this.checkURL()
-    return this.ax.get('/ebina/api/api', { params: { path } })
+    return this.ax.get('/ebina/api/api', { params: { name } })
   }
 
-  public updatePath(api: any) {
+  public updateAPI(api: any) {
     this.checkURL()
     return this.ax.put('/ebina/api/path', api)
   }
 
-  public deletePath(path: string) {
+  public deleteAPI(name: string) {
     this.checkURL()
-    return this.ax.delete('/ebina/api/path', { params: { path } })
+    return this.ax.delete('/ebina/api/path', { params: { name } })
   }
 
   // Edit
