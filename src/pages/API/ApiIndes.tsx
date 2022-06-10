@@ -3,19 +3,26 @@ import { Box, Button, Divider, Fab, IconButton, List, ListItem, ListItemButton, 
 import { Add, Refresh } from "@mui/icons-material"
 import { Link } from "react-router-dom"
 import EbinaAPI from "../../EbinaAPI"
+import { useRecoilValue } from "recoil"
+import { appNameSelector } from "../../atoms"
+
+var cacheAppName = ''
 
 const ApiIndex = () => {
   const [apiState, setApiState] = useState<any>({})
   const [apis, setApisState] = useState<any[]>([])
   const [refreshState, setRefreshState] = useState(true)
+  const appName = useRecoilValue(appNameSelector)
 
   useEffect(() => {
-    if (refreshState) {
-      EbinaAPI.getAPIStatus().then((res) => { if (res.status === 200) setApiState(res.data) })
-      EbinaAPI.getAPIs().then((res) => { if (res.status === 200) setApisState(res.data) })
+    if (refreshState || cacheAppName !== appName) {
+      EbinaAPI.getAPIStatus(appName).then((res) => { if (res.status === 200) setApiState(res.data) })
+      EbinaAPI.getAPIs(appName).then((res) => { if (res.status === 200) setApisState(res.data) })
       setRefreshState(false)
+      cacheAppName = appName
     }
-  }, [refreshState])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshState, appName])
 
   let labelStartButton: string = ''
   let labelStatus: string = ''
@@ -54,13 +61,13 @@ const ApiIndex = () => {
             primary={`${labelStatus}`}
             secondary={` ${apiState.started_at ? 'at ' + (new Date(apiState.started_at)).toLocaleString() : ''}`} />
           <ListItemIcon>
-            <Button variant="contained" onClick={() => EbinaAPI.startAPI().then(() => setRefreshState(true))}>
+            <Button variant="contained" onClick={() => EbinaAPI.startAPI(appName).then(() => setRefreshState(true))}>
               {labelStartButton}
             </Button>
           </ListItemIcon>
           <Box width='8pt' />
           <ListItemIcon>
-            <Button variant="contained" onClick={() => EbinaAPI.stopAPI().then(() => setRefreshState(true))}>
+            <Button variant="contained" onClick={() => EbinaAPI.stopAPI(appName).then(() => setRefreshState(true))}>
               Stop
             </Button>
           </ListItemIcon>

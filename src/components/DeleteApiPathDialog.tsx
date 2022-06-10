@@ -3,6 +3,7 @@ import EbinaAPI from "../EbinaAPI"
 
 type DeleteApiPathDialogProps = {
   open: boolean,
+  appName: string,
   name: string,
   onClose?: () => void,
   onDeleted?: () => void
@@ -21,7 +22,7 @@ const DeleteApiPathDialog = (props: DeleteApiPathDialogProps) => {
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
         <Button onClick={(() => {
-          EbinaAPI.deleteAPI(props.name).then((res) => {
+          EbinaAPI.deleteAPI(props.appName, props.name).then((res) => {
             if (res.status === 202) {
               props.onClose && props.onClose()
               props.onDeleted && props.onDeleted()

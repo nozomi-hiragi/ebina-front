@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { Box, Button, FormControl, InputLabel, List, ListItem, MenuItem, Select, TextField } from "@mui/material"
 import DeleteApiPathDialog from "../../components/DeleteApiPathDialog";
 import EbinaAPI from "../../EbinaAPI";
+import { useRecoilValue } from "recoil";
+import { appNameSelector, getJsListSelector } from "../../atoms";
 
 function useQuery() {
   const { search } = useLocation()
@@ -21,20 +23,24 @@ const typeList = [
   'JavaScript',
 ]
 
+var cacheAppName = ''
+
 const ApiEdit = () => {
   const [api, setApiState] = useState<TypeApi>({ path: "", name: "", type: "", value: "" })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [jsList, setJsList] = useState<string[]>([])
+  const jsList = useRecoilValue(getJsListSelector)
   const [jsFilename, setJsFilename] = useState<string>('')
   const [jsFuncname, setJsFuncname] = useState<string>('')
+  const appName = useRecoilValue(appNameSelector)
   const navigate = useNavigate()
+  if (!cacheAppName) cacheAppName = appName
 
   const query = useQuery()
   const name = query.get('name')
 
   useEffect(() => {
     if (name) {
-      EbinaAPI.getAPI(name).then((res) => {
+      EbinaAPI.getAPI(appName, name).then((res) => {
         if (res.status === 200) {
           const api: TypeApi = res.data
           switch (api.type) {
@@ -48,13 +54,16 @@ const ApiEdit = () => {
         }
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name])
 
   useEffect(() => {
-    EbinaAPI.getJSList().then((res) => {
-      if (res.status === 200) setJsList(res.data)
-    })
-  }, [])
+    if (cacheAppName !== appName) {
+      cacheAppName = appName
+      navigate('..')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appName])
 
   return (
     <Box m={1}>
@@ -123,11 +132,11 @@ const ApiEdit = () => {
               break;
           }
           if (name) {
-            EbinaAPI.updateAPI(api).then((res) => {
+            EbinaAPI.updateAPI(appName, api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           } else {
-            EbinaAPI.createPath(api).then((res) => {
+            EbinaAPI.createPath(appName, api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           }
@@ -135,7 +144,13 @@ const ApiEdit = () => {
           Save
         </Button>
       </Box>
-      <DeleteApiPathDialog name={name!} open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false) }} onDeleted={() => { navigate('..') }} />
+      <DeleteApiPathDialog
+        appName={appName}
+        name={name!}
+        open={deleteDialogOpen}
+        onClose={() => { setDeleteDialogOpen(false) }}
+        onDeleted={() => { navigate('..') }}
+      />
     </Box >
   )
 }
