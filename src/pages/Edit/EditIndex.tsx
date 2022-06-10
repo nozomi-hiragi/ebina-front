@@ -2,18 +2,26 @@ import { Refresh, Add } from "@mui/icons-material"
 import { Box, Toolbar, Typography, Tooltip, IconButton, List, ListItemText, ListItemButton, Fab, Divider } from "@mui/material"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { useRecoilValue } from "recoil"
+import { appNameSelector } from "../../atoms"
 import EbinaAPI from "../../EbinaAPI"
+
+var cacheAppName = ''
 
 const EditIndex = () => {
   const [fileList, setFileList] = useState<string[]>([])
   const [refreshState, setRefreshState] = useState(true)
+  const appName = useRecoilValue(appNameSelector)
 
   useEffect(() => {
-    if (refreshState) {
-      EbinaAPI.getJSList().then((list) => { setFileList(list.data) })
+    if (refreshState || cacheAppName !== appName) {
+      EbinaAPI.getJSList(appName).then((list) => { setFileList(list.data) })
       setRefreshState(false)
+      cacheAppName = appName
     }
-  }, [refreshState])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshState, appName])
+
   return (
     <Box>
       <Toolbar

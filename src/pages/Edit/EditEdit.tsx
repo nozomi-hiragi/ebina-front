@@ -5,8 +5,11 @@ import CopenhagenEditor from "../../components/CopenhagenEditor"
 import { Refresh, Save } from "@mui/icons-material"
 import EbinaAPI from "../../EbinaAPI"
 import Delete from "@mui/icons-material/Delete"
+import { useRecoilValue } from "recoil"
+import { appNameSelector } from "../../atoms"
 
 let isGettingJs = false
+var cacheAppName = ''
 
 const EditEdit = () => {
   const { path } = useParams()
@@ -17,6 +20,8 @@ const EditEdit = () => {
   const [editor, setEditor] = useState<any | null>(null)
   const [save, setSave] = useState(false)
   const [refresh, setRefresh] = useState(false)
+  const appName = useRecoilValue(appNameSelector)
+  if (!cacheAppName) cacheAppName = appName
 
   const isNeedJs = !isNew
   const lsKey = `JSEdit-${path}`
@@ -25,7 +30,7 @@ const EditEdit = () => {
   useEffect(() => {
     if (isNeedJs && !isGettingJs) {
       isGettingJs = true
-      EbinaAPI.getJS(filename).then((res) => {
+      EbinaAPI.getJS(appName, filename).then((res) => {
         if (res.status === 200) {
           setData(res.data)
           if (!localStorage.getItem(lsKey)) editor?.setValue(res.data)
@@ -47,7 +52,9 @@ const EditEdit = () => {
 
   useEffect(() => {
     if (save && filename) {
-      const result = isNew ? EbinaAPI.createJS(filename, editor!.value) : EbinaAPI.updateJS(filename, editor!.value)
+      const result = isNew
+        ? EbinaAPI.createJS(appName, filename, editor!.value)
+        : EbinaAPI.updateJS(appName, filename, editor!.value)
       result.then((res) => {
         if (res.status === 200) {
           setIsNew(false)
@@ -61,6 +68,14 @@ const EditEdit = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [save])
+
+  useEffect(() => {
+    if (cacheAppName !== appName) {
+      cacheAppName = appName
+      navigate('..')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appName])
 
   const initValue = localStorage.getItem(lsKey) ?? data
 
@@ -76,7 +91,7 @@ const EditEdit = () => {
           <Tooltip title="Delete">
             <IconButton onClick={() => {
               if (!isNew) {
-                EbinaAPI.deleteJS(filename).then((res) => {
+                EbinaAPI.deleteJS(appName, filename).then((res) => {
                   if (res.status === 200) { navigate('..') }
                 })
               }

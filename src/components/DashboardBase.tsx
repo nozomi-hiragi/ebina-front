@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { Suspense, useCallback } from "react";
 import { useState } from "react";
 import { Box } from "@mui/system";
 import SideMenu from "./SideMenu";
@@ -19,7 +19,9 @@ const DashboardBase = () => {
       <Header menuButton hideMenuAtWide onMenuButtonClick={() => { setDrawerOpen(!isDrawerOpen) }} />
       <SideMenu open={isDrawerOpen} onClose={() => { setDrawerOpen(false) }} >
         <Box component="main" ref={ref} width='100%' height={`calc(100vh - ${rect?.y}px)`}>
-          <Outlet />
+          <Suspense>
+            <Outlet />
+          </Suspense>
         </Box>
       </SideMenu>
     </Box>
