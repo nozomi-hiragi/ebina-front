@@ -30,11 +30,11 @@ const ApiEdit = () => {
   const navigate = useNavigate()
 
   const query = useQuery()
-  const path = query.get('path')
+  const name = query.get('name')
 
   useEffect(() => {
-    if (path) {
-      EbinaAPI.getPath(path).then((res) => {
+    if (name) {
+      EbinaAPI.getAPI(name).then((res) => {
         if (res.status === 200) {
           const api: TypeApi = res.data
           switch (api.type) {
@@ -48,42 +48,13 @@ const ApiEdit = () => {
         }
       })
     }
-  }, [path])
+  }, [name])
 
   useEffect(() => {
     EbinaAPI.getJSList().then((res) => {
       if (res.status === 200) setJsList(res.data)
     })
   }, [])
-
-  const ValueInput = () => (
-    <ListItem>
-      <TextField label="value" variant="standard" fullWidth value={api.value} onChange={(e) => {
-        setApiState({ path: api.path, name: api.name, type: api.type, value: e.target.value })
-      }} />
-    </ListItem>
-  )
-
-  const JsInput = () => <>
-    <ListItem>
-      <FormControl variant="standard" sx={{ minWidth: 120 }}>
-        <InputLabel id="js-label">JsFile</InputLabel>
-        <Select
-          label="Type"
-          labelId="jslabel"
-          value={jsFilename}
-          onChange={(e) => { setJsFilename(e.target.value) }}
-        >
-          {jsList.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-        </Select>
-      </FormControl>
-    </ListItem>
-    <ListItem>
-      <TextField label="Function" variant="standard" fullWidth value={jsFuncname} onChange={(e) => {
-        setJsFuncname(e.target.value)
-      }} />
-    </ListItem>
-  </>
 
   return (
     <Box m={1}>
@@ -113,10 +84,36 @@ const ApiEdit = () => {
             </Select>
           </FormControl>
         </ListItem>
-        {api.type === 'JavaScript' ? < JsInput /> : < ValueInput />}
+        {api.type === 'JavaScript'
+          ? <>
+            <ListItem>
+              <FormControl variant="standard" sx={{ minWidth: 120 }}>
+                <InputLabel id="js-label">JsFile</InputLabel>
+                <Select
+                  label="Type"
+                  labelId="jslabel"
+                  value={jsFilename}
+                  onChange={(e) => { setJsFilename(e.target.value) }}
+                >
+                  {jsList.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </ListItem>
+            <ListItem>
+              <TextField label="Function" variant="standard" fullWidth value={jsFuncname} onChange={(e) => {
+                setJsFuncname(e.target.value)
+              }} />
+            </ListItem>
+          </>
+          : <ListItem>
+            <TextField label="value" variant="standard" fullWidth value={api.value} onChange={(e) => {
+              setApiState({ path: api.path, name: api.name, type: api.type, value: e.target.value })
+            }} />
+          </ListItem>
+        }
       </List>
       <Box textAlign="right" m={1} sx={{ display: 'flex', justifyContent: 'right', gap: 4 }} >
-        {path && <Button variant="contained" onClick={() => { setDeleteDialogOpen(true) }}>
+        {name && <Button variant="contained" onClick={() => { setDeleteDialogOpen(true) }}>
           Delete
         </Button>}
         <Button variant="contained" type="submit" onClick={() => {
@@ -125,8 +122,8 @@ const ApiEdit = () => {
               api.value = `${jsFilename}>${jsFuncname}`
               break;
           }
-          if (path) {
-            EbinaAPI.updatePath(api).then((res) => {
+          if (name) {
+            EbinaAPI.updateAPI(api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           } else {
@@ -138,7 +135,7 @@ const ApiEdit = () => {
           Save
         </Button>
       </Box>
-      <DeleteApiPathDialog path={path!} open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false) }} onDeleted={() => { navigate('..') }} />
+      <DeleteApiPathDialog name={name!} open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false) }} onDeleted={() => { navigate('..') }} />
     </Box >
   )
 }

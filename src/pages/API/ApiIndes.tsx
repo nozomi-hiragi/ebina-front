@@ -70,7 +70,7 @@ const ApiIndex = () => {
           API List
         </ListSubheader>
         {apis.map((item) => (
-          <ListItemButton key={item.path} component={Link} to={`edit?path=${item.path}`}>
+          <ListItemButton key={item.name} component={Link} to={`edit?name=${item.name}`}>
             <ListItemText primary={item.name} secondary={item.path} />
           </ListItemButton>)
         )}
