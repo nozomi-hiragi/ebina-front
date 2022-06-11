@@ -15,9 +15,10 @@ type HeaderProps = {
 const AppNameSelector = () => {
   const appNameList = useRecoilValue(appNameListSelector)
   const [appName, setAppName] = useRecoilState(appNameSelector)
-  return <FormControl variant="standard" sx={{ m: 1, minWidth: 200, }}>
+  return <FormControl variant="standard" sx={{ m: 1, minWidth: 200 }}>
     <Select
       value={appName}
+      sx={{ color: "inherit" }}
       onChange={(e) => { setAppName(e.target.value) }}
     >
       {appNameList.map((appName) => <MenuItem key={appName} value={appName}>{appName}</MenuItem>)}

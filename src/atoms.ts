@@ -35,6 +35,7 @@ export const appNameListSelector = selector<string[]>({
     if (appNameList.length !== 0) return appNameList
     return await EbinaAPI.getAppNames().then((res) => res.status === 200 ? (res.data) : [])
   },
+  set: ({ set }, newValue) => { set(appNameListState, newValue) }
 })
 
 const appNameState = atom<string>({ key: 'appName', default: '', })
