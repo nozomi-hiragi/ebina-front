@@ -12,11 +12,16 @@ function useQuery() {
 }
 
 type TypeApi = {
-  path: string,
   name: string,
+  path: string,
+  method: string,
   type: string,
   value: string,
 }
+
+const methodList = [
+  'get', 'head', 'post', 'put', 'delete', 'options', 'patch',
+]
 
 const typeList = [
   'static',
@@ -26,7 +31,7 @@ const typeList = [
 var cacheAppName = ''
 
 const ApiEdit = () => {
-  const [api, setApiState] = useState<TypeApi>({ path: "", name: "", type: "", value: "" })
+  const [api, setApiState] = useState<TypeApi>({ name: '', path: '', method: '', type: '', value: '' })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const jsList = useRecoilValue(getJsListSelector)
   const [jsFilename, setJsFilename] = useState<string>('')
@@ -70,13 +75,28 @@ const ApiEdit = () => {
       <List>
         <ListItem>
           <TextField label="path" variant="standard" fullWidth value={api.path} onChange={(e) => {
-            setApiState({ path: e.target.value, name: api.name, type: api.type, value: api.value })
+            setApiState({ ...api, path: e.target.value })
           }} />
         </ListItem>
         <ListItem>
           <TextField label="name" variant="standard" fullWidth value={api.name} onChange={(e) => {
-            setApiState({ path: api.path, name: e.target.value, type: api.type, value: api.value })
+            setApiState({ ...api, name: e.target.value })
           }} />
+        </ListItem>
+        <ListItem>
+          <FormControl variant="standard" sx={{ minWidth: 120 }}>
+            <InputLabel id="method-label">Method</InputLabel>
+            <Select
+              label="Method"
+              labelId="method-label"
+              value={api.method}
+              onChange={(e) => { setApiState({ ...api, method: e.target.value }) }}
+            >
+              {methodList.map((method) => {
+                return (<MenuItem key={method} value={method}>{method}</MenuItem>)
+              })}
+            </Select>
+          </FormControl>
         </ListItem>
         <ListItem>
           <FormControl variant="standard" sx={{ minWidth: 120 }}>
@@ -116,7 +136,7 @@ const ApiEdit = () => {
           </>
           : <ListItem>
             <TextField label="value" variant="standard" fullWidth value={api.value} onChange={(e) => {
-              setApiState({ path: api.path, name: api.name, type: api.type, value: e.target.value })
+              setApiState({ ...api, value: e.target.value })
             }} />
           </ListItem>
         }

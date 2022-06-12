@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Box, Button, Divider, Fab, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader, Toolbar, Tooltip, Typography } from "@mui/material"
+import { Box, Button, Divider, Fab, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader, TextField, Toolbar, Tooltip, Typography } from "@mui/material"
 import { Add, Refresh } from "@mui/icons-material"
 import { Link } from "react-router-dom"
 import EbinaAPI from "../../EbinaAPI"
@@ -12,12 +12,14 @@ const ApiIndex = () => {
   const [apiState, setApiState] = useState<any>({})
   const [apis, setApisState] = useState<any[]>([])
   const [refreshState, setRefreshState] = useState(true)
+  const [port, setPort] = useState<number>(0)
   const appName = useRecoilValue(appNameSelector)
 
   useEffect(() => {
     if (refreshState || cacheAppName !== appName) {
       EbinaAPI.getAPIStatus(appName).then((res) => { if (res.status === 200) setApiState(res.data) })
       EbinaAPI.getAPIs(appName).then((res) => { if (res.status === 200) setApisState(res.data) })
+      EbinaAPI.getPort(appName).then((res) => { if (res.status === 200) setPort(res.data.port) })
       setRefreshState(false)
       cacheAppName = appName
     }
@@ -53,7 +55,7 @@ const ApiIndex = () => {
       </Toolbar>
       <Divider />
       <List>
-        <ListSubheader component="div" id="nested-list-subheader">
+        <ListSubheader component="div" id="subheader-status">
           Status
         </ListSubheader>
         <ListItem>
@@ -71,6 +73,19 @@ const ApiIndex = () => {
               Stop
             </Button>
           </ListItemIcon>
+        </ListItem>
+        <Divider />
+        <ListSubheader component="div" id="subheader-port">
+          Port
+        </ListSubheader>
+        <ListItem>
+          <TextField label="Port" variant="standard" type="number" fullWidth value={port} onChange={(e) => {
+            setPort(Number(e.target.value))
+          }} />
+          <Box width='8pt' />
+          <Button variant="contained" onClick={() => EbinaAPI.updatePort(appName, port).then(() => setRefreshState(true))}>
+            Save
+          </Button>
         </ListItem>
         <Divider />
         <ListSubheader component="div" id="nested-list-subheader">
