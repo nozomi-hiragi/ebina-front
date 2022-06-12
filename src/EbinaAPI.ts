@@ -174,6 +174,16 @@ class EbinaAPI {
     return this.ax.delete(`/ebina/app/${appName}/api/path`, { params: { name } })
   }
 
+  public getPort(appName: string) {
+    this.checkURL()
+    return this.ax.get(`/ebina/app/${appName}/api/port`)
+  }
+
+  public updatePort(appName: string, port: number) {
+    this.checkURL()
+    return this.ax.put(`/ebina/app/${appName}/api/port`, { port })
+  }
+
   // Edit
 
   public createJS(appName: string, path: string, data: string | undefined = undefined) {
