@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { Box, Button, FormControl, InputLabel, List, ListItem, MenuItem, Select, TextField } from "@mui/material"
 import DeleteApiPathDialog from "../../components/DeleteApiPathDialog";
 import EbinaAPI from "../../EbinaAPI";
+import { useRecoilValue } from "recoil";
+import { appNameSelector, getJsListSelector } from "../../atoms";
 
 function useQuery() {
   const { search } = useLocation()
@@ -10,31 +12,40 @@ function useQuery() {
 }
 
 type TypeApi = {
-  path: string,
   name: string,
+  path: string,
+  method: string,
   type: string,
   value: string,
 }
+
+const methodList = [
+  'get', 'head', 'post', 'put', 'delete', 'options', 'patch',
+]
 
 const typeList = [
   'static',
   'JavaScript',
 ]
 
+var cacheAppName = ''
+
 const ApiEdit = () => {
-  const [api, setApiState] = useState<TypeApi>({ path: "", name: "", type: "", value: "" })
+  const [api, setApiState] = useState<TypeApi>({ name: '', path: '', method: '', type: '', value: '' })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [jsList, setJsList] = useState<string[]>([])
+  const jsList = useRecoilValue(getJsListSelector)
   const [jsFilename, setJsFilename] = useState<string>('')
   const [jsFuncname, setJsFuncname] = useState<string>('')
+  const appName = useRecoilValue(appNameSelector)
   const navigate = useNavigate()
+  if (!cacheAppName) cacheAppName = appName
 
   const query = useQuery()
-  const path = query.get('path')
+  const name = query.get('name')
 
   useEffect(() => {
-    if (path) {
-      EbinaAPI.getPath(path).then((res) => {
+    if (name) {
+      EbinaAPI.getAPI(appName, name).then((res) => {
         if (res.status === 200) {
           const api: TypeApi = res.data
           switch (api.type) {
@@ -48,55 +59,44 @@ const ApiEdit = () => {
         }
       })
     }
-  }, [path])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name])
 
   useEffect(() => {
-    EbinaAPI.getJSList().then((res) => {
-      if (res.status === 200) setJsList(res.data)
-    })
-  }, [])
-
-  const ValueInput = () => (
-    <ListItem>
-      <TextField label="value" variant="standard" fullWidth value={api.value} onChange={(e) => {
-        setApiState({ path: api.path, name: api.name, type: api.type, value: e.target.value })
-      }} />
-    </ListItem>
-  )
-
-  const JsInput = () => <>
-    <ListItem>
-      <FormControl variant="standard" sx={{ minWidth: 120 }}>
-        <InputLabel id="js-label">JsFile</InputLabel>
-        <Select
-          label="Type"
-          labelId="jslabel"
-          value={jsFilename}
-          onChange={(e) => { setJsFilename(e.target.value) }}
-        >
-          {jsList.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-        </Select>
-      </FormControl>
-    </ListItem>
-    <ListItem>
-      <TextField label="Function" variant="standard" fullWidth value={jsFuncname} onChange={(e) => {
-        setJsFuncname(e.target.value)
-      }} />
-    </ListItem>
-  </>
+    if (cacheAppName !== appName) {
+      cacheAppName = appName
+      navigate('..')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appName])
 
   return (
     <Box m={1}>
       <List>
         <ListItem>
           <TextField label="path" variant="standard" fullWidth value={api.path} onChange={(e) => {
-            setApiState({ path: e.target.value, name: api.name, type: api.type, value: api.value })
+            setApiState({ ...api, path: e.target.value })
           }} />
         </ListItem>
         <ListItem>
           <TextField label="name" variant="standard" fullWidth value={api.name} onChange={(e) => {
-            setApiState({ path: api.path, name: e.target.value, type: api.type, value: api.value })
+            setApiState({ ...api, name: e.target.value })
           }} />
+        </ListItem>
+        <ListItem>
+          <FormControl variant="standard" sx={{ minWidth: 120 }}>
+            <InputLabel id="method-label">Method</InputLabel>
+            <Select
+              label="Method"
+              labelId="method-label"
+              value={api.method}
+              onChange={(e) => { setApiState({ ...api, method: e.target.value }) }}
+            >
+              {methodList.map((method) => {
+                return (<MenuItem key={method} value={method}>{method}</MenuItem>)
+              })}
+            </Select>
+          </FormControl>
         </ListItem>
         <ListItem>
           <FormControl variant="standard" sx={{ minWidth: 120 }}>
@@ -113,10 +113,36 @@ const ApiEdit = () => {
             </Select>
           </FormControl>
         </ListItem>
-        {api.type === 'JavaScript' ? < JsInput /> : < ValueInput />}
+        {api.type === 'JavaScript'
+          ? <>
+            <ListItem>
+              <FormControl variant="standard" sx={{ minWidth: 120 }}>
+                <InputLabel id="js-label">JsFile</InputLabel>
+                <Select
+                  label="Type"
+                  labelId="jslabel"
+                  value={jsFilename}
+                  onChange={(e) => { setJsFilename(e.target.value) }}
+                >
+                  {jsList.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </ListItem>
+            <ListItem>
+              <TextField label="Function" variant="standard" fullWidth value={jsFuncname} onChange={(e) => {
+                setJsFuncname(e.target.value)
+              }} />
+            </ListItem>
+          </>
+          : <ListItem>
+            <TextField label="value" variant="standard" fullWidth value={api.value} onChange={(e) => {
+              setApiState({ ...api, value: e.target.value })
+            }} />
+          </ListItem>
+        }
       </List>
       <Box textAlign="right" m={1} sx={{ display: 'flex', justifyContent: 'right', gap: 4 }} >
-        {path && <Button variant="contained" onClick={() => { setDeleteDialogOpen(true) }}>
+        {name && <Button variant="contained" onClick={() => { setDeleteDialogOpen(true) }}>
           Delete
         </Button>}
         <Button variant="contained" type="submit" onClick={() => {
@@ -125,12 +151,12 @@ const ApiEdit = () => {
               api.value = `${jsFilename}>${jsFuncname}`
               break;
           }
-          if (path) {
-            EbinaAPI.updatePath(api).then((res) => {
+          if (name) {
+            EbinaAPI.updateAPI(appName, api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           } else {
-            EbinaAPI.createPath(api).then((res) => {
+            EbinaAPI.createPath(appName, api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           }
@@ -138,7 +164,13 @@ const ApiEdit = () => {
           Save
         </Button>
       </Box>
-      <DeleteApiPathDialog path={path!} open={deleteDialogOpen} onClose={() => { setDeleteDialogOpen(false) }} onDeleted={() => { navigate('..') }} />
+      <DeleteApiPathDialog
+        appName={appName}
+        name={name!}
+        open={deleteDialogOpen}
+        onClose={() => { setDeleteDialogOpen(false) }}
+        onDeleted={() => { navigate('..') }}
+      />
     </Box >
   )
 }
