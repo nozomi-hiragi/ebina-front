@@ -1,6 +1,7 @@
 {
   "name": "ebina-front",
   "version": "0.0.2",
+  "homepage": "https://nozomi-hiragi.github.io/ebina-front/",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.9.0",
