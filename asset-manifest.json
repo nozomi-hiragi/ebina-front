@@ -1,12 +1,12 @@
 {
   "files": {
-    "main.js": "/ebina-front/static/js/main.0d144c91.js",
+    "main.js": "/ebina-front/static/js/main.5146b6e6.js",
     "static/js/787.8d8aefb5.chunk.js": "/ebina-front/static/js/787.8d8aefb5.chunk.js",
     "index.html": "/ebina-front/index.html",
-    "main.0d144c91.js.map": "/ebina-front/static/js/main.0d144c91.js.map",
+    "main.5146b6e6.js.map": "/ebina-front/static/js/main.5146b6e6.js.map",
     "787.8d8aefb5.chunk.js.map": "/ebina-front/static/js/787.8d8aefb5.chunk.js.map"
   },
   "entrypoints": [
-    "static/js/main.0d144c91.js"
+    "static/js/main.5146b6e6.js"
   ]
 }
