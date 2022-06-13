@@ -13,7 +13,6 @@ function useQuery() {
 
 type TypeApi = {
   name: string,
-  path: string,
   method: string,
   type: string,
   value: string,
@@ -31,7 +30,8 @@ const typeList = [
 var cacheAppName = ''
 
 const ApiEdit = () => {
-  const [api, setApiState] = useState<TypeApi>({ name: '', path: '', method: '', type: '', value: '' })
+  const [path, setPath] = useState('')
+  const [api, setApiState] = useState<TypeApi>({ name: '', method: '', type: '', value: '' })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const jsList = useRecoilValue(getJsListSelector)
   const [jsFilename, setJsFilename] = useState<string>('')
@@ -41,11 +41,11 @@ const ApiEdit = () => {
   if (!cacheAppName) cacheAppName = appName
 
   const query = useQuery()
-  const name = query.get('name')
+  const queryPath = query.get('path')
 
   useEffect(() => {
-    if (name) {
-      EbinaAPI.getAPI(appName, name).then((res) => {
+    if (queryPath) {
+      EbinaAPI.getAPI(appName, queryPath).then((res) => {
         if (res.status === 200) {
           const api: TypeApi = res.data
           switch (api.type) {
@@ -55,12 +55,13 @@ const ApiEdit = () => {
               setJsFuncname(args[1])
               break;
           }
+          setPath(queryPath)
           setApiState(api)
         }
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name])
+  }, [queryPath])
 
   useEffect(() => {
     if (cacheAppName !== appName) {
@@ -74,8 +75,8 @@ const ApiEdit = () => {
     <Box m={1}>
       <List>
         <ListItem>
-          <TextField label="path" variant="standard" fullWidth value={api.path} onChange={(e) => {
-            setApiState({ ...api, path: e.target.value })
+          <TextField label="path" variant="standard" fullWidth value={path} disabled={queryPath !== null} onChange={(e) => {
+            setPath(e.target.value)
           }} />
         </ListItem>
         <ListItem>
@@ -142,7 +143,7 @@ const ApiEdit = () => {
         }
       </List>
       <Box textAlign="right" m={1} sx={{ display: 'flex', justifyContent: 'right', gap: 4 }} >
-        {name && <Button variant="contained" onClick={() => { setDeleteDialogOpen(true) }}>
+        {queryPath && <Button variant="contained" onClick={() => { setDeleteDialogOpen(true) }}>
           Delete
         </Button>}
         <Button variant="contained" type="submit" onClick={() => {
@@ -151,12 +152,12 @@ const ApiEdit = () => {
               api.value = `${jsFilename}>${jsFuncname}`
               break;
           }
-          if (name) {
-            EbinaAPI.updateAPI(appName, api).then((res) => {
+          if (queryPath) {
+            EbinaAPI.updateAPI(appName, queryPath, api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           } else {
-            EbinaAPI.createPath(appName, api).then((res) => {
+            EbinaAPI.createPath(appName, path, api).then((res) => {
               if (res.status === 200) { navigate('..') }
             })
           }
@@ -166,7 +167,7 @@ const ApiEdit = () => {
       </Box>
       <DeleteApiPathDialog
         appName={appName}
-        name={name!}
+        path={queryPath!}
         open={deleteDialogOpen}
         onClose={() => { setDeleteDialogOpen(false) }}
         onDeleted={() => { navigate('..') }}
