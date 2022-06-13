@@ -63,13 +63,13 @@ const ApiIndex = () => {
             primary={`${labelStatus}`}
             secondary={` ${apiState.started_at ? 'at ' + (new Date(apiState.started_at)).toLocaleString() : ''}`} />
           <ListItemIcon>
-            <Button variant="contained" onClick={() => EbinaAPI.startAPI(appName).then(() => setRefreshState(true))}>
+            <Button variant="contained" onClick={() => EbinaAPI.updateAPIStatus(appName, 'start').then(() => setRefreshState(true))}>
               {labelStartButton}
             </Button>
           </ListItemIcon>
           <Box width='8pt' />
           <ListItemIcon>
-            <Button variant="contained" onClick={() => EbinaAPI.stopAPI(appName).then(() => setRefreshState(true))}>
+            <Button variant="contained" onClick={() => EbinaAPI.updateAPIStatus(appName, 'stop').then(() => setRefreshState(true))}>
               Stop
             </Button>
           </ListItemIcon>
@@ -92,8 +92,8 @@ const ApiIndex = () => {
           API List
         </ListSubheader>
         {apis.map((item) => (
-          <ListItemButton key={item.name} component={Link} to={`edit?name=${item.name}`}>
-            <ListItemText primary={item.name} secondary={item.path} />
+          <ListItemButton key={item.path} component={Link} to={`edit?path=${item.path}`}>
+            <ListItemText primary={item.api.name} secondary={item.path} />
           </ListItemButton>)
         )}
       </List>

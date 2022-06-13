@@ -46,7 +46,7 @@ class EbinaAPI {
 
   public userRegist(user: any) {
     this.checkURL()
-    return this.ax.post('/ebina/user/regist', user)
+    return this.ax.post('/ebina/user', user)
   }
 
   public async login(id: string, pass: string) {
@@ -84,7 +84,7 @@ class EbinaAPI {
 
   public async getWebAuthnDeviceNames() {
     this.checkURL()
-    const res = await this.ax.get('/ebina/user/webauthn/devices')
+    const res = await this.ax.get('/ebina/user/webauthn/device')
     return res
   }
 
@@ -107,19 +107,19 @@ class EbinaAPI {
 
   public getUsers() {
     this.checkURL()
-    return this.ax.get('/ebina/users/users')
+    return this.ax.get('/ebina/user')
   }
 
   public deleteUsers(ids: string[]) {
     this.checkURL()
-    return this.ax.delete('/ebina/users/users', { params: { ids: ids.join() } })
+    return this.ax.delete('/ebina/user', { params: { ids: ids } })
   }
 
   // Apps
 
   public getAppNames() {
     this.checkURL()
-    return this.ax.get('/ebina/apps')
+    return this.ax.get('/ebina/app')
   }
 
   public createApp(name: string) {
@@ -139,39 +139,34 @@ class EbinaAPI {
     return this.ax.get(`/ebina/app/${appName}/api/status`)
   }
 
-  public startAPI(appName: string) {
+  public updateAPIStatus(appName: string, status: string) {
     this.checkURL()
-    return this.ax.post(`/ebina/app/${appName}/api/start`)
-  }
-
-  public stopAPI(appName: string) {
-    this.checkURL()
-    return this.ax.post(`/ebina/app/${appName}/api/stop`)
+    return this.ax.put(`/ebina/app/${appName}/api/status`, { status })
   }
 
   public getAPIs(appName: string) {
     this.checkURL()
-    return this.ax.get(`/ebina/app/${appName}/api/apis`)
+    return this.ax.get(`/ebina/app/${appName}/api/endpoint`)
   }
 
-  public createPath(appName: string, api: any) {
+  public createPath(appName: string, path: string, api: any) {
     this.checkURL()
-    return this.ax.post(`/ebina/app/${appName}/api/path`, api)
+    return this.ax.post(`/ebina/app/${appName}/api/endpoint/${path}`, api)
   }
 
-  public getAPI(appName: string, name: string) {
+  public getAPI(appName: string, path: string) {
     this.checkURL()
-    return this.ax.get(`/ebina/app/${appName}/api/api`, { params: { name } })
+    return this.ax.get(`/ebina/app/${appName}/api/endpoint/${path}`)
   }
 
-  public updateAPI(appName: string, api: any) {
+  public updateAPI(appName: string, path: string, api: any) {
     this.checkURL()
-    return this.ax.put(`/ebina/app/${appName}/api/path`, api)
+    return this.ax.put(`/ebina/app/${appName}/api/endpoint/${path}`, api)
   }
 
-  public deleteAPI(appName: string, name: string) {
+  public deleteAPI(appName: string, path: string) {
     this.checkURL()
-    return this.ax.delete(`/ebina/app/${appName}/api/path`, { params: { name } })
+    return this.ax.delete(`/ebina/app/${appName}/api/endpoint/${path}`)
   }
 
   public getPort(appName: string) {
@@ -184,31 +179,31 @@ class EbinaAPI {
     return this.ax.put(`/ebina/app/${appName}/api/port`, { port })
   }
 
-  // Edit
+  // JS
 
   public createJS(appName: string, path: string, data: string | undefined = undefined) {
     this.checkURL()
-    return this.ax.post(`/ebina/app/${appName}/edit/js/${path}`, data, { headers: { 'content-type': 'text/plain' } })
+    return this.ax.post(`/ebina/app/${appName}/js/${path}`, data, { headers: { 'content-type': 'text/plain' } })
   }
 
   public getJSList(appName: string) {
     this.checkURL()
-    return this.ax.get(`/ebina/app/${appName}/edit/js`)
+    return this.ax.get(`/ebina/app/${appName}/js`)
   }
 
   public getJS(appName: string, path: string) {
     this.checkURL()
-    return this.ax.get(`/ebina/app/${appName}/edit/js/${path}`)
+    return this.ax.get(`/ebina/app/${appName}/js/${path}`)
   }
 
   public updateJS(appName: string, path: string, data: string) {
     this.checkURL()
-    return this.ax.patch(`/ebina/app/${appName}/edit/js/${path}`, data, { headers: { 'content-type': 'text/plain' } })
+    return this.ax.patch(`/ebina/app/${appName}/js/${path}`, data, { headers: { 'content-type': 'text/plain' } })
   }
 
   public deleteJS(appName: string, path: string) {
     this.checkURL()
-    return this.ax.delete(`/ebina/app/${appName}/edit/js/${path}`)
+    return this.ax.delete(`/ebina/app/${appName}/js/${path}`)
   }
 }
 
