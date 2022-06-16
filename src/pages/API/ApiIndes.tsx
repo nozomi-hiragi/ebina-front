@@ -17,9 +17,9 @@ const ApiIndex = () => {
 
   useEffect(() => {
     if (refreshState || cacheAppName !== appName) {
-      EbinaAPI.getAPIStatus(appName).then((res) => { if (res.status === 200) setApiState(res.data) })
-      EbinaAPI.getAPIs(appName).then((res) => { if (res.status === 200) setApisState(res.data) })
-      EbinaAPI.getPort(appName).then((res) => { if (res.status === 200) setPort(res.data.port) })
+      EbinaAPI.getAPIStatus(appName).then((res) => { setApiState(res) })
+      EbinaAPI.getAPIs(appName).then((res) => { setApisState(res) })
+      EbinaAPI.getPort(appName).then((res) => { setPort(res) })
       setRefreshState(false)
       cacheAppName = appName
     }

@@ -22,14 +22,10 @@ const DeleteApiPathDialog = (props: DeleteApiPathDialogProps) => {
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
         <Button onClick={(() => {
-          EbinaAPI.deleteAPI(props.appName, props.path).then((res) => {
-            if (res.status === 200) {
-              props.onClose && props.onClose()
-              props.onDeleted && props.onDeleted()
-            } else {
-              console.log(res.data)
-            }
-          })
+          EbinaAPI.deleteAPI(props.appName, props.path).then(() => {
+            props.onClose && props.onClose()
+            props.onDeleted && props.onDeleted()
+          }).catch((err) => { console.log(err) })
         })}>Delete</Button>
       </DialogActions>
     </Dialog>

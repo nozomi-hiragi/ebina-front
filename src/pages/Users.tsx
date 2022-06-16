@@ -20,8 +20,8 @@ const Users = () => {
 
   useEffect(() => {
     EbinaAPI.getUsers().then((res) => {
-      if (res.status === 200) { setUsers(res.data) }
-    })
+      setUsers(res)
+    }).catch((err) => { alert(err) })
     setRefreshUser(false)
   }, [refreshUser])
 
