@@ -25,5 +25,6 @@ jobs:
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          deploy_key: ${{ secrets.EBINA_FRONT }}
+          external_repository: nozomi-hiragi/ebina-station
           publish_dir: ./build
