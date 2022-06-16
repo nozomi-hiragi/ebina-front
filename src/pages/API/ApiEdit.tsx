@@ -5,33 +5,22 @@ import DeleteApiPathDialog from "../../components/DeleteApiPathDialog";
 import EbinaAPI from "../../EbinaAPI";
 import { useRecoilValue } from "recoil";
 import { appNameSelector, getJsListSelector } from "../../atoms";
+import { ApiTypeList, TypeApi, TypeApiMethods, TypeApiTypes } from "../../types";
 
 function useQuery() {
   const { search } = useLocation()
   return React.useMemo(() => new URLSearchParams(search), [search])
 }
 
-type TypeApi = {
-  name: string,
-  method: string,
-  type: string,
-  value: string,
-}
-
 const methodList = [
   'get', 'head', 'post', 'put', 'delete', 'options', 'patch',
-]
-
-const typeList = [
-  'static',
-  'JavaScript',
 ]
 
 var cacheAppName = ''
 
 const ApiEdit = () => {
   const [path, setPath] = useState('')
-  const [api, setApiState] = useState<TypeApi>({ name: '', method: '', type: '', value: '' })
+  const [api, setApiState] = useState<TypeApi>({ name: '', method: 'get', type: 'static', value: '' })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const jsList = useRecoilValue(getJsListSelector)
   const [jsFilename, setJsFilename] = useState<string>('')
@@ -45,19 +34,16 @@ const ApiEdit = () => {
 
   useEffect(() => {
     if (queryPath) {
-      EbinaAPI.getAPI(appName, queryPath).then((res) => {
-        if (res.status === 200) {
-          const api: TypeApi = res.data
-          switch (api.type) {
-            case 'JavaScript':
-              const args = api.value.split('>')
-              setJsFilename(args[0])
-              setJsFuncname(args[1])
-              break;
-          }
-          setPath(queryPath)
-          setApiState(api)
+      EbinaAPI.getAPI(appName, queryPath).then((api) => {
+        switch (api.type) {
+          case 'JavaScript':
+            const args = api.value.split('>')
+            setJsFilename(args[0])
+            setJsFuncname(args[1])
+            break;
         }
+        setPath(queryPath)
+        setApiState(api)
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,7 +77,7 @@ const ApiEdit = () => {
               label="Method"
               labelId="method-label"
               value={api.method}
-              onChange={(e) => { setApiState({ ...api, method: e.target.value }) }}
+              onChange={(e) => { setApiState({ ...api, method: e.target.value as TypeApiMethods }) }}
             >
               {methodList.map((method) => {
                 return (<MenuItem key={method} value={method}>{method}</MenuItem>)
@@ -106,9 +92,9 @@ const ApiEdit = () => {
               label="Type"
               labelId="type-label"
               value={api.type}
-              onChange={(e) => { setApiState({ ...api, type: e.target.value }) }}
+              onChange={(e) => { setApiState({ ...api, type: e.target.value as TypeApiTypes }) }}
             >
-              {typeList.map((type) => {
+              {ApiTypeList.map((type) => {
                 return (<MenuItem key={type} value={type}>{type}</MenuItem>)
               })}
             </Select>
@@ -153,13 +139,9 @@ const ApiEdit = () => {
               break;
           }
           if (queryPath) {
-            EbinaAPI.updateAPI(appName, queryPath, api).then((res) => {
-              if (res.status === 200) { navigate('..') }
-            })
+            EbinaAPI.updateAPI(appName, queryPath, api).then((res) => { navigate('..') })
           } else {
-            EbinaAPI.createPath(appName, path, api).then((res) => {
-              if (res.status === 200) { navigate('..') }
-            })
+            EbinaAPI.createPath(appName, path, api).then((res) => { navigate('..') })
           }
         }}>
           Save

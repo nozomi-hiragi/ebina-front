@@ -23,15 +23,11 @@ const CreateUserDialog = (props: CreateDialogProps) => {
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
         <Button onClick={(() => {
-          const user = { id: idRef.current?.value, name: nameRef.current?.value, pass: passRef.current?.value }
-          EbinaAPI.userRegist(user).then((res) => {
-            if (res.status === 201) {
-              props.onClose && props.onClose()
-              props.onCreated && props.onCreated()
-            } else {
-              console.log(res.data)
-            }
-          })
+          const user = { id: idRef.current?.value ?? '', name: nameRef.current?.value ?? '', pass: passRef.current?.value ?? '' }
+          EbinaAPI.userRegist(user).then(() => {
+            props.onClose && props.onClose()
+            props.onCreated && props.onCreated()
+          }).catch((err) => { console.log(err.message) })
         })}>Create</Button>
       </DialogActions>
     </Dialog>

@@ -31,11 +31,9 @@ const EditEdit = () => {
     if (isNeedJs && !isGettingJs) {
       isGettingJs = true
       EbinaAPI.getJS(appName, filename).then((res) => {
-        if (res.status === 200) {
-          setData(res.data)
-          if (!localStorage.getItem(lsKey)) editor?.setValue(res.data)
-          isGettingJs = false
-        }
+        setData(res)
+        if (!localStorage.getItem(lsKey)) editor?.setValue(res)
+        isGettingJs = false
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,16 +53,12 @@ const EditEdit = () => {
       const result = isNew
         ? EbinaAPI.createJS(appName, filename, editor!.value)
         : EbinaAPI.updateJS(appName, filename, editor!.value)
-      result.then((res) => {
-        if (res.status === 200) {
-          setIsNew(false)
-          setData(editor!.value)
-          localStorage.removeItem(lsKey)
-          setSave(false)
-        } else {
-          console.log(res.data)
-        }
-      })
+      result.then(() => {
+        setIsNew(false)
+        setData(editor!.value)
+        localStorage.removeItem(lsKey)
+        setSave(false)
+      }).catch((err) => { console.log(err) })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [save])
@@ -91,9 +85,7 @@ const EditEdit = () => {
           <Tooltip title="Delete">
             <IconButton onClick={() => {
               if (!isNew) {
-                EbinaAPI.deleteJS(appName, filename).then((res) => {
-                  if (res.status === 200) { navigate('..') }
-                })
+                EbinaAPI.deleteJS(appName, filename).then(() => { navigate('..') })
               }
             }}>
               <Delete />
