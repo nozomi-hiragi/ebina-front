@@ -13,8 +13,8 @@ const Setting = () => {
     if (refreshDevices) {
       setRefreshDevices(false)
       EbinaAPI.getWebAuthnDeviceNames().then((res) => {
-        if (res.status === 200) { setWaNames(res.data) }
-      })
+        setWaNames(res)
+      }).catch((err) => { alert(err) })
     }
   }, [refreshDevices])
 
@@ -26,32 +26,20 @@ const Setting = () => {
         }} />
       </ListItem>
       <ListItemButton onClick={() => {
-        EbinaAPI.getWebAuthnRegistOptions().then((res) => {
-          if (res.status !== 200) { return console.log('create failed') }
-          console.log(res.data)
-          return startRegistration(res.data)
-        }).then((res) => {
-          return EbinaAPI.sendWebAuthnRegistCredential(res, deviceName)
-        }).then((res) => {
+        EbinaAPI.getWebAuthnRegistOptions().then((res) =>
+          startRegistration(res)
+        ).then((res) =>
+          EbinaAPI.sendWebAuthnRegistCredential(res, deviceName)
+        ).then(() => {
           setRefreshDevices(true)
-          console.log(res)
-        }).catch((err) => {
-          alert(err)
-          console.log('cancel:', err)
-        })
+        }).catch((err) => { alert(err) })
       }}>
         <ListItemText primary={'Regist WebAuthn'} />
       </ListItemButton>
       <ListItemButton onClick={() => {
         EbinaAPI.deleteWebAuthnDevice(deviceName).then((res) => {
-          if (res.status !== 200) { return console.log('delete failed') }
-        }).then((res) => {
           setRefreshDevices(true)
-          console.log(res)
-        }).catch((err) => {
-          alert(err)
-          console.log('delete failed:', err)
-        })
+        }).catch((err) => { alert(err) })
       }}>
         <ListItemText primary={'Delete Device'} />
       </ListItemButton>
@@ -74,17 +62,11 @@ const Setting = () => {
         </FormControl>
       </ListItem>
       <ListItemButton onClick={() => {
-        EbinaAPI.getWebAuthnVerifyOptions(selectedNames).then((res) => {
-          if (res.status !== 200) { return console.log('create failed') }
-          console.log(res.data)
-          return startAuthentication(res.data)
-        }).then((res) => {
-          return EbinaAPI.sendWebAuthnVerifyCredential(res)
-        }).then((res) => {
-          console.log(res)
-        }).catch((err) => {
-          console.log('cancel:', err)
-        })
+        EbinaAPI.getWebAuthnVerifyOptions(selectedNames).then((res) =>
+          startAuthentication(res)
+        ).then((res) =>
+          EbinaAPI.sendWebAuthnVerifyCredential(res)
+        ).catch((err) => { alert(err) })
       }}>
         <ListItemText primary={'Verify WebAuthn'} />
       </ListItemButton>

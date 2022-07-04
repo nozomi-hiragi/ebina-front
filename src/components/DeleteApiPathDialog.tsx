@@ -4,7 +4,7 @@ import EbinaAPI from "../EbinaAPI"
 type DeleteApiPathDialogProps = {
   open: boolean,
   appName: string,
-  name: string,
+  path: string,
   onClose?: () => void,
   onDeleted?: () => void
 }
@@ -17,19 +17,15 @@ const DeleteApiPathDialog = (props: DeleteApiPathDialogProps) => {
         <Typography variant="h6">
           Delete?
         </Typography>
-        <Typography color='red'>{props.name}</Typography>
+        <Typography color='red'>{props.path}</Typography>
       </DialogContent>
       <DialogActions>
         <Button onClick={props.onClose}>Cancel</Button>
         <Button onClick={(() => {
-          EbinaAPI.deleteAPI(props.appName, props.name).then((res) => {
-            if (res.status === 202) {
-              props.onClose && props.onClose()
-              props.onDeleted && props.onDeleted()
-            } else {
-              console.log(res.data)
-            }
-          })
+          EbinaAPI.deleteAPI(props.appName, props.path).then(() => {
+            props.onClose && props.onClose()
+            props.onDeleted && props.onDeleted()
+          }).catch((err) => { console.log(err) })
         })}>Delete</Button>
       </DialogActions>
     </Dialog>

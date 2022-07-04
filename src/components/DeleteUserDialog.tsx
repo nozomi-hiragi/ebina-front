@@ -22,13 +22,9 @@ const DeleteUserDialog = (props: DeleteUserDialogProps) => {
         <Button onClick={props.onClose}>Cancel</Button>
         <Button onClick={(() => {
           EbinaAPI.deleteUsers(props.ids).then((res) => {
-            if (res.status === 202) {
-              props.onClose && props.onClose()
-              props.onDeleted && props.onDeleted()
-            } else {
-              console.log(res.data)
-            }
-          })
+            props.onClose && props.onClose()
+            props.onDeleted && props.onDeleted()
+          }).catch((err) => { console.log(err) })
         })}>Delete</Button>
       </DialogActions>
     </Dialog>

@@ -68,13 +68,9 @@ const Login = () => {
           }
         })()
         EbinaAPI.setURL(url)
-        EbinaAPI.login(id, pass).then((res) => {
-          if (res.status !== 200) {
-            console.log('error')
-            return
-          }
-          setUser(res.data.user)
-        })
+        EbinaAPI.login({ id, pass }).then((user) => {
+          setUser(user)
+        }).catch((err) => { console.log(err.message) })
       })}>
         Login
       </Button>

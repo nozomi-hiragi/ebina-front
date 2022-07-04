@@ -33,7 +33,10 @@ export const appNameListSelector = selector<string[]>({
   get: async ({ get }) => {
     const appNameList = get(appNameListState)
     if (appNameList.length !== 0) return appNameList
-    return await EbinaAPI.getAppNames().then((res) => res.status === 200 ? (res.data) : [])
+    return await EbinaAPI.getAppNames().then((res) => res).catch((err) => {
+      console.error(err)
+      return []
+    })
   },
   set: ({ set }, newValue) => { set(appNameListState, newValue) }
 })
@@ -52,11 +55,9 @@ export const appNameSelector = selector<string>({
 export const getJsListSelector = selector<string[]>({
   key: 'getJsListSelector',
   get: async ({ get }) => {
-    const res = await EbinaAPI.getJSList(get(appNameSelector))
-    if (res.status !== 200) {
-      console.error(res.data)
-      return undefined
-    }
-    return res.data
+    return await EbinaAPI.getJSList(get(appNameSelector)).catch((err) => {
+      console.error(err)
+      return []
+    })
   },
 })

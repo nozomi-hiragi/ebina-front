@@ -17,9 +17,9 @@ const ApiIndex = () => {
 
   useEffect(() => {
     if (refreshState || cacheAppName !== appName) {
-      EbinaAPI.getAPIStatus(appName).then((res) => { if (res.status === 200) setApiState(res.data) })
-      EbinaAPI.getAPIs(appName).then((res) => { if (res.status === 200) setApisState(res.data) })
-      EbinaAPI.getPort(appName).then((res) => { if (res.status === 200) setPort(res.data.port) })
+      EbinaAPI.getAPIStatus(appName).then((res) => { setApiState(res) })
+      EbinaAPI.getAPIs(appName).then((res) => { setApisState(res) })
+      EbinaAPI.getPort(appName).then((res) => { setPort(res) })
       setRefreshState(false)
       cacheAppName = appName
     }
@@ -63,13 +63,13 @@ const ApiIndex = () => {
             primary={`${labelStatus}`}
             secondary={` ${apiState.started_at ? 'at ' + (new Date(apiState.started_at)).toLocaleString() : ''}`} />
           <ListItemIcon>
-            <Button variant="contained" onClick={() => EbinaAPI.startAPI(appName).then(() => setRefreshState(true))}>
+            <Button variant="contained" onClick={() => EbinaAPI.updateAPIStatus(appName, 'start').then(() => setRefreshState(true))}>
               {labelStartButton}
             </Button>
           </ListItemIcon>
           <Box width='8pt' />
           <ListItemIcon>
-            <Button variant="contained" onClick={() => EbinaAPI.stopAPI(appName).then(() => setRefreshState(true))}>
+            <Button variant="contained" onClick={() => EbinaAPI.updateAPIStatus(appName, 'stop').then(() => setRefreshState(true))}>
               Stop
             </Button>
           </ListItemIcon>
@@ -92,8 +92,8 @@ const ApiIndex = () => {
           API List
         </ListSubheader>
         {apis.map((item) => (
-          <ListItemButton key={item.name} component={Link} to={`edit?name=${item.name}`}>
-            <ListItemText primary={item.name} secondary={item.path} />
+          <ListItemButton key={item.path} component={Link} to={`edit?path=${item.path}`}>
+            <ListItemText primary={item.api.name} secondary={item.path} />
           </ListItemButton>)
         )}
       </List>

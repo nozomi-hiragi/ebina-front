@@ -13,8 +13,11 @@ type HeaderProps = {
 }
 
 const AppNameSelector = () => {
+  const navigate = useNavigate()
+  const user = useRecoilValue(userSelector)
   const appNameList = useRecoilValue(appNameListSelector)
   const [appName, setAppName] = useRecoilState(appNameSelector)
+  if (user && appNameList.length === 0) { navigate('/') }
   return <FormControl variant="standard" sx={{ m: 1, minWidth: 200 }}>
     <Select
       value={appName}

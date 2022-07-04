@@ -33,7 +33,6 @@ const AppsEdit = () => {
     {isNew && <Fab color="primary" aria-label="add" sx={{ position: 'absolute', bottom: 16, right: 16, }} onClick={() => {
       if (isNew) {
         EbinaAPI.createApp(appName).then((res) => {
-          if (res.status !== 200) return
           setAppNameList([])
           navigate('..')
         })
@@ -47,14 +46,10 @@ const AppsEdit = () => {
       open={isOpenDialog}
       onClose={() => { setIsOpenDialog(false) }}
       onDelete={() => {
-        EbinaAPI.deleteApp(appName).then((res) => {
-          if (res.status !== 200) {
-            console.log('delete app failed')
-            return
-          }
+        EbinaAPI.deleteApp(appName).then(() => {
           setAppNameList([])
           navigate('..')
-        })
+        }).catch((err) => { console.log(err) })
       }}
     />
   </>)
