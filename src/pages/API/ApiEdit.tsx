@@ -1,30 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom"
-import { Box, Button, FormControl, InputLabel, List, ListItem, MenuItem, Select, TextField } from "@mui/material"
-import DeleteApiPathDialog from "../../components/DeleteApiPathDialog";
+import { Button, Container, Group, Modal, Select, TextInput, Text } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import EbinaAPI from "../../EbinaAPI";
 import { useRecoilValue } from "recoil";
 import { appNameSelector, getJsListSelector } from "../../atoms";
-import { ApiTypeList, TypeApi, TypeApiMethods, TypeApiTypes } from "../../types";
+import { ApiMethodList, ApiTypeList, TypeApiMethods, TypeApiTypes } from "../../types";
 
 function useQuery() {
   const { search } = useLocation()
   return React.useMemo(() => new URLSearchParams(search), [search])
 }
 
-const methodList = [
-  'get', 'head', 'post', 'put', 'delete', 'options', 'patch',
-]
-
 var cacheAppName = ''
 
 const ApiEdit = () => {
-  const [path, setPath] = useState('')
-  const [api, setApiState] = useState<TypeApi>({ name: '', method: 'get', type: 'static', value: '' })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const jsList = useRecoilValue(getJsListSelector)
-  const [jsFilename, setJsFilename] = useState<string>('')
-  const [jsFuncname, setJsFuncname] = useState<string>('')
   const appName = useRecoilValue(appNameSelector)
   const navigate = useNavigate()
   if (!cacheAppName) cacheAppName = appName
@@ -38,12 +30,15 @@ const ApiEdit = () => {
         switch (api.type) {
           case 'JavaScript':
             const args = api.value.split('>')
-            setJsFilename(args[0])
-            setJsFuncname(args[1])
+            editApiForm.setFieldValue("jsfilename", args[0])
+            editApiForm.setFieldValue("jsfunction", args[1])
             break;
         }
-        setPath(queryPath)
-        setApiState(api)
+        editApiForm.setFieldValue("path", queryPath)
+        editApiForm.setFieldValue("name", api.name)
+        editApiForm.setFieldValue("method", api.method)
+        editApiForm.setFieldValue("type", api.type)
+        editApiForm.setFieldValue("value", api.value)
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,104 +52,103 @@ const ApiEdit = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appName])
 
+  const editApiForm = useForm({
+    initialValues: {
+      path: queryPath ?? "",
+      name: "",
+      method: "get" as TypeApiMethods,
+      type: "static" as TypeApiTypes,
+      value: "",
+      jsfilename: '',
+      jsfunction: '',
+    },
+  });
+
   return (
-    <Box m={1}>
-      <List>
-        <ListItem>
-          <TextField label="path" variant="standard" fullWidth value={path} disabled={queryPath !== null} onChange={(e) => {
-            setPath(e.target.value)
-          }} />
-        </ListItem>
-        <ListItem>
-          <TextField label="name" variant="standard" fullWidth value={api.name} onChange={(e) => {
-            setApiState({ ...api, name: e.target.value })
-          }} />
-        </ListItem>
-        <ListItem>
-          <FormControl variant="standard" sx={{ minWidth: 120 }}>
-            <InputLabel id="method-label">Method</InputLabel>
-            <Select
-              label="Method"
-              labelId="method-label"
-              value={api.method}
-              onChange={(e) => { setApiState({ ...api, method: e.target.value as TypeApiMethods }) }}
-            >
-              {methodList.map((method) => {
-                return (<MenuItem key={method} value={method}>{method}</MenuItem>)
-              })}
-            </Select>
-          </FormControl>
-        </ListItem>
-        <ListItem>
-          <FormControl variant="standard" sx={{ minWidth: 120 }}>
-            <InputLabel id="type-label">Type</InputLabel>
-            <Select
-              label="Type"
-              labelId="type-label"
-              value={api.type}
-              onChange={(e) => { setApiState({ ...api, type: e.target.value as TypeApiTypes }) }}
-            >
-              {ApiTypeList.map((type) => {
-                return (<MenuItem key={type} value={type}>{type}</MenuItem>)
-              })}
-            </Select>
-          </FormControl>
-        </ListItem>
-        {api.type === 'JavaScript'
-          ? <>
-            <ListItem>
-              <FormControl variant="standard" sx={{ minWidth: 120 }}>
-                <InputLabel id="js-label">JsFile</InputLabel>
-                <Select
-                  label="Type"
-                  labelId="jslabel"
-                  value={jsFilename}
-                  onChange={(e) => { setJsFilename(e.target.value) }}
-                >
-                  {jsList.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </ListItem>
-            <ListItem>
-              <TextField label="Function" variant="standard" fullWidth value={jsFuncname} onChange={(e) => {
-                setJsFuncname(e.target.value)
-              }} />
-            </ListItem>
-          </>
-          : <ListItem>
-            <TextField label="value" variant="standard" fullWidth value={api.value} onChange={(e) => {
-              setApiState({ ...api, value: e.target.value })
-            }} />
-          </ListItem>
+    <Container m={1}>
+      <form onSubmit={editApiForm.onSubmit((values) => {
+        switch (values.type) {
+          case 'JavaScript':
+            values.value = `${values.jsfilename}>${values.jsfunction}`
+            break;
         }
-      </List>
-      <Box textAlign="right" m={1} sx={{ display: 'flex', justifyContent: 'right', gap: 4 }} >
-        {queryPath && <Button variant="contained" onClick={() => { setDeleteDialogOpen(true) }}>
-          Delete
-        </Button>}
-        <Button variant="contained" type="submit" onClick={() => {
-          switch (api.type) {
-            case 'JavaScript':
-              api.value = `${jsFilename}>${jsFuncname}`
-              break;
-          }
-          if (queryPath) {
-            EbinaAPI.updateAPI(appName, queryPath, api).then((res) => { navigate('..') })
-          } else {
-            EbinaAPI.createPath(appName, path, api).then((res) => { navigate('..') })
-          }
-        }}>
-          Save
-        </Button>
-      </Box>
-      <DeleteApiPathDialog
-        appName={appName}
-        path={queryPath!}
-        open={deleteDialogOpen}
-        onClose={() => { setDeleteDialogOpen(false) }}
-        onDeleted={() => { navigate('..') }}
-      />
-    </Box >
+        if (queryPath) {
+          EbinaAPI.updateAPI(appName, values.path, values).then((res) => { navigate('..') })
+        } else {
+          EbinaAPI.createPath(appName, values.path, values).then((res) => { navigate('..') })
+        }
+      })}>
+        <TextInput
+          label="Path"
+          placeholder="Path"
+          required={queryPath == null}
+          disabled={queryPath !== null}
+          {...editApiForm.getInputProps('path')}
+        />
+        <TextInput
+          label="Name"
+          placeholder="Name"
+          required
+          {...editApiForm.getInputProps('name')}
+        />
+        <Select
+          label="Method"
+          placeholder="Pick one"
+          data={ApiMethodList}
+          {...editApiForm.getInputProps('method')}
+        />
+        <Select
+          label="Type"
+          placeholder="Pick one"
+          data={ApiTypeList}
+          {...editApiForm.getInputProps('type')}
+        />
+        {editApiForm.values.type === 'JavaScript'
+          ? <>
+            <Select
+              label="JsFile"
+              placeholder="Pick one"
+              data={jsList}
+              required={editApiForm.values.type === 'JavaScript'}
+              {...editApiForm.getInputProps('jsfilename')}
+            />
+            <TextInput
+              label="Function"
+              placeholder="Function"
+              required={editApiForm.values.type === 'JavaScript'}
+              {...editApiForm.getInputProps('jsfunction')}
+            />
+          </>
+          :
+          <TextInput
+            label="Value"
+            placeholder="Value"
+            required={editApiForm.values.type === 'static'}
+            {...editApiForm.getInputProps('value')}
+          />
+        }
+        <Group position="right" mt="md">
+          <Button disabled={queryPath === null} onClick={() => { setDeleteDialogOpen(true) }}>Delete</Button>
+          <Button type="submit">Save</Button>
+        </Group>
+      </form>
+      <Modal
+        opened={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        title={`Delete ${appName} API`}
+      >
+        <Text color="red">{`Delete "${queryPath}"?`}</Text>
+        <Group position="right">
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={(() => {
+            EbinaAPI.deleteAPI(appName, queryPath!).then(() => {
+              setDeleteDialogOpen(false)
+              navigate('..')
+            }).catch((err) => { console.log(err) })
+          })}>Delete</Button>
+        </Group>
+      </Modal>
+    </Container >
   )
 }
 

@@ -1,5 +1,4 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { CssBaseline } from '@mui/material';
 import DashboardBase from './components/DashboardBase';
 import RequireAuth from './components/RequireAuth';
 import Enter from './pages/Enter';
@@ -16,33 +15,31 @@ import AppsEdit from './pages/Apps/AppsEdit';
 
 function App() {
   return (
-    <CssBaseline>
-      <BrowserRouter basename={process.env.PUBLIC_URL}>
-        <Routes>
-          <Route path='/'>
-            <Route index element={<Enter />} />
-            <Route path='login' element={<Login />} />
-            <Route path='dashboard' element={<RequireAuth><DashboardBase /></RequireAuth>}>
-              <Route index element={<Home />} />
-              <Route path='users' element={<Users />} />
-              <Route path='api'>
-                <Route index element={<ApiIndex />} />
-                <Route path='edit' element={<ApiEdit />} />
-              </Route>
-              <Route path='edit'>
-                <Route index element={<EditIndex />} />
-                <Route path=':path' element={<EditEdit />} />
-              </Route>
-              <Route path='apps'>
-                <Route index element={<AppsIndex />} />
-                <Route path=':name' element={<AppsEdit />} />
-              </Route>
-              <Route path='setting' element={<Setting />} />
+    <BrowserRouter basename={process.env.PUBLIC_URL}>
+      <Routes>
+        <Route path='/'>
+          <Route index element={<Enter />} />
+          <Route path='login' element={<Login />} />
+          <Route path='dashboard' element={<RequireAuth><DashboardBase /></RequireAuth>}>
+            <Route index element={<Home />} />
+            <Route path='users' element={<Users />} />
+            <Route path='api'>
+              <Route index element={<ApiIndex />} />
+              <Route path='edit' element={<ApiEdit />} />
             </Route>
+            <Route path='edit'>
+              <Route index element={<EditIndex />} />
+              <Route path=':path' element={<EditEdit />} />
+            </Route>
+            <Route path='apps'>
+              <Route index element={<AppsIndex />} />
+              <Route path=':name' element={<AppsEdit />} />
+            </Route>
+            <Route path='setting' element={<Setting />} />
           </Route>
-        </Routes>
-      </BrowserRouter >
-    </CssBaseline >
+        </Route>
+      </Routes>
+    </BrowserRouter >
   );
 }
 

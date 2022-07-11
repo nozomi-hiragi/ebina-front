@@ -1,4 +1,4 @@
-import { Divider, FormControl, InputLabel, List, ListItem, ListItemButton, ListItemText, MenuItem, Select, TextField } from "@mui/material"
+import { Button, Divider, Group, MultiSelect, TextInput } from "@mantine/core"
 import EbinaAPI from "../EbinaAPI"
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import { useEffect, useState } from 'react'
@@ -19,58 +19,61 @@ const Setting = () => {
   }, [refreshDevices])
 
   return (
-    <List>
-      <ListItem>
-        <TextField label="Device Name" variant="standard" fullWidth onChange={(e) => {
+    <Group m={0} direction="column" grow>
+      <TextInput
+        placeholder="Device Name"
+        label="Device Name"
+        onChange={(e) => {
           setDeviceName(e.target.value)
-        }} />
-      </ListItem>
-      <ListItemButton onClick={() => {
-        EbinaAPI.getWebAuthnRegistOptions().then((res) =>
-          startRegistration(res)
-        ).then((res) =>
-          EbinaAPI.sendWebAuthnRegistCredential(res, deviceName)
-        ).then(() => {
-          setRefreshDevices(true)
-        }).catch((err) => { alert(err) })
-      }}>
-        <ListItemText primary={'Regist WebAuthn'} />
-      </ListItemButton>
-      <ListItemButton onClick={() => {
-        EbinaAPI.deleteWebAuthnDevice(deviceName).then((res) => {
-          setRefreshDevices(true)
-        }).catch((err) => { alert(err) })
-      }}>
-        <ListItemText primary={'Delete Device'} />
-      </ListItemButton>
+        }}
+      />
+      <Button
+        disabled={!deviceName}
+        onClick={() => {
+          EbinaAPI.getWebAuthnRegistOptions().then((res) =>
+            startRegistration(res)
+          ).then((res) =>
+            EbinaAPI.sendWebAuthnRegistCredential(res, deviceName)
+          ).then(() => {
+            setRefreshDevices(true)
+          }).catch((err) => { alert(err) })
+        }}>
+        Regist WebAuthn
+      </Button>
+      <Button
+        disabled={!deviceName}
+        onClick={() => {
+          EbinaAPI.deleteWebAuthnDevice(deviceName).then((res) => {
+            setRefreshDevices(true)
+          }).catch((err) => { alert(err) })
+        }}>
+        Delete Device
+      </Button>
       <Divider />
-      <ListItem>
-        <FormControl variant="standard" sx={{ minWidth: 200 }}>
-          <InputLabel id="names-label">Name</InputLabel>
-          <Select
-            multiple
-            label="Name"
-            labelId="names-label"
-            value={selectedNames}
-            onChange={(e) => {
-              const { target: { value }, } = e
-              setSelectedNames(typeof value === 'string' ? value.split(',') : value)
-            }}
-          >
-            {waNames.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
-          </Select>
-        </FormControl>
-      </ListItem>
-      <ListItemButton onClick={() => {
-        EbinaAPI.getWebAuthnVerifyOptions(selectedNames).then((res) =>
-          startAuthentication(res)
-        ).then((res) =>
-          EbinaAPI.sendWebAuthnVerifyCredential(res)
-        ).catch((err) => { alert(err) })
-      }}>
-        <ListItemText primary={'Verify WebAuthn'} />
-      </ListItemButton>
-    </List >
+      <MultiSelect
+        label="Devices"
+        data={waNames}
+        placeholder="Pick all that you like"
+        defaultValue={waNames}
+        clearButtonLabel="Clear selection"
+        clearable
+        onChange={(e) => {
+          setSelectedNames(e)
+        }}
+
+      />
+      <Button
+        disabled={selectedNames.length === 0}
+        onClick={() => {
+          EbinaAPI.getWebAuthnVerifyOptions(selectedNames).then((res) =>
+            startAuthentication(res)
+          ).then((res) =>
+            EbinaAPI.sendWebAuthnVerifyCredential(res)
+          ).catch((err) => { alert(err) })
+        }}>
+        Verify WebAuthn
+      </Button>
+    </Group >
   )
 }
 

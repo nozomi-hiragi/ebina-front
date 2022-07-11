@@ -1,17 +1,39 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useRecoilState } from 'recoil'
-import { Box } from "@mui/system";
-import { Button, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { userSelector } from "../atoms";
 import EbinaAPI from "../EbinaAPI";
+import { useForm } from "@mantine/form";
+import { Button, Center, Group, Paper, TextInput, Title } from "@mantine/core";
 
 const Login = () => {
-  const serverRef = useRef<HTMLInputElement>()
-  const idRef = useRef<HTMLInputElement>()
-  const passRef = useRef<HTMLInputElement>()
   const navigate = useNavigate()
   const [user, setUser] = useRecoilState(userSelector)
+
+  const loginForm = useForm({
+    initialValues: {
+      server: '',
+      id: '',
+      pass: '',
+    },
+    validate: {
+      server: (value) => {
+        try {
+          const url = new URL(value)
+          console.log(url.protocol)
+          switch (url.protocol) {
+            case "http:":
+            case "https:":
+              return null
+            default:
+              return "wrong protocol"
+          }
+        } catch (err) {
+          return 'URL error'
+        }
+      },
+    },
+  });
 
   useEffect(() => {
     if (user) { navigate('/dashboard') }
@@ -19,62 +41,50 @@ const Login = () => {
   }, [user])
 
   return (
-    <Box sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: "100vh",
-    }}>
-      <Typography variant="h3" m={0}>Login</Typography>
-      <TextField
-        required
-        id="outlined-required server"
-        label="Server"
-        margin="normal"
-        inputRef={serverRef}
-      />
-      <TextField
-        required
-        id="outlined-required id"
-        label="ID"
-        type="id"
-        margin="normal"
-        inputRef={idRef}
-      />
-      <TextField
-        required
-        id="outlined-required pass"
-        label="PASS"
-        type="password"
-        margin="normal"
-        inputRef={passRef}
-      />
-      <Button variant="contained" onClick={(() => {
-        // TODO varidate
-        const server = serverRef.current?.value
-        const id = idRef.current?.value!
-        const pass = passRef.current?.value!
-        const url = (() => {
-          try {
-            const url = new URL(server as string)
-            return url.toString()
-          } catch (err) {
-            if (err instanceof TypeError) {
-              // url error
-              console.log('URL error')
-            }
-            return ''
-          }
-        })()
-        EbinaAPI.setURL(url)
-        EbinaAPI.login({ id, pass }).then((user) => {
-          setUser(user)
-        }).catch((err) => { console.log(err.message) })
-      })}>
-        Login
-      </Button>
-    </Box>
+    <form onSubmit={loginForm.onSubmit((values) => {
+      EbinaAPI.setURL(values.server)
+      EbinaAPI.login({ id: values.id, pass: values.pass }).then((user) => {
+        setUser({ ...user, id: values.id })
+      }).catch((err) => { console.log(err.message) })
+    })}>
+      <Center sx={{ height: "100vh" }}>
+        <Paper shadow="xs" p="md">
+          <Group
+            sx={{ width: 250 }}
+            direction="column"
+            align="center">
+            <Title order={1} m="xs">Login</Title>
+            <TextInput
+              required
+              id="server"
+              label="Server"
+              type="url"
+              {...loginForm.getInputProps('server')}
+            />
+            <TextInput
+              required
+              id="id"
+              label="ID"
+              type="text"
+              {...loginForm.getInputProps('id')}
+            />
+            <TextInput
+              required
+              id="pass"
+              label="PASS"
+              type="password"
+              {...loginForm.getInputProps('pass')}
+            />
+            <Button
+              type="submit"
+              m="xs"
+            >
+              Login
+            </Button>
+          </Group>
+        </Paper>
+      </Center>
+    </form >
   )
 }
 

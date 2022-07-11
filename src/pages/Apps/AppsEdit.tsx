@@ -1,10 +1,9 @@
-import { Delete, Save } from "@mui/icons-material"
-import { Box, Fab, List, ListItemButton, ListItemIcon, ListItemText, TextField, Typography } from "@mui/material"
+import { Affix, Button, Container, Group, Modal, Text, TextInput, Title } from "@mantine/core"
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { useSetRecoilState } from "recoil"
+import { DeviceFloppy, Trash } from "tabler-icons-react"
 import { appNameListSelector } from "../../atoms"
-import DeleteConfirmDialog from "../../components/DeleteConfirmDialog"
 import EbinaAPI from "../../EbinaAPI"
 
 const AppsEdit = () => {
@@ -14,44 +13,46 @@ const AppsEdit = () => {
   const [isNew] = useState(appName === 'new')
   const [isOpenDialog, setIsOpenDialog] = useState<boolean>(false)
   return (<>
-    <Box p={2}>
+    <Container p={8}>
       {isNew
-        ? <TextField id="appName" label="App Name" variant="standard" onChange={(e) => setAppName(e.target.value)} />
-        : <Typography variant="h5">{isNew ? 'New App' : appName}</Typography>
+        ? <TextInput id="appName" label="App Name" onChange={(e) => setAppName(e.target.value)} />
+        : <Title order={2}>{isNew ? 'New App' : appName}</Title>
       }
-    </Box>
-    <List>
-      {!isNew && <ListItemButton onClick={() => { setIsOpenDialog(true) }}>
-        <ListItemIcon>
-          <Delete />
-        </ListItemIcon>
-        <ListItemText>
-          Delete
-        </ListItemText>
-      </ListItemButton>}
-    </List>
-    {isNew && <Fab color="primary" aria-label="add" sx={{ position: 'absolute', bottom: 16, right: 16, }} onClick={() => {
-      if (isNew) {
-        EbinaAPI.createApp(appName).then((res) => {
-          setAppNameList([])
-          navigate('..')
-        })
-      }
-    }}>
-      <Save />
-    </Fab>}
-    <DeleteConfirmDialog
-      title={`Delete App`}
-      content={appName}
-      open={isOpenDialog}
-      onClose={() => { setIsOpenDialog(false) }}
-      onDelete={() => {
-        EbinaAPI.deleteApp(appName).then(() => {
-          setAppNameList([])
-          navigate('..')
-        }).catch((err) => { console.log(err) })
-      }}
-    />
+    </Container>
+    {!isNew && <Group p={8} onClick={() => { setIsOpenDialog(true) }}>
+      <Trash />
+      <Text>
+        Delete
+      </Text>
+    </Group>}
+    {isNew && <Affix position={{ bottom: 20, right: 20 }}>
+      <Button sx={{ width: 50, height: 50 }} p={0} radius="xl" onClick={() => {
+        if (isNew) {
+          EbinaAPI.createApp(appName).then((res) => {
+            setAppNameList([])
+            navigate('..')
+          })
+        }
+      }}>
+        <DeviceFloppy />
+      </Button>
+    </Affix>}
+    <Modal
+      opened={isOpenDialog}
+      onClose={() => setIsOpenDialog(false)}
+      title={`Delete APP`}
+    >
+      <Text color="red">{`Delete "${appName}"?`}</Text>
+      <Group position="right">
+        <Button onClick={() => setIsOpenDialog(false)}>Cancel</Button>
+        <Button onClick={(() => {
+          EbinaAPI.deleteApp(appName).then(() => {
+            setAppNameList([])
+            navigate('..')
+          }).catch((err) => { console.log(err) })
+        })}>Delete</Button>
+      </Group>
+    </Modal>
   </>)
 }
 

@@ -423,7 +423,7 @@ class EbinaAPI {
   // :path
   // 200 OK
   // 400 情報おかしい
-  public async updateAPI(appName: string, path: string, api: any) {
+  public async updateAPI(appName: string, path: string, api: TypeApi) {
     this.checkURL()
     const res = await this.ax.put(`/ebina/app/${appName}/api/endpoint/${path}`, api)
     switch (res.status) {

@@ -8,7 +8,11 @@ export type TypeApi = {
   value: string,
 }
 
-export const ApiTypeList = [
+export const ApiMethodList: TypeApiMethods[] = [
+  'get', 'head', 'post', 'put', 'delete', 'options', 'patch',
+]
+
+export const ApiTypeList: TypeApiTypes[] = [
   'static',
   'JavaScript',
 ]
