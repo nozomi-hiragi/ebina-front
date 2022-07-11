@@ -1,16 +1,15 @@
 import { useRecoilValue } from 'recoil'
-import { Typography } from "@mui/material";
-import { Box } from "@mui/system";
 import { userSelector } from "../atoms";
+import { Container, Title } from '@mantine/core';
 
 const Dashboard = () => {
   const user = useRecoilValue(userSelector)
   return (
-    <Box p={1} >
-      <Typography paragraph>
+    <Container p={8} >
+      <Title order={5}>
         Hello {user?.name}
-      </Typography>
-    </Box>
+      </Title>
+    </Container>
   )
 }
 

@@ -1,24 +1,21 @@
 import { useRecoilValue } from 'recoil'
-import { Box, Button, Typography } from "@mui/material"
-import { pink } from "@mui/material/colors"
+import { Button, Center, Space, Title } from '@mantine/core'
 import { Link } from "react-router-dom"
 import { userSelector } from "../atoms"
 
 const Enter = () => {
   const user = useRecoilValue(userSelector)
   return (
-    <Box
+    <Center
       sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: pink[200],
+        flexDirection: "column",
+        backgroundColor: "pink",
         height: "100vh",
       }}>
-      <Typography variant="h1">EbinaStation</Typography>
-      <Button color="inherit" component={Link} to={user ? "/dashboard" : "/login"}>Enter</Button>
-    </Box>
+      <Title order={1}>EbinaStation</Title>
+      <Space h="xl" />
+      <Button color="pink" component={Link} to={user ? "/dashboard" : "/login"}>Enter</Button>
+    </Center>
   )
 }
 

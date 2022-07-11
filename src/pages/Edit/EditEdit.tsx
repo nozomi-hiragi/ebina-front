@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
-import { Box, IconButton, Input, Toolbar, Tooltip, Typography } from "@mui/material"
+import { Container, Group, Tooltip, ActionIcon, Title, TextInput } from "@mantine/core"
+import { DeviceFloppy, Refresh, Trash } from "tabler-icons-react"
 import CopenhagenEditor from "../../components/CopenhagenEditor"
-import { Refresh, Save } from "@mui/icons-material"
 import EbinaAPI from "../../EbinaAPI"
-import Delete from "@mui/icons-material/Delete"
 import { useRecoilValue } from "recoil"
 import { appNameSelector } from "../../atoms"
 
@@ -74,36 +73,74 @@ const EditEdit = () => {
   const initValue = localStorage.getItem(lsKey) ?? data
 
   return (
-    <Box>
-      <Toolbar sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 }, }}>
-        <Typography id="tableTitle" sx={{ flex: '1 1 100%' }} variant="h6" component="div">
-          {isNew ?
-            <Input placeholder='filename' onChange={(e) => { setFilename(e.target.value) }} /> : filename
-          }
-        </Typography>
-        {!isNew && (<>
-          <Tooltip title="Delete">
-            <IconButton onClick={() => {
-              if (!isNew) {
-                EbinaAPI.deleteJS(appName, filename).then(() => { navigate('..') })
-              }
-            }}>
-              <Delete />
-            </IconButton>
+    <Container>
+      <Container sx={{
+        height: 70,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }} fluid>
+        {isNew ?
+          <TextInput placeholder="File name" onChange={(e) => { setFilename(e.target.value) }} /> :
+          <Title order={4}>{filename}</Title>
+        }
+        <Group>
+          {!isNew && (<>
+            <Tooltip label="Delete">
+              <ActionIcon size="xl" radius="xl" onClick={() => {
+                if (!isNew) {
+                  EbinaAPI.deleteJS(appName, filename).then(() => { navigate('..') })
+                }
+              }}>
+                <Trash />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="Refresh">
+              <ActionIcon size="xl" radius="xl" onClick={() => { setRefresh(true) }}>
+                <Refresh />
+              </ActionIcon>
+            </Tooltip>
+          </>)}
+          <Tooltip label="Save">
+            <ActionIcon size="xl" radius="xl" onClick={() => { setSave(true) }}>
+              <DeviceFloppy />
+            </ActionIcon>
           </Tooltip>
-          <Tooltip title="Refresh">
-            <IconButton onClick={() => { setRefresh(true) }}>
-              <Refresh />
-            </IconButton>
+        </Group>
+      </Container>
+
+      {/* <Toolbar sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 }, }}>
+        {isNew ?
+          <A.Input placeholder='filename' onChange={(e) => { setFilename(e.target.value) }} /> :
+          <Typography id="tableTitle" sx={{ flex: '1 1 100%' }} variant="h6" component="div">
+            {filename}
+          </Typography>
+        }
+        <Group>
+          {!isNew && (<>
+            <Tooltip label="Delete">
+              <UnstyledButton onClick={() => {
+                if (!isNew) {
+                  EbinaAPI.deleteJS(appName, filename).then(() => { navigate('..') })
+                }
+              }}>
+                <Trash />
+              </UnstyledButton>
+            </Tooltip>
+            <Tooltip label="Refresh">
+              <UnstyledButton onClick={() => { setRefresh(true) }}>
+                <Refresh />
+              </UnstyledButton>
+            </Tooltip>
+          </>)}
+          <Tooltip label="Save">
+            <UnstyledButton onClick={() => { setSave(true) }}>
+              <DeviceFloppy />
+            </UnstyledButton>
           </Tooltip>
-        </>)}
-        <Tooltip title="Save">
-          <IconButton onClick={() => { setSave(true) }}>
-            <Save />
-          </IconButton>
-        </Tooltip>
-      </Toolbar>
-      <Box m={1}>
+        </Group>
+      </Toolbar> */}
+      <Container m={0}>
         <CopenhagenEditor
           language="javascript"
           rows={30}
@@ -112,8 +149,8 @@ const EditEdit = () => {
           onMount={(editor, value) => { setEditor(editor) }}
           value={initValue}
         />
-      </Box>
-    </Box>
+      </Container>
+    </Container >
   )
 }
 
