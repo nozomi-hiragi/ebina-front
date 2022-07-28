@@ -29,7 +29,7 @@ const EditEdit = () => {
   useEffect(() => {
     if (isNeedJs && !isGettingJs) {
       isGettingJs = true
-      EbinaAPI.getJS(appName, filename).then((res) => {
+      EbinaAPI.getScript(appName, filename).then((res) => {
         setData(res)
         if (!localStorage.getItem(lsKey)) editor?.setValue(res)
         isGettingJs = false
@@ -50,8 +50,8 @@ const EditEdit = () => {
   useEffect(() => {
     if (save && filename) {
       const result = isNew
-        ? EbinaAPI.createJS(appName, filename, editor!.value)
-        : EbinaAPI.updateJS(appName, filename, editor!.value)
+        ? EbinaAPI.createScript(appName, filename, editor!.value)
+        : EbinaAPI.updateScript(appName, filename, editor!.value)
       result.then(() => {
         setIsNew(false)
         setData(editor!.value)
@@ -89,7 +89,7 @@ const EditEdit = () => {
             <Tooltip label="Delete">
               <ActionIcon size="xl" radius="xl" onClick={() => {
                 if (!isNew) {
-                  EbinaAPI.deleteJS(appName, filename).then(() => { navigate('..') })
+                  EbinaAPI.deleteScript(appName, filename).then(() => { navigate('..') })
                 }
               }}>
                 <Trash />

@@ -2,6 +2,8 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 import * as LS from './localstorageDelegate';
 import { TypeApi } from "./types";
 
+const scriptsDir = "scripts";
+
 class EbinaApiError extends Error {
   status: number
   constructor(res: AxiosResponse<any, any>) {
@@ -485,18 +487,16 @@ class EbinaAPI {
     }
   }
 
-  // JS
-
-  // JSファイル作成
+  // スクリプトファイル作成
   // :path
   // {}: string?
   // 200 OK
   // 400 情報おかしい
   // 409 もうある
   // 500 ファイル関係ミスった
-  public async createJS(appName: string, path: string, data: string | undefined = undefined) {
+  public async createScript(appName: string, path: string, data: string | undefined = undefined) {
     this.checkURL()
-    const res = await this.ax.post(`/ebina/app/${appName}/js/${path}`, data, { headers: { 'content-type': 'text/plain' } })
+    const res = await this.ax.post(`/ebina/app/${appName}/${scriptsDir}/${path}`, data, { headers: { 'content-type': 'text/plain' } })
     switch (res.status) {
       case 200:
         return
@@ -509,12 +509,12 @@ class EbinaAPI {
     }
   }
 
-  // JSファイル一覧取得
+  // スクリプトファイル一覧取得
   // 200 一覧
   // 500 ファイル読めなかった
-  public async getJSList(appName: string) {
+  public async getScriptList(appName: string) {
     this.checkURL()
-    const res = await this.ax.get(`/ebina/app/${appName}/js`)
+    const res = await this.ax.get(`/ebina/app/${appName}/${scriptsDir}`)
     switch (res.status) {
       case 200:
         return res.data as string[]
@@ -525,16 +525,16 @@ class EbinaAPI {
     }
   }
 
-  // JSファイル取得
+  // スクリプトファイル取得
   // :path
   // 200 text
   // 400 情報おかしい
   // 404 ファイルない
   // 409 ディレクトリ
   // 500 ファイル関係ミスった
-  public async getJS(appName: string, path: string) {
+  public async getScript(appName: string, path: string) {
     this.checkURL()
-    const res = await this.ax.get(`/ebina/app/${appName}/js/${path}`)
+    const res = await this.ax.get(`/ebina/app/${appName}/${scriptsDir}/${path}`)
     switch (res.status) {
       case 200:
         return res.data as string
@@ -548,16 +548,16 @@ class EbinaAPI {
     }
   }
 
-  // JSファイル更新
+  // スクリプトファイル更新
   // :path
   // 200 OK
   // 400 情報おかしい
   // 404 ファイルない
   // 409 ディレクトリ
   // 500 ファイル関係ミスった
-  public async updateJS(appName: string, path: string, data: string) {
+  public async updateScript(appName: string, path: string, data: string) {
     this.checkURL()
-    const res = await this.ax.patch(`/ebina/app/${appName}/js/${path}`, data, { headers: { 'content-type': 'text/plain' } })
+    const res = await this.ax.patch(`/ebina/app/${appName}/${scriptsDir}/${path}`, data, { headers: { 'content-type': 'text/plain' } })
     switch (res.status) {
       case 200:
         return
@@ -570,15 +570,15 @@ class EbinaAPI {
     }
   }
 
-  // JSファイル削除
+  // スクリプトファイル削除
   // :path
   // 200 OK
   // 404 ファイルない
   // 409 ディレクトリ
   // 500 ファイル関係ミスった
-  public async deleteJS(appName: string, path: string) {
+  public async deleteScript(appName: string, path: string) {
     this.checkURL()
-    const res = await this.ax.delete(`/ebina/app/${appName}/js/${path}`)
+    const res = await this.ax.delete(`/ebina/app/${appName}/${scriptsDir}/${path}`)
     switch (res.status) {
       case 200:
         return

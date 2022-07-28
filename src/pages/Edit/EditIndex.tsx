@@ -15,7 +15,7 @@ const EditIndex = () => {
 
   useEffect(() => {
     if (refreshState || cacheAppName !== appName) {
-      EbinaAPI.getJSList(appName).then((list) => { setFileList(list) })
+      EbinaAPI.getScriptList(appName).then((list) => { setFileList(list) })
       setRefreshState(false)
       cacheAppName = appName
     }
