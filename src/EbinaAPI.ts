@@ -78,14 +78,18 @@ class EbinaAPI {
     }
   }
 
-  // パスワードでログイン
-  // { id, pass }
+  // ログイン
+  // { type, id, pass }
   // 200 ユーザーとトークン
   // 400 情報足らない
   // 401 パスワードが違う
   // 404 メンバーない
   // 405 パスワードが設定されてない
-  public async login(body: { id: string; pass: string }) {
+  public async login(
+    body:
+      | { type: "password"; id: string; pass: string }
+      | { type: "public-key"; [key: string]: any },
+  ) {
     this.checkURL();
     const res = await this.ax.post("/ebina/user/login", body);
     switch (res.status) {
@@ -228,11 +232,10 @@ class EbinaAPI {
   // origin:
   // 200 オプション
   // 400 情報足りない
-  // 404 メンバーがない
   // 500 WebAuthnの設定おかしい
   public async getLoginOptions(id: string) {
     this.checkURL();
-    return await this.ax.get(`/ebina/user/webauthn/login/${id}`)
+    return await this.ax.get(`/ebina/user/login/${id}`)
       .then((res) => {
         switch (res.status) {
           case 200:
@@ -244,53 +247,11 @@ class EbinaAPI {
       .catch((err) => {
         if (err instanceof AxiosError) {
           const res = err.response!;
-          switch (res.status) {
-            case 406:
-              return undefined;
-            case 400:
-            case 401:
-            case 404:
-            case 500:
-            default:
-              throw new EbinaApiError(res);
-          }
+          throw new EbinaApiError(res);
         } else {
           throw err;
         }
       });
-  }
-
-  // WebAuthnログイン
-  // origin:
-  // { ...credential }
-  // 200 OK
-  // 400 情報おかしい
-  // 401 チャレンジ失敗
-  // 404 ものがない
-  // 405 パスワードが設定されてない
-  // 409 チャレンジ控えがない
-  // 410 チャレンジ古い
-  // 500 WebAuthnの設定おかしい
-  public async loginWebAuthn(id: string, credential: any) {
-    this.checkURL();
-    const res = await this.ax.post(
-      `/ebina/user/webauthn/login/${id}`,
-      credential,
-    );
-    switch (res.status) {
-      case 200:
-        this.setTokens(res.data.tokens);
-        return res.data.user;
-      case 400:
-      case 401:
-      case 404:
-      case 405:
-      case 409:
-      case 410:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
   }
 
   // デバイスら情報取得

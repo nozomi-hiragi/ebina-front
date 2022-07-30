@@ -45,20 +45,28 @@ const Login = () => {
   return (
     <form
       onSubmit={loginForm.onSubmit((values) => {
-        EbinaAPI.setURL(values.server);
-        if (passwordLogin) {
-          EbinaAPI.login({ id: values.id, pass: values.pass })
+        const login = (
+          body:
+            | { type: "password"; id: string; pass: string }
+            | { type: "public-key"; [key: string]: any },
+        ) =>
+          EbinaAPI.login(body)
             .then((user) => setUser({ ...user, id: values.id }))
             .catch((err) => console.log(err.message));
+
+        EbinaAPI.setURL(values.server);
+        if (passwordLogin) {
+          login({ type: "password", id: values.id, pass: values.pass });
         } else {
           EbinaAPI.getLoginOptions(values.id)
-            .then((op) => {
-              if (op) {
-                return startAuthentication(op)
-                  .then((ret) => EbinaAPI.loginWebAuthn(values.id, ret))
-                  .then((user) => setUser({ ...user, id: values.id }));
-              } else {
-                setPasswordLogin(true);
+            .then((ret) => {
+              switch (ret.type) {
+                case "password":
+                  setPasswordLogin(true);
+                  break;
+                case "WebAuthn":
+                  startAuthentication(ret.options).then((ret) => login(ret));
+                  break;
               }
             })
             .catch((err) => console.log(err.message));
