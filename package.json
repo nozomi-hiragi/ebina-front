@@ -4,9 +4,9 @@
   "homepage": "https://nozomi-hiragi.github.io/ebina-front/",
   "private": true,
   "dependencies": {
-    "@mantine/core": "^4.2.12",
-    "@mantine/form": "^4.2.12",
-    "@mantine/hooks": "^4.2.12",
+    "@mantine/core": "^5.0.0",
+    "@mantine/form": "^5.0.0",
+    "@mantine/hooks": "^5.0.0",
     "@simplewebauthn/browser": "^5.2.1",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.2.0",

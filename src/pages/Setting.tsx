@@ -4,6 +4,9 @@ import {
   Divider,
   Group,
   MultiSelect,
+  NumberInput,
+  Stack,
+  Tabs,
   Text,
   TextInput,
 } from "@mantine/core";
@@ -13,8 +16,9 @@ import {
   startRegistration,
 } from "@simplewebauthn/browser";
 import { useEffect, useState } from "react";
+import { useForm } from "@mantine/form";
 
-const Setting = () => {
+const WebAuthnSettings = () => {
   const [deviceName, setDeviceName] = useState("");
   const [waNames, setWaNames] = useState<string[]>([]);
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
@@ -38,10 +42,11 @@ const Setting = () => {
         alert(err);
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshDevices]);
 
   return (
-    <Group m={0} direction="column" grow>
+    <Stack m={0}>
       <TextInput
         placeholder="Device Name"
         label="Device Name"
@@ -132,7 +137,97 @@ const Setting = () => {
       >
         Verify WebAuthn
       </Button>
-    </Group>
+    </Stack>
+  );
+};
+
+const MongoDBSettings = () => {
+  const [disableChange, setDisableChange] = useState(true);
+
+  const mongodbSettingsForm = useForm({
+    initialValues: {
+      hostname: "",
+      port: 0,
+      username: "",
+      password: "",
+    },
+    validate: {},
+  });
+
+  useEffect(() => {
+    EbinaAPI.getMongoDBSettings().then((res) => {
+      mongodbSettingsForm.setValues(res);
+      setDisableChange(false);
+    }).catch((err) => {
+      console.error(err);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <form
+      onSubmit={mongodbSettingsForm.onSubmit(() => {
+        setDisableChange(true);
+        EbinaAPI.setMongoDBSettings(mongodbSettingsForm.values)
+          .catch((err) => console.error(err))
+          .finally(() => setDisableChange(false));
+      })}
+    >
+      <Stack>
+        <TextInput
+          label="hostname"
+          placeholder="localhost"
+          required
+          disabled={disableChange}
+          {...mongodbSettingsForm.getInputProps("hostname")}
+        />
+        <NumberInput
+          label="port"
+          placeholder="27017"
+          required
+          disabled={disableChange}
+          {...mongodbSettingsForm.getInputProps("port")}
+        />
+        <TextInput
+          label="username"
+          placeholder="env"
+          required
+          disabled={disableChange}
+          {...mongodbSettingsForm.getInputProps("username")}
+        />
+        <TextInput
+          label="password"
+          placeholder="env"
+          required
+          disabled={disableChange}
+          {...mongodbSettingsForm.getInputProps("password")}
+        />
+        <Group position="right" mt="md">
+          <Button type="submit" disabled={disableChange}>Save</Button>
+        </Group>
+      </Stack>
+    </form>
+  );
+};
+
+const Setting = () => {
+  return (
+    <Tabs defaultValue="webauthn">
+      <Tabs.List position="center">
+        <Tabs.Tab value="webauthn">
+          WebAuthn
+        </Tabs.Tab>
+        <Tabs.Tab value="mongodb">
+          MongoDB
+        </Tabs.Tab>
+      </Tabs.List>
+      <Tabs.Panel value="webauthn" pt="xs">
+        <WebAuthnSettings />
+      </Tabs.Panel>
+      <Tabs.Panel value="mongodb" pt="xs">
+        <MongoDBSettings />
+      </Tabs.Panel>
+    </Tabs>
   );
 };
 

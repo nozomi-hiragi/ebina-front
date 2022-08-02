@@ -13,6 +13,13 @@ class EbinaApiError extends Error {
   }
 }
 
+type MongoDBSettings = {
+  hostname: string;
+  port: number;
+  username: "env" | string;
+  password: "env" | string;
+};
+
 class EbinaAPI {
   private url: URL | null = null;
   private ax: AxiosInstance = axios.create();
@@ -723,6 +730,44 @@ class EbinaAPI {
       case 401:
       case 404:
       case 409:
+      case 500:
+      default:
+        throw new EbinaApiError(res);
+    }
+  }
+
+  // mongodb設定所得
+  // 200 設定
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 503 ファイル関係ミスった
+  public async getMongoDBSettings() {
+    this.checkURL();
+    const res = await this.ax.get(`/ebina/project/settings/mongodb`);
+    switch (res.status) {
+      case 200:
+        return res.data as MongoDBSettings;
+      case 400:
+      case 401:
+      case 503:
+      default:
+        throw new EbinaApiError(res);
+    }
+  }
+
+  // mongodb設定保存
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async setMongoDBSettings(settings: MongoDBSettings) {
+    this.checkURL();
+    const res = await this.ax.post(`/ebina/project/settings/mongodb`, settings);
+    switch (res.status) {
+      case 200:
+        return res.data;
+      case 400:
+      case 401:
       case 500:
       default:
         throw new EbinaApiError(res);
