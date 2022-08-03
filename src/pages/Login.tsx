@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { userSelector } from "../atoms";
 import EbinaAPI from "../EbinaAPI";
 import { useForm } from "@mantine/form";
-import { Button, Center, Group, Paper, TextInput, Title } from "@mantine/core";
+import { Button, Center, Paper, Stack, TextInput, Title } from "@mantine/core";
 import { startAuthentication } from "@simplewebauthn/browser";
 
 const Login = () => {
@@ -75,9 +75,8 @@ const Login = () => {
     >
       <Center sx={{ height: "100vh" }}>
         <Paper shadow="xs" p="md">
-          <Group
+          <Stack
             sx={{ width: 250 }}
-            direction="column"
             align="center"
           >
             <Title order={1} m="xs">Login</Title>
@@ -110,7 +109,7 @@ const Login = () => {
             >
               Login
             </Button>
-          </Group>
+          </Stack>
         </Paper>
       </Center>
     </form>

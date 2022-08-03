@@ -1,74 +1,116 @@
-import { useEffect, useState } from "react"
-import { ActionIcon, Affix, Button, Container, Divider, Group, NumberInput, Text, Title, Tooltip, UnstyledButton } from "@mantine/core"
-import { Plus, Refresh } from "tabler-icons-react"
-import { Link } from "react-router-dom"
-import EbinaAPI from "../../EbinaAPI"
-import { useRecoilValue } from "recoil"
-import { appNameSelector } from "../../atoms"
+import { useEffect, useState } from "react";
+import {
+  ActionIcon,
+  Affix,
+  Button,
+  Container,
+  Divider,
+  Group,
+  NumberInput,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
+import { Plus, Refresh } from "tabler-icons-react";
+import { Link } from "react-router-dom";
+import EbinaAPI from "../../EbinaAPI";
+import { useRecoilValue } from "recoil";
+import { appNameSelector } from "../../atoms";
 
-var cacheAppName = ''
+var cacheAppName = "";
 
 const ApiIndex = () => {
-  const [apiState, setApiState] = useState<any>({})
-  const [apis, setApisState] = useState<any[]>([])
-  const [refreshState, setRefreshState] = useState(true)
-  const [port, setPort] = useState<number>(0)
-  const appName = useRecoilValue(appNameSelector)
+  const [apiState, setApiState] = useState<any>({});
+  const [apis, setApisState] = useState<any[]>([]);
+  const [refreshState, setRefreshState] = useState(true);
+  const [port, setPort] = useState<number>(0);
+  const appName = useRecoilValue(appNameSelector);
 
   useEffect(() => {
     if (refreshState || cacheAppName !== appName) {
-      EbinaAPI.getAPIStatus(appName).then((res) => { setApiState(res) })
-      EbinaAPI.getAPIs(appName).then((res) => { setApisState(res) })
-      EbinaAPI.getPort(appName).then((res) => { setPort(res) })
-      setRefreshState(false)
-      cacheAppName = appName
+      EbinaAPI.getAPIStatus(appName).then((res) => {
+        setApiState(res);
+      });
+      EbinaAPI.getAPIs(appName).then((res) => {
+        setApisState(res);
+      });
+      EbinaAPI.getPort(appName).then((res) => {
+        setPort(res);
+      });
+      setRefreshState(false);
+      cacheAppName = appName;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshState, appName])
+  }, [refreshState, appName]);
 
-  let labelStartButton: string = ''
-  let labelStatus: string = ''
+  let labelStartButton: string = "";
+  let labelStatus: string = "";
   switch (apiState.status) {
-    case 'started':
-      labelStatus = 'Runging'
-      labelStartButton = 'Restart'
+    case "started":
+      labelStatus = "Runging";
+      labelStartButton = "Restart";
       break;
-    case 'stop':
-      labelStatus = 'Stop'
-      labelStartButton = 'Start'
+    case "stop":
+      labelStatus = "Stop";
+      labelStartButton = "Start";
       break;
     default:
       break;
   }
   return (
     <Container p={0}>
-      <Container sx={{
-        height: 70,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }} fluid>
+      <Container
+        sx={{
+          height: 70,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+        fluid
+      >
         <Text size="xl" weight={50}>API</Text>
-        <ActionIcon size="xl" radius="xl" onClick={() => { setRefreshState(true) }}>
+        <ActionIcon
+          size="xl"
+          radius="xl"
+          onClick={() => {
+            setRefreshState(true);
+          }}
+        >
           <Refresh />
         </ActionIcon>
       </Container>
       <Divider />
-      <Group direction="column" grow>
+      <Stack>
         <Title order={5}>
           Status
         </Title>
         <Group position="apart">
-          <Tooltip label={`at ${(new Date(apiState.started_at)).toLocaleString()}`} position="bottom" disabled={!apiState.started_at}          >
+          <Tooltip
+            label={`at ${(new Date(apiState.started_at)).toLocaleString()}`}
+            position="bottom"
+            disabled={!apiState.started_at}
+          >
             <Text>
               {labelStatus}
             </Text>
           </Tooltip>
           <Group>
-            <Button onClick={() => EbinaAPI.updateAPIStatus(appName, 'start').then(() => setRefreshState(true))}>
+            <Button
+              onClick={() =>
+                EbinaAPI.updateAPIStatus(appName, "start").then(() =>
+                  setRefreshState(true)
+                )}
+            >
               {labelStartButton}
             </Button>
-            <Button onClick={() => EbinaAPI.updateAPIStatus(appName, 'stop').then(() => setRefreshState(true))}>
+            <Button
+              onClick={() =>
+                EbinaAPI.updateAPIStatus(appName, "stop").then(() =>
+                  setRefreshState(true)
+                )}
+            >
               Stop
             </Button>
           </Group>
@@ -82,9 +124,16 @@ const ApiIndex = () => {
             label="Port"
             placeholder="3456"
             value={port}
-            onChange={(v) => { v && setPort(v) }}
+            onChange={(v) => {
+              v && setPort(v);
+            }}
           />
-          <Button onClick={() => EbinaAPI.updatePort(appName, port).then(() => setRefreshState(true))}>
+          <Button
+            onClick={() =>
+              EbinaAPI.updatePort(appName, port).then(() =>
+                setRefreshState(true)
+              )}
+          >
             Save
           </Button>
         </Group>
@@ -93,7 +142,11 @@ const ApiIndex = () => {
           API List
         </Title>
         {apis.map((item) => (
-          <UnstyledButton key={item.path} component={Link} to={`edit?path=${item.path}`}>
+          <UnstyledButton
+            key={item.path}
+            component={Link}
+            to={`edit?path=${item.path}`}
+          >
             <Divider />
             <Text>
               {item.api.name}
@@ -102,16 +155,21 @@ const ApiIndex = () => {
               {item.path}
             </Text>
           </UnstyledButton>
-        )
-        )}
-      </Group>
+        ))}
+      </Stack>
       <Affix position={{ bottom: 20, right: 20 }}>
-        <Button sx={{ width: 50, height: 50 }} p={0} radius="xl" component={Link} to="edit">
+        <Button
+          sx={{ width: 50, height: 50 }}
+          p={0}
+          radius="xl"
+          component={Link}
+          to="edit"
+        >
           <Plus />
         </Button>
       </Affix>
-    </Container >
-  )
-}
+    </Container>
+  );
+};
 
-export default ApiIndex
+export default ApiIndex;
