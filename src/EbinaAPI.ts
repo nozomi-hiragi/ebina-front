@@ -842,6 +842,98 @@ class EbinaAPI {
         }
       });
   }
+
+  // users
+  // 200 一覧
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 エラー
+  public async getDBUsers() {
+    this.checkURL();
+    return await this.ax.get(`ebina/database/users`)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+          default:
+            return res.data as {
+              user: string;
+              roles: { role: string; db: string }[];
+            }[];
+        }
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 500:
+            case 400:
+            case 401:
+            default:
+              if (!err.response) throw err;
+              throw new EbinaApiError(err.response);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // create mongodb uset
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async createMongoDBUser(user: {
+    username: string;
+    password: string;
+    roles: { role: string; db: string }[];
+  }) {
+    this.checkURL();
+    return await this.ax.post(`/ebina/database/user`, user).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data;
+      }
+    }).catch((err) => {
+      if (err instanceof AxiosError) {
+        switch (err.response?.status) {
+          case 400:
+          case 401:
+          case 500:
+          default:
+            throw new EbinaApiError(err.response!);
+        }
+      } else {
+        throw err;
+      }
+    });
+  }
+
+  // delete mongodb uset
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async deleteMongoDBUser(username: string) {
+    this.checkURL();
+    return await this.ax.delete(`/ebina/database/user/${username}`)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+        }
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            case 500:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
 }
 
 export default new EbinaAPI();
