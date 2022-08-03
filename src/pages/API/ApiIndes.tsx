@@ -1,107 +1,175 @@
-import { useEffect, useState } from "react"
-import { Box, Button, Divider, Fab, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, ListSubheader, TextField, Toolbar, Tooltip, Typography } from "@mui/material"
-import { Add, Refresh } from "@mui/icons-material"
-import { Link } from "react-router-dom"
-import EbinaAPI from "../../EbinaAPI"
-import { useRecoilValue } from "recoil"
-import { appNameSelector } from "../../atoms"
+import { useEffect, useState } from "react";
+import {
+  ActionIcon,
+  Affix,
+  Button,
+  Container,
+  Divider,
+  Group,
+  NumberInput,
+  Stack,
+  Text,
+  Title,
+  Tooltip,
+  UnstyledButton,
+} from "@mantine/core";
+import { Plus, Refresh } from "tabler-icons-react";
+import { Link } from "react-router-dom";
+import EbinaAPI from "../../EbinaAPI";
+import { useRecoilValue } from "recoil";
+import { appNameSelector } from "../../atoms";
 
-var cacheAppName = ''
+var cacheAppName = "";
 
 const ApiIndex = () => {
-  const [apiState, setApiState] = useState<any>({})
-  const [apis, setApisState] = useState<any[]>([])
-  const [refreshState, setRefreshState] = useState(true)
-  const [port, setPort] = useState<number>(0)
-  const appName = useRecoilValue(appNameSelector)
+  const [apiState, setApiState] = useState<any>({});
+  const [apis, setApisState] = useState<any[]>([]);
+  const [refreshState, setRefreshState] = useState(true);
+  const [port, setPort] = useState<number>(0);
+  const appName = useRecoilValue(appNameSelector);
 
   useEffect(() => {
     if (refreshState || cacheAppName !== appName) {
-      EbinaAPI.getAPIStatus(appName).then((res) => { setApiState(res) })
-      EbinaAPI.getAPIs(appName).then((res) => { setApisState(res) })
-      EbinaAPI.getPort(appName).then((res) => { setPort(res) })
-      setRefreshState(false)
-      cacheAppName = appName
+      EbinaAPI.getAPIStatus(appName).then((res) => {
+        setApiState(res);
+      });
+      EbinaAPI.getAPIs(appName).then((res) => {
+        setApisState(res);
+      });
+      EbinaAPI.getPort(appName).then((res) => {
+        setPort(res);
+      });
+      setRefreshState(false);
+      cacheAppName = appName;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshState, appName])
+  }, [refreshState, appName]);
 
-  let labelStartButton: string = ''
-  let labelStatus: string = ''
+  let labelStartButton: string = "";
+  let labelStatus: string = "";
   switch (apiState.status) {
-    case 'started':
-      labelStatus = 'Runging'
-      labelStartButton = 'Restart'
+    case "started":
+      labelStatus = "Runging";
+      labelStartButton = "Restart";
       break;
-    case 'stop':
-      labelStatus = 'Stop'
-      labelStartButton = 'Start'
+    case "stop":
+      labelStatus = "Stop";
+      labelStartButton = "Start";
       break;
     default:
       break;
   }
   return (
-    <Box>
-      <Toolbar
-        sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 }, }}>
-        <Typography id="tableTitle" sx={{ flex: '1 1 100%' }} variant="h6" component="div">
-          {`API`}
-        </Typography>
-        <Tooltip title="Refresh State">
-          <IconButton onClick={() => setRefreshState(true)}>
-            <Refresh />
-          </IconButton>
-        </Tooltip>
-      </Toolbar>
+    <Container p={0}>
+      <Container
+        sx={{
+          height: 70,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+        fluid
+      >
+        <Text size="xl" weight={50}>API</Text>
+        <ActionIcon
+          size="xl"
+          radius="xl"
+          onClick={() => {
+            setRefreshState(true);
+          }}
+        >
+          <Refresh />
+        </ActionIcon>
+      </Container>
       <Divider />
-      <List>
-        <ListSubheader component="div" id="subheader-status">
+      <Stack>
+        <Title order={5}>
           Status
-        </ListSubheader>
-        <ListItem>
-          <ListItemText
-            primary={`${labelStatus}`}
-            secondary={` ${apiState.started_at ? 'at ' + (new Date(apiState.started_at)).toLocaleString() : ''}`} />
-          <ListItemIcon>
-            <Button variant="contained" onClick={() => EbinaAPI.updateAPIStatus(appName, 'start').then(() => setRefreshState(true))}>
+        </Title>
+        <Group position="apart">
+          <Tooltip
+            label={`at ${(new Date(apiState.started_at)).toLocaleString()}`}
+            position="bottom"
+            disabled={!apiState.started_at}
+          >
+            <Text>
+              {labelStatus}
+            </Text>
+          </Tooltip>
+          <Group>
+            <Button
+              onClick={() =>
+                EbinaAPI.updateAPIStatus(appName, "start").then(() =>
+                  setRefreshState(true)
+                )}
+            >
               {labelStartButton}
             </Button>
-          </ListItemIcon>
-          <Box width='8pt' />
-          <ListItemIcon>
-            <Button variant="contained" onClick={() => EbinaAPI.updateAPIStatus(appName, 'stop').then(() => setRefreshState(true))}>
+            <Button
+              onClick={() =>
+                EbinaAPI.updateAPIStatus(appName, "stop").then(() =>
+                  setRefreshState(true)
+                )}
+            >
               Stop
             </Button>
-          </ListItemIcon>
-        </ListItem>
+          </Group>
+        </Group>
         <Divider />
-        <ListSubheader component="div" id="subheader-port">
+        <Title order={5}>
           Port
-        </ListSubheader>
-        <ListItem>
-          <TextField label="Port" variant="standard" type="number" fullWidth value={port} onChange={(e) => {
-            setPort(Number(e.target.value))
-          }} />
-          <Box width='8pt' />
-          <Button variant="contained" onClick={() => EbinaAPI.updatePort(appName, port).then(() => setRefreshState(true))}>
+        </Title>
+        <Group align="center" position="apart">
+          <NumberInput
+            label="Port"
+            placeholder="3456"
+            value={port}
+            onChange={(v) => {
+              v && setPort(v);
+            }}
+          />
+          <Button
+            onClick={() =>
+              EbinaAPI.updatePort(appName, port).then(() =>
+                setRefreshState(true)
+              )}
+          >
             Save
           </Button>
-        </ListItem>
+        </Group>
         <Divider />
-        <ListSubheader component="div" id="nested-list-subheader">
+        <Title order={5}>
           API List
-        </ListSubheader>
+        </Title>
         {apis.map((item) => (
-          <ListItemButton key={item.path} component={Link} to={`edit?path=${item.path}`}>
-            <ListItemText primary={item.api.name} secondary={item.path} />
-          </ListItemButton>)
-        )}
-      </List>
-      <Fab color="primary" aria-label="add" sx={{ position: 'absolute', bottom: 16, right: 16, }} component={Link} to="edit">
-        <Add />
-      </Fab>
-    </Box >
-  )
-}
+          <UnstyledButton
+            key={item.path}
+            component={Link}
+            to={`edit?path=${item.path}`}
+          >
+            <Divider />
+            <Text>
+              {item.api.name}
+            </Text>
+            <Text>
+              {item.path}
+            </Text>
+          </UnstyledButton>
+        ))}
+      </Stack>
+      <Affix position={{ bottom: 20, right: 20 }}>
+        <Button
+          sx={{ width: 50, height: 50 }}
+          p={0}
+          radius="xl"
+          component={Link}
+          to="edit"
+        >
+          <Plus />
+        </Button>
+      </Affix>
+    </Container>
+  );
+};
 
-export default ApiIndex
+export default ApiIndex;

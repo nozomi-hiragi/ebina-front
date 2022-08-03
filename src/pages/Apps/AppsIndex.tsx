@@ -1,46 +1,82 @@
-import { Add, Refresh } from "@mui/icons-material"
-import { Box, Divider, Fab, IconButton, List, ListItemButton, ListItemText, Toolbar, Tooltip, Typography } from "@mui/material"
-import { Suspense } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { useRecoilValue, useSetRecoilState } from "recoil"
-import { appNameListSelector } from "../../atoms"
+import { Suspense } from "react";
+import {
+  ActionIcon,
+  Affix,
+  Button,
+  Container,
+  Navbar,
+  Stack,
+  Text,
+  UnstyledButton,
+} from "@mantine/core";
+import { Link, useNavigate } from "react-router-dom";
+import { useRecoilValue, useSetRecoilState } from "recoil";
+import { Plus, Refresh } from "tabler-icons-react";
+import { appNameListSelector } from "../../atoms";
 
 const AppList = () => {
-  const navigate = useNavigate()
-  const appNameList = useRecoilValue(appNameListSelector)
-  return (<List>
-    {appNameList.map((appName) => (
-      <ListItemButton key={appName} onClick={() => { navigate(appName) }}>
-        <ListItemText>{appName}</ListItemText>
-      </ListItemButton>
-    ))}
-  </List >)
-}
+  const navigate = useNavigate();
+  const appNameList = useRecoilValue(appNameListSelector);
+  return (
+    <Stack>
+      {appNameList.map((appName) => (
+        <UnstyledButton
+          key={appName}
+          onClick={() => {
+            navigate(appName);
+          }}
+          p={4}
+          m={4}
+        >
+          <Navbar.Section>
+            <Text>{appName}</Text>
+          </Navbar.Section>
+        </UnstyledButton>
+      ))}
+    </Stack>
+  );
+};
 
 const AppsIndex = () => {
-  const setAppNameList = useSetRecoilState(appNameListSelector)
+  const setAppNameList = useSetRecoilState(appNameListSelector);
   return (
-    <Box>
-      <Toolbar
-        sx={{ pl: { sm: 2 }, pr: { xs: 1, sm: 1 }, }}>
-        <Typography id="tableTitle" sx={{ flex: '1 1 100%' }} variant="h6" component="div">
-          {`Apps`}
-        </Typography>
-        <Tooltip title="Refresh State">
-          <IconButton onClick={() => { setAppNameList([]) }}>
-            <Refresh />
-          </IconButton>
-        </Tooltip>
-      </Toolbar>
-      <Divider />
+    <Container p={0}>
+      <Container
+        sx={{
+          height: 70,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+        fluid
+      >
+        <Text size="xl" weight={50}>Apps</Text>
+        <ActionIcon
+          size="xl"
+          radius="xl"
+          onClick={() => {
+            setAppNameList([]);
+          }}
+        >
+          <Refresh />
+        </ActionIcon>
+      </Container>
       <Suspense>
         <AppList />
       </Suspense>
-      <Fab color="primary" aria-label="add" sx={{ position: 'absolute', bottom: 16, right: 16, }} component={Link} to="new">
-        <Add />
-      </Fab>
-    </Box>
-  )
-}
+      <Affix position={{ bottom: 20, right: 20 }}>
+        <Button
+          sx={{ width: 50, height: 50 }}
+          p={0}
+          radius="xl"
+          component={Link}
+          to="new"
+        >
+          <Plus />
+        </Button>
+      </Affix>
+    </Container>
+  );
+};
 
-export default AppsIndex
+export default AppsIndex;

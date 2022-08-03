@@ -1,81 +1,119 @@
-import { useEffect, useRef } from "react";
-import { useRecoilState } from 'recoil'
-import { Box } from "@mui/system";
-import { Button, TextField, Typography } from "@mui/material";
+import { useEffect, useState } from "react";
+import { useRecoilState } from "recoil";
 import { useNavigate } from "react-router-dom";
 import { userSelector } from "../atoms";
 import EbinaAPI from "../EbinaAPI";
+import { useForm } from "@mantine/form";
+import { Button, Center, Paper, Stack, TextInput, Title } from "@mantine/core";
+import { startAuthentication } from "@simplewebauthn/browser";
 
 const Login = () => {
-  const serverRef = useRef<HTMLInputElement>()
-  const idRef = useRef<HTMLInputElement>()
-  const passRef = useRef<HTMLInputElement>()
-  const navigate = useNavigate()
-  const [user, setUser] = useRecoilState(userSelector)
+  const navigate = useNavigate();
+  const [user, setUser] = useRecoilState(userSelector);
+  const [passwordLogin, setPasswordLogin] = useState(false);
+
+  const loginForm = useForm({
+    initialValues: {
+      server: "",
+      id: "",
+      pass: "",
+    },
+    validate: {
+      server: (value) => {
+        try {
+          const url = new URL(value);
+          console.log(url.protocol);
+          switch (url.protocol) {
+            case "http:":
+            case "https:":
+              return null;
+            default:
+              return "wrong protocol";
+          }
+        } catch (err) {
+          return "URL error";
+        }
+      },
+    },
+  });
 
   useEffect(() => {
-    if (user) { navigate('/dashboard') }
+    if (user) navigate("/dashboard");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  }, [user]);
 
   return (
-    <Box sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: "100vh",
-    }}>
-      <Typography variant="h3" m={0}>Login</Typography>
-      <TextField
-        required
-        id="outlined-required server"
-        label="Server"
-        margin="normal"
-        inputRef={serverRef}
-      />
-      <TextField
-        required
-        id="outlined-required id"
-        label="ID"
-        type="id"
-        margin="normal"
-        inputRef={idRef}
-      />
-      <TextField
-        required
-        id="outlined-required pass"
-        label="PASS"
-        type="password"
-        margin="normal"
-        inputRef={passRef}
-      />
-      <Button variant="contained" onClick={(() => {
-        // TODO varidate
-        const server = serverRef.current?.value
-        const id = idRef.current?.value!
-        const pass = passRef.current?.value!
-        const url = (() => {
-          try {
-            const url = new URL(server as string)
-            return url.toString()
-          } catch (err) {
-            if (err instanceof TypeError) {
-              // url error
-              console.log('URL error')
-            }
-            return ''
-          }
-        })()
-        EbinaAPI.setURL(url)
-        EbinaAPI.login({ id, pass }).then((user) => {
-          setUser(user)
-        }).catch((err) => { console.log(err.message) })
-      })}>
-        Login
-      </Button>
-    </Box>
-  )
-}
+    <form
+      onSubmit={loginForm.onSubmit((values) => {
+        const login = (
+          body:
+            | { type: "password"; id: string; pass: string }
+            | { type: "public-key"; [key: string]: any },
+        ) =>
+          EbinaAPI.login(body)
+            .then((user) => setUser({ ...user, id: values.id }))
+            .catch((err) => console.log(err.message));
 
-export default Login
+        EbinaAPI.setURL(values.server);
+        if (passwordLogin) {
+          login({ type: "password", id: values.id, pass: values.pass });
+        } else {
+          EbinaAPI.getLoginOptions(values.id)
+            .then((ret) => {
+              switch (ret.type) {
+                case "password":
+                  setPasswordLogin(true);
+                  break;
+                case "WebAuthn":
+                  startAuthentication(ret.options).then((ret) => login(ret));
+                  break;
+              }
+            })
+            .catch((err) => console.log(err.message));
+        }
+      })}
+    >
+      <Center sx={{ height: "100vh" }}>
+        <Paper shadow="xs" p="md">
+          <Stack
+            sx={{ width: 250 }}
+            align="center"
+          >
+            <Title order={1} m="xs">Login</Title>
+            <TextInput
+              required
+              id="server"
+              label="Server"
+              type="url"
+              {...loginForm.getInputProps("server")}
+            />
+            <TextInput
+              required
+              id="id"
+              label="ID"
+              type="text"
+              {...loginForm.getInputProps("id")}
+            />
+            {passwordLogin && (
+              <TextInput
+                required
+                id="pass"
+                label="PASS"
+                type="password"
+                {...loginForm.getInputProps("pass")}
+              />
+            )}
+            <Button
+              type="submit"
+              m="xs"
+            >
+              Login
+            </Button>
+          </Stack>
+        </Paper>
+      </Center>
+    </form>
+  );
+};
+
+export default Login;

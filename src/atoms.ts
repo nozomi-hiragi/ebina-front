@@ -55,7 +55,7 @@ export const appNameSelector = selector<string>({
 export const getJsListSelector = selector<string[]>({
   key: 'getJsListSelector',
   get: async ({ get }) => {
-    return await EbinaAPI.getJSList(get(appNameSelector)).catch((err) => {
+    return await EbinaAPI.getScriptList(get(appNameSelector)).catch((err) => {
       console.error(err)
       return []
     })
