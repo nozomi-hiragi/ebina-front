@@ -773,6 +773,75 @@ class EbinaAPI {
         throw new EbinaApiError(res);
     }
   }
+
+  // DB一覧
+  // 200 一覧
+  // 400 情報おかしい
+  // 401 認証おかしい
+  public async getDatabases() {
+    this.checkURL();
+    const res = await this.ax.get(`ebina/database/databases`);
+    switch (res.status) {
+      case 200:
+        return res.data as {
+          name: string;
+          sizeOnDisk?: number;
+          empty?: false;
+        }[];
+      case 400:
+      case 401:
+      default:
+        throw new EbinaApiError(res);
+    }
+  }
+
+  // Collection一覧
+  // 200 一覧
+  // 400 情報おかしい
+  // 401 認証おかしい
+  public async getCollections(dbName: string) {
+    this.checkURL();
+    const res = await this.ax.get(`ebina/database/${dbName}/collections`);
+    switch (res.status) {
+      case 200:
+        return res.data as string[];
+      case 400:
+      case 401:
+      default:
+        throw new EbinaApiError(res);
+    }
+  }
+
+  // docs
+  // 200 一覧
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 エラー
+  public async getDocments(dbName: string, colName: string) {
+    this.checkURL();
+    return await this.ax.get(`ebina/database/${dbName}/${colName}/find`)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+          default:
+            return res.data as any[];
+        }
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 500:
+              return err.response.data;
+            case 400:
+            case 401:
+            default:
+              if (!err.response) throw err;
+              throw new EbinaApiError(err.response);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
 }
 
 export default new EbinaAPI();
