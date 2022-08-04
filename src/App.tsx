@@ -14,6 +14,8 @@ import AppsIndex from "./pages/Apps/AppsIndex";
 import AppsEdit from "./pages/Apps/AppsEdit";
 import Database from "./pages/database/Database";
 import Collection from "./pages/database/Collection";
+import ConstanRun from "./pages/ConstantRun/ConstantRun";
+import ConstanRunDetail from "./pages/ConstantRun/ConstantRunDetail";
 
 function App() {
   return (
@@ -49,6 +51,10 @@ function App() {
               <Route path=":name" element={<AppsEdit />} />
             </Route>
             <Route path="setting" element={<Setting />} />
+            <Route path="constantrun">
+              <Route index element={<ConstanRun />} />
+              <Route path=":cronName" element={<ConstanRunDetail />} />
+            </Route>
           </Route>
         </Route>
       </Routes>
