@@ -41,6 +41,7 @@ const AppMenu: React.FC<AppMenuProps> = (props: AppMenuProps) => {
   const appMenuItems = [
     { label: "API", path: "api" },
     { label: "Edit", path: "edit" },
+    { label: "Constant Run", path: "constantrun" },
   ];
 
   return (
