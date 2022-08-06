@@ -1,6 +1,6 @@
 import { MouseEventHandler } from "react";
 import { Link } from "react-router-dom";
-import { Stack, Tooltip, UnstyledButton } from "@mantine/core";
+import { Group, Stack, Tooltip, UnstyledButton } from "@mantine/core";
 import { Apps, Database, Home, Settings, User } from "tabler-icons-react";
 
 type BaseMenuProps = {
@@ -13,12 +13,12 @@ const BaseMenu: React.FC<BaseMenuProps> = (props: BaseMenuProps) => {
     { label: "Users", path: "users", icon: <User /> },
     { label: "Apps", path: "apps", icon: <Apps /> },
     { label: "Database", path: "database", icon: <Database /> },
-    { label: "Settings", path: "setting", icon: <Settings /> },
+    { label: "Settings", path: "settings", icon: <Settings /> },
   ];
 
   return (
     <Stack
-      align="center"
+      align="flex-start"
       justify="flex-start"
       spacing="xs"
       sx={{ height: "100%" }}
@@ -27,17 +27,19 @@ const BaseMenu: React.FC<BaseMenuProps> = (props: BaseMenuProps) => {
         <Tooltip key={item.label} label={item.label} position="right">
           <UnstyledButton<typeof Link>
             sx={{
-              width: 50,
               height: 50,
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "start",
               display: "flex",
             }}
             component={Link}
             to={item.path}
             onClick={props.onClick}
           >
-            {item.icon}
+            <Group position="center" sx={{ width: 50, height: 50 }}>
+              {item.icon}
+            </Group>
+            <span>{item.label}</span>
           </UnstyledButton>
         </Tooltip>
       ))}

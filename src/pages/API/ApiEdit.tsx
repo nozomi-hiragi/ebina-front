@@ -1,56 +1,61 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom"
-import { Button, Container, Group, Modal, Select, TextInput, Text } from "@mantine/core";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  Button,
+  Container,
+  Group,
+  Modal,
+  Select,
+  Text,
+  TextInput,
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import EbinaAPI from "../../EbinaAPI";
-import { useRecoilValue } from "recoil";
-import { appNameSelector, getJsListSelector } from "../../atoms";
-import { ApiMethodList, ApiTypeList, TypeApiMethods, TypeApiTypes } from "../../types";
+import {
+  ApiMethodList,
+  ApiTypeList,
+  TypeApiMethods,
+  TypeApiTypes,
+} from "../../types";
 
 function useQuery() {
-  const { search } = useLocation()
-  return React.useMemo(() => new URLSearchParams(search), [search])
+  const { search } = useLocation();
+  return React.useMemo(() => new URLSearchParams(search), [search]);
 }
 
-var cacheAppName = ''
-
 const ApiEdit = () => {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const jsList = useRecoilValue(getJsListSelector)
-  const appName = useRecoilValue(appNameSelector)
-  const navigate = useNavigate()
-  if (!cacheAppName) cacheAppName = appName
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [jsList, setJsList] = useState<string[]>([]);
+  const appName = useParams().appName ?? "";
+  const navigate = useNavigate();
 
-  const query = useQuery()
-  const queryPath = query.get('path')
+  const query = useQuery();
+  const queryPath = query.get("path");
+
+  useEffect(() => {
+    EbinaAPI.getScriptList(appName).then((ret) => setJsList(ret));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (queryPath) {
       EbinaAPI.getAPI(appName, queryPath).then((api) => {
         switch (api.type) {
-          case 'JavaScript':
-            const args = api.value.split('>')
-            editApiForm.setFieldValue("jsfilename", args[0])
-            editApiForm.setFieldValue("jsfunction", args[1])
+          case "JavaScript":
+            const args = api.value.split(">");
+            editApiForm.setFieldValue("jsfilename", args[0]);
+            editApiForm.setFieldValue("jsfunction", args[1]);
             break;
         }
-        editApiForm.setFieldValue("path", queryPath)
-        editApiForm.setFieldValue("name", api.name)
-        editApiForm.setFieldValue("method", api.method)
-        editApiForm.setFieldValue("type", api.type)
-        editApiForm.setFieldValue("value", api.value)
-      })
+        editApiForm.setFieldValue("path", queryPath);
+        editApiForm.setFieldValue("name", api.name);
+        editApiForm.setFieldValue("method", api.method);
+        editApiForm.setFieldValue("type", api.type);
+        editApiForm.setFieldValue("value", api.value);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryPath])
-
-  useEffect(() => {
-    if (cacheAppName !== appName) {
-      cacheAppName = appName
-      navigate('..')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appName])
+  }, [queryPath]);
 
   const editApiForm = useForm({
     initialValues: {
@@ -59,76 +64,91 @@ const ApiEdit = () => {
       method: "get" as TypeApiMethods,
       type: "static" as TypeApiTypes,
       value: "",
-      jsfilename: '',
-      jsfunction: '',
+      jsfilename: "",
+      jsfunction: "",
     },
   });
 
   return (
     <Container m={1}>
-      <form onSubmit={editApiForm.onSubmit((values) => {
-        switch (values.type) {
-          case 'JavaScript':
-            values.value = `${values.jsfilename}>${values.jsfunction}`
-            break;
-        }
-        if (queryPath) {
-          EbinaAPI.updateAPI(appName, values.path, values).then((res) => { navigate('..') })
-        } else {
-          EbinaAPI.createPath(appName, values.path, values).then((res) => { navigate('..') })
-        }
-      })}>
+      <form
+        onSubmit={editApiForm.onSubmit((values) => {
+          switch (values.type) {
+            case "JavaScript":
+              values.value = `${values.jsfilename}>${values.jsfunction}`;
+              break;
+          }
+          if (queryPath) {
+            EbinaAPI.updateAPI(appName, values.path, values).then((res) => {
+              navigate(-1);
+            });
+          } else {
+            EbinaAPI.createPath(appName, values.path, values).then((res) => {
+              navigate(-1);
+            });
+          }
+        })}
+      >
         <TextInput
           label="Path"
           placeholder="Path"
           required={queryPath == null}
           disabled={queryPath !== null}
-          {...editApiForm.getInputProps('path')}
+          {...editApiForm.getInputProps("path")}
         />
         <TextInput
           label="Name"
           placeholder="Name"
           required
-          {...editApiForm.getInputProps('name')}
+          {...editApiForm.getInputProps("name")}
         />
         <Select
           label="Method"
           placeholder="Pick one"
           data={ApiMethodList}
-          {...editApiForm.getInputProps('method')}
+          {...editApiForm.getInputProps("method")}
         />
         <Select
           label="Type"
           placeholder="Pick one"
           data={ApiTypeList}
-          {...editApiForm.getInputProps('type')}
+          {...editApiForm.getInputProps("type")}
         />
-        {editApiForm.values.type === 'JavaScript'
-          ? <>
-            <Select
-              label="JsFile"
-              placeholder="Pick one"
-              data={jsList}
-              required={editApiForm.values.type === 'JavaScript'}
-              {...editApiForm.getInputProps('jsfilename')}
-            />
+        {editApiForm.values.type === "JavaScript"
+          ? (
+            <>
+              <Select
+                label="JsFile"
+                placeholder="Pick one"
+                data={jsList}
+                required={editApiForm.values.type === "JavaScript"}
+                {...editApiForm.getInputProps("jsfilename")}
+              />
+              <TextInput
+                label="Function"
+                placeholder="Function"
+                required={editApiForm.values.type === "JavaScript"}
+                {...editApiForm.getInputProps("jsfunction")}
+              />
+            </>
+          )
+          : (
             <TextInput
-              label="Function"
-              placeholder="Function"
-              required={editApiForm.values.type === 'JavaScript'}
-              {...editApiForm.getInputProps('jsfunction')}
+              label="Value"
+              placeholder="Value"
+              required={editApiForm.values.type === "static"}
+              {...editApiForm.getInputProps("value")}
             />
-          </>
-          :
-          <TextInput
-            label="Value"
-            placeholder="Value"
-            required={editApiForm.values.type === 'static'}
-            {...editApiForm.getInputProps('value')}
-          />
-        }
+          )}
         <Group position="right" mt="md">
-          <Button disabled={queryPath === null} onClick={() => { setDeleteDialogOpen(true) }}>Delete</Button>
+          <Button
+            disabled={queryPath === null}
+            onClick={() => {
+              setDeleteDialogOpen(true);
+            }}
+          >
+            Delete
+          </Button>
           <Button type="submit">Save</Button>
         </Group>
       </form>
@@ -140,16 +160,22 @@ const ApiEdit = () => {
         <Text color="red">{`Delete "${queryPath}"?`}</Text>
         <Group position="right">
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={(() => {
-            EbinaAPI.deleteAPI(appName, queryPath!).then(() => {
-              setDeleteDialogOpen(false)
-              navigate('..')
-            }).catch((err) => { console.log(err) })
-          })}>Delete</Button>
+          <Button
+            onClick={() => {
+              EbinaAPI.deleteAPI(appName, queryPath!).then(() => {
+                setDeleteDialogOpen(false);
+                navigate(-1);
+              }).catch((err) => {
+                console.log(err);
+              });
+            }}
+          >
+            Delete
+          </Button>
         </Group>
       </Modal>
-    </Container >
-  )
-}
+    </Container>
+  );
+};
 
-export default ApiEdit
+export default ApiEdit;
