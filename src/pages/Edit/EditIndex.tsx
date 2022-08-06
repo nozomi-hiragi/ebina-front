@@ -10,26 +10,21 @@ import {
 } from "@mantine/core";
 import { Plus, Refresh } from "tabler-icons-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useRecoilValue } from "recoil";
-import { appNameSelector } from "../../atoms";
+import { Link, useParams } from "react-router-dom";
 import EbinaAPI from "../../EbinaAPI";
-
-var cacheAppName = "";
 
 const EditIndex = () => {
   const [fileList, setFileList] = useState<string[]>([]);
   const [refreshState, setRefreshState] = useState(true);
-  const appName = useRecoilValue(appNameSelector);
+  const appName = useParams().appName ?? "";
 
   useEffect(() => {
-    if (refreshState || cacheAppName !== appName) {
+    if (refreshState) {
       EbinaAPI.getScriptList(appName).then((list) => setFileList(list));
       setRefreshState(false);
-      cacheAppName = appName;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshState, appName]);
+  }, [refreshState]);
 
   return (
     <Container>

@@ -13,16 +13,14 @@ import { useForm } from "@mantine/form";
 import { showNotification } from "@mantine/notifications";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useRecoilValue } from "recoil";
 import { Check } from "tabler-icons-react";
-import { appNameSelector } from "../../atoms";
 import EbinaAPI, { CronItem } from "../../EbinaAPI";
 
 const ConstanRunDetail = () => {
   const paramCronName = useParams().cronName ?? "new";
   const isNew = paramCronName === "new";
   const [newCronName, setNewCronName] = useState<string>(paramCronName);
-  const appName = useRecoilValue(appNameSelector);
+  const appName = useParams().appName ?? "";
   const [pending, setPending] = useState<boolean>(!isNew);
   const [scriptNames, setScriptNames] = useState<string[]>([]);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
@@ -85,7 +83,7 @@ const ConstanRunDetail = () => {
                 icon: <Check size={16} />,
                 color: "green",
               });
-              if (isNew) navigate("../");
+              if (isNew) navigate(-1);
             }).catch((err) => {
               showNotification({
                 title: "Save failed",
@@ -152,7 +150,7 @@ const ConstanRunDetail = () => {
           <Button
             onClick={() => {
               EbinaAPI.deleteCron(appName, paramCronName).then(() => {
-                navigate("../");
+                navigate(-1);
               }).catch((err) =>
                 showNotification({
                   title: "Delete failed",

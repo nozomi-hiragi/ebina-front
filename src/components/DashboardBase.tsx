@@ -1,31 +1,99 @@
 import { Suspense, useState } from "react";
-import { Outlet } from "react-router-dom";
-import { AppShell, Navbar, Group } from "@mantine/core";
+import { Link, Outlet, useLocation } from "react-router-dom";
+import {
+  Anchor,
+  AppShell,
+  Breadcrumbs,
+  Group,
+  Navbar,
+  Stack,
+  Text,
+} from "@mantine/core";
 import BaseMenu from "./BaseMenu";
-import AppMenu from "./AppMenu";
-import EbinaHeader from "./EbinaHeader"
+import EbinaHeader from "./EbinaHeader";
 
 const DashboardBase = () => {
-  const [isDrawerOpen, setDrawerOpen] = useState(false)
-  return (<>
+  const [isDrawerOpen, setDrawerOpen] = useState(false);
+
+  const location = useLocation();
+  const paths = location.pathname.split("/").filter((value) => value !== "");
+
+  const labels: { [name: string]: { label: string } | undefined } = {
+    "dashboard": {
+      label: "Home",
+    },
+    "users": {
+      label: "Users",
+    },
+    "apps": {
+      label: "Apps",
+    },
+    "database": {
+      label: "Database",
+    },
+    "setting": {
+      label: "Settings",
+    },
+    "api": {
+      label: "API",
+    },
+    "edit": {
+      label: "Edit",
+    },
+    "constantrun": {
+      label: "Constant Run",
+    },
+  };
+
+  const temp = ["/"];
+  const anchors = paths.map((path) => {
+    temp.push(path);
+    const label = labels[path]?.label ?? decodeURI(path);
+    const to = temp.join("/");
+    return path === paths[paths.length - 1]
+      ? <Text key={to}>{label}</Text>
+      : <Anchor key={to} component={Link} to={to}>{label}</Anchor>;
+  });
+
+  return (
     <AppShell
       fixed
-      header={<EbinaHeader hideSize="sm" isOpen={isDrawerOpen} onBurgerClick={() => setDrawerOpen((o) => !o)} />}
+      header={
+        <EbinaHeader
+          hideSize="sm"
+          isOpen={isDrawerOpen}
+          onBurgerClick={() => setDrawerOpen((o) => !o)}
+        />
+      }
       navbar={
-        <Navbar width={{ base: 270 }} p={0} hidden={!isDrawerOpen} hiddenBreakpoint="sm">
-          <Group sx={{ height: "100%" }} spacing="xs">
-            <BaseMenu onClick={() => { setDrawerOpen(false) }} />
-            <AppMenu onClick={() => { setDrawerOpen(false) }} />
+        <Navbar
+          width={{ base: 200 }}
+          p={0}
+          hidden={!isDrawerOpen}
+          hiddenBreakpoint="sm"
+        >
+          <Group sx={{ height: "100%" }} spacing="xs" pl="lg">
+            <BaseMenu
+              onClick={() => {
+                setDrawerOpen(false);
+              }}
+            />
           </Group>
         </Navbar>
       }
       navbarOffsetBreakpoint="sm"
+      padding={0}
     >
-      <Suspense>
-        <Outlet />
-      </Suspense>
-    </AppShell >
-  </>)
-}
+      <Stack>
+        <Breadcrumbs>
+          {anchors}
+        </Breadcrumbs>
+        <Suspense>
+          <Outlet />
+        </Suspense>
+      </Stack>
+    </AppShell>
+  );
+};
 
-export default DashboardBase
+export default DashboardBase;

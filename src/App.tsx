@@ -34,27 +34,29 @@ function App() {
           >
             <Route index element={<Home />} />
             <Route path="users" element={<Users />} />
-            <Route path="api">
-              <Route index element={<ApiIndex />} />
-              <Route path="edit" element={<ApiEdit />} />
-            </Route>
-            <Route path="edit">
-              <Route index element={<EditIndex />} />
-              <Route path=":path" element={<EditEdit />} />
+            <Route path="apps">
+              <Route index element={<AppsIndex />} />
+              <Route path=":appName">
+                <Route index element={<AppsEdit />} />
+                <Route path="api">
+                  <Route index element={<ApiIndex />} />
+                  <Route path="edit" element={<ApiEdit />} />
+                </Route>
+                <Route path="edit">
+                  <Route index element={<EditIndex />} />
+                  <Route path=":path" element={<EditEdit />} />
+                </Route>
+                <Route path="constantrun">
+                  <Route index element={<ConstanRun />} />
+                  <Route path=":cronName" element={<ConstanRunDetail />} />
+                </Route>
+              </Route>
             </Route>
             <Route path="database">
               <Route index element={<Database />} />
               <Route path=":dbName/:colName" element={<Collection />} />
             </Route>
-            <Route path="apps">
-              <Route index element={<AppsIndex />} />
-              <Route path=":name" element={<AppsEdit />} />
-            </Route>
-            <Route path="setting" element={<Setting />} />
-            <Route path="constantrun">
-              <Route index element={<ConstanRun />} />
-              <Route path=":cronName" element={<ConstanRunDetail />} />
-            </Route>
+            <Route path="settings" element={<Setting />} />
           </Route>
         </Route>
       </Routes>
