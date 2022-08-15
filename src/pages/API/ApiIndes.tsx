@@ -14,10 +14,8 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { Plus, Refresh } from "tabler-icons-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import EbinaAPI from "../../EbinaAPI";
-import { useRecoilValue } from "recoil";
-import { appNameSelector } from "../../atoms";
 
 var cacheAppName = "";
 
@@ -26,7 +24,7 @@ const ApiIndex = () => {
   const [apis, setApisState] = useState<any[]>([]);
   const [refreshState, setRefreshState] = useState(true);
   const [port, setPort] = useState<number>(0);
-  const appName = useRecoilValue(appNameSelector);
+  const appName = useParams().appName ?? "";
 
   useEffect(() => {
     if (refreshState || cacheAppName !== appName) {

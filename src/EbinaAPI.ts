@@ -20,6 +20,12 @@ type MongoDBSettings = {
   password: "env" | string;
 };
 
+export type CronItem = {
+  enable: boolean;
+  pattern: string;
+  function: string;
+};
+
 class EbinaAPI {
   private url: URL | null = null;
   private ax: AxiosInstance = axios.create();
@@ -920,6 +926,162 @@ class EbinaAPI {
           case 200:
             return res.data;
         }
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            case 500:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // get cron list
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async getCronList(appName: string): Promise<string[]> {
+    this.checkURL();
+    return this.ax.get(`/ebina/app/${appName}/cron/list`)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as string[];
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            case 500:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // get cron
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async getCron(appName: string, cronName: string): Promise<CronItem> {
+    this.checkURL();
+    return this.ax.get(`/ebina/app/${appName}/cron/${cronName}`)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as CronItem;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            case 500:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // create cron
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async createCron(
+    appName: string,
+    cronName: string,
+    cronItem: CronItem,
+  ): Promise<CronItem> {
+    this.checkURL();
+    return this.ax.post(`/ebina/app/${appName}/cron/${cronName}`, cronItem)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            case 500:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // update cron
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async updateCron(
+    appName: string,
+    cronName: string,
+    cronItem: CronItem,
+  ): Promise<CronItem> {
+    this.checkURL();
+    return this.ax.patch(`/ebina/app/${appName}/cron/${cronName}`, cronItem)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            case 500:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // delete cron
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async deleteCron(
+    appName: string,
+    cronName: string,
+  ): Promise<CronItem> {
+    this.checkURL();
+    return this.ax.delete(`/ebina/app/${appName}/cron/${cronName}`)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+        }
+        throw new EbinaApiError(res);
       }).catch((err) => {
         if (err instanceof AxiosError) {
           switch (err.response?.status) {
