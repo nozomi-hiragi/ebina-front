@@ -1,4 +1,6 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
+import jwtDecode from "jwt-decode";
+import { Mutex } from "async-mutex";
 import * as LS from "./localstorageDelegate";
 import { TypeApi } from "./types";
 
@@ -12,6 +14,18 @@ class EbinaApiError extends Error {
     this.status = res.status;
   }
 }
+
+export class ExpiredRefreshTokenError extends Error {
+  constructor() {
+    super("refresh token was expired");
+    this.name = "ExpiredRefreshTokenError";
+  }
+}
+
+type JWT = {
+  id: string;
+  exp: number;
+};
 
 type MongoDBSettings = {
   hostname: string;
@@ -29,13 +43,14 @@ export type CronItem = {
 class EbinaAPI {
   private url: URL | null = null;
   private ax: AxiosInstance = axios.create();
-  private token: string | null;
-  private refreshToken: string | null;
+  private token: string | undefined;
+  private refreshToken: string | undefined;
+  private mutex = new Mutex();
 
   constructor() {
     this.url = EbinaAPI.stou(LS.get(LS.ITEM.Server));
-    this.token = LS.get(LS.ITEM.Token);
-    this.refreshToken = LS.get(LS.ITEM.RefreshToken);
+    this.token = LS.get(LS.ITEM.Token) ?? undefined;
+    this.refreshToken = LS.get(LS.ITEM.RefreshToken) ?? undefined;
     this.apply();
   }
 
@@ -54,11 +69,11 @@ class EbinaAPI {
       this.token = tokens.token;
       this.refreshToken = tokens.refreshToken;
     } else {
-      this.token = null;
-      this.refreshToken = null;
+      this.token = undefined;
+      this.refreshToken = undefined;
     }
-    LS.set(LS.ITEM.Token, this.token);
-    LS.set(LS.ITEM.RefreshToken, this.refreshToken);
+    LS.set(LS.ITEM.Token, this.token ?? null);
+    LS.set(LS.ITEM.RefreshToken, this.refreshToken ?? null);
     this.apply();
   }
 
@@ -67,8 +82,41 @@ class EbinaAPI {
     this.ax.defaults.headers.common["Authorization"] = `Bearer ${this.token}`;
   }
 
+  private async preCheck() {
+    this.checkURL();
+    await this.checkExired();
+  }
+
   private checkURL() {
     if (!this.url) throw Error("URL did not set");
+  }
+
+  async checkExired() {
+    await this.mutex.runExclusive(async () => {
+      const now = Date.now() * 0.001;
+
+      if (!this.refreshToken) throw new ExpiredRefreshTokenError();
+      const decodedRefToken = jwtDecode(this.refreshToken!) as JWT;
+      const refTokenExp = decodedRefToken.exp;
+      if (refTokenExp < now) {
+        this.setTokens(null);
+        console.error("ref token expired");
+        throw new ExpiredRefreshTokenError();
+      }
+
+      if (!this.token) throw new Error("no token");
+      const decodedToken = jwtDecode(this.token) as JWT;
+      const tokenExp = decodedToken.exp;
+      if (tokenExp < now) {
+        console.log("token expired");
+        await this.refreshTokens().then(() => {
+          console.log("token refreshed");
+        }).catch(() => {
+          console.log("failed refresh token");
+        });
+        return;
+      }
+    });
   }
 
   // User
@@ -79,7 +127,7 @@ class EbinaAPI {
   // 400 情報足らない
   // 406 IDがもうある
   public async userRegist(user: { id: string; name: string; pass: string }) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post("/ebina/user", user);
     switch (res.status) {
       case 201:
@@ -118,11 +166,29 @@ class EbinaAPI {
     }
   }
 
+  // トークン更新
+  // 200 トークン
+  // 401 だめ
+  public async refreshTokens() {
+    this.checkURL();
+    const res = await this.ax.post("/ebina/user/refresh", {
+      refreshToken: this.refreshToken,
+    });
+    switch (res.status) {
+      case 200:
+        this.setTokens(res.data);
+        return;
+      case 401:
+      default:
+        throw new EbinaApiError(res);
+    }
+  }
+
   // ログアウト サーバー内のトークン消す
   // 200 消せた
   // 401 無かった
   public async logout() {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post("/ebina/user/logout");
     switch (res.status) {
       case 200:
@@ -141,7 +207,7 @@ class EbinaAPI {
   // 404 メンバーがない
   // 500 WebAuthnの設定おかしい
   public async getWebAuthnRegistOptions() {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get("/ebina/user/webauthn/regist");
     switch (res.status) {
       case 200:
@@ -169,7 +235,7 @@ class EbinaAPI {
     credential: any,
     deviceName: string,
   ) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post("/ebina/user/webauthn/regist", {
       ...credential,
       deviceName,
@@ -196,7 +262,7 @@ class EbinaAPI {
   // 404 メンバーがない
   // 500 WebAuthnの設定おかしい
   public async getWebAuthnVerifyOptions(deviceNames?: string[]) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get("/ebina/user/webauthn/verify", {
       params: { deviceNames: deviceNames?.join(",") },
     });
@@ -224,7 +290,7 @@ class EbinaAPI {
   // 410 チャレンジ古い
   // 500 WebAuthnの設定おかしい
   public async sendWebAuthnVerifyCredential(credential: any) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post("/ebina/user/webauthn/verify", credential);
     switch (res.status) {
       case 200:
@@ -274,7 +340,7 @@ class EbinaAPI {
   // 400 情報足りない
   // 500 WebAuthnの設定おかしい
   public async getWebAuthnDeviceNames() {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get("/ebina/user/webauthn/device");
     switch (res.status) {
       case 200:
@@ -295,7 +361,7 @@ class EbinaAPI {
   // 404 みつからない
   // 500 WebAuthnの設定おかしい
   public async checkEnableWebAuthnDevice(deviceName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(
       `/ebina/user/webauthn/device/enable/${deviceName}`,
     );
@@ -317,7 +383,7 @@ class EbinaAPI {
   // 404 みつからない
   // 500 WebAuthnの設定おかしい
   public async enableWebAuthnDevice(deviceName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post(
       `/ebina/user/webauthn/device/enable/${deviceName}`,
     );
@@ -340,7 +406,7 @@ class EbinaAPI {
   // 404 みつからない
   // 500 WebAuthnの設定おかしい
   public async disableWebAuthnDevice(deviceName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post(
       `/ebina/user/webauthn/device/disable/${deviceName}`,
     );
@@ -363,7 +429,7 @@ class EbinaAPI {
   // 404 みつからない
   // 500 WebAuthnの設定おかしい
   public async deleteWebAuthnDevice(deviceName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.delete(
       `/ebina/user/webauthn/device/${deviceName}`,
     );
@@ -381,7 +447,7 @@ class EbinaAPI {
   // ?ids
   // 200 空でも返す
   public async getUsers() {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get("/ebina/user");
     switch (res.status) {
       case 200:
@@ -397,7 +463,7 @@ class EbinaAPI {
   // 206 一部できた
   // 404 全部できない
   public async deleteUsers(ids: string[]) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.delete("/ebina/user", { params: { ids: ids } });
     switch (res.status) {
       case 200:
@@ -415,7 +481,7 @@ class EbinaAPI {
   // アプリ配列取得
   // 200 名前ら
   public async getAppNames() {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get("/ebina/app");
     switch (res.status) {
       case 200:
@@ -430,7 +496,7 @@ class EbinaAPI {
   // 200 OK
   // 400 情報足らない
   public async createApp(name: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post(`/ebina/app/${name}`);
     switch (res.status) {
       case 200:
@@ -447,7 +513,7 @@ class EbinaAPI {
   // 404 アプリない
   // 500 フォルダ移動ミスった
   public async deleteApp(name: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.delete(`/ebina/app/${name}`);
     switch (res.status) {
       case 200:
@@ -465,7 +531,7 @@ class EbinaAPI {
   // API起動状態取得
   // 200 { status: 'started' | 'stop', started_at: number }
   public async getAPIStatus(appName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(`/ebina/app/${appName}/api/status`);
     switch (res.status) {
       case 200:
@@ -482,7 +548,7 @@ class EbinaAPI {
   // 400 情報おかしい
   // 500 起動できなかった
   public async updateAPIStatus(appName: string, status: "start" | "stop") {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.put(`/ebina/app/${appName}/api/status`, {
       status,
     });
@@ -500,7 +566,7 @@ class EbinaAPI {
   // API一覧取得
   // 200 { path, api }
   public async getAPIs(appName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(`/ebina/app/${appName}/api/endpoint`);
     switch (res.status) {
       case 200:
@@ -517,7 +583,7 @@ class EbinaAPI {
   // 200 OK
   // 400 情報おかしい
   public async createPath(appName: string, path: string, api: TypeApi) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post(
       `/ebina/app/${appName}/api/endpoint/${path}`,
       api,
@@ -538,7 +604,7 @@ class EbinaAPI {
   // 400 情報おかしい
   // 404 ない
   public async getAPI(appName: string, path: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(`/ebina/app/${appName}/api/endpoint/${path}`);
     switch (res.status) {
       case 200:
@@ -556,7 +622,7 @@ class EbinaAPI {
   // 200 OK
   // 400 情報おかしい
   public async updateAPI(appName: string, path: string, api: TypeApi) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.put(
       `/ebina/app/${appName}/api/endpoint/${path}`,
       api,
@@ -576,7 +642,7 @@ class EbinaAPI {
   // 400 情報おかしい
   // 404 パスない
   public async deleteAPI(appName: string, path: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.delete(
       `/ebina/app/${appName}/api/endpoint/${path}`,
     );
@@ -594,7 +660,7 @@ class EbinaAPI {
   // ポート取得
   // 200 { port: number }
   public async getPort(appName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(`/ebina/app/${appName}/api/port`);
     switch (res.status) {
       case 200:
@@ -610,7 +676,7 @@ class EbinaAPI {
   // 200 OK
   // 400 情報おかしい
   public async updatePort(appName: string, port: number) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.put(`/ebina/app/${appName}/api/port`, { port });
     switch (res.status) {
       case 200:
@@ -634,7 +700,7 @@ class EbinaAPI {
     path: string,
     data: string | undefined = undefined,
   ) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post(
       `/ebina/app/${appName}/${scriptsDir}/${path}`,
       data,
@@ -656,7 +722,7 @@ class EbinaAPI {
   // 200 一覧
   // 500 ファイル読めなかった
   public async getScriptList(appName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(`/ebina/app/${appName}/${scriptsDir}`);
     switch (res.status) {
       case 200:
@@ -676,7 +742,7 @@ class EbinaAPI {
   // 409 ディレクトリ
   // 500 ファイル関係ミスった
   public async getScript(appName: string, path: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(
       `/ebina/app/${appName}/${scriptsDir}/${path}`,
     );
@@ -701,7 +767,7 @@ class EbinaAPI {
   // 409 ディレクトリ
   // 500 ファイル関係ミスった
   public async updateScript(appName: string, path: string, data: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.patch(
       `/ebina/app/${appName}/${scriptsDir}/${path}`,
       data,
@@ -726,7 +792,7 @@ class EbinaAPI {
   // 409 ディレクトリ
   // 500 ファイル関係ミスった
   public async deleteScript(appName: string, path: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.delete(
       `/ebina/app/${appName}/${scriptsDir}/${path}`,
     );
@@ -748,7 +814,7 @@ class EbinaAPI {
   // 401 認証おかしい
   // 503 ファイル関係ミスった
   public async getMongoDBSettings() {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(`/ebina/project/settings/mongodb`);
     switch (res.status) {
       case 200:
@@ -767,7 +833,7 @@ class EbinaAPI {
   // 401 認証おかしい
   // 500 ファイル関係ミスった
   public async setMongoDBSettings(settings: MongoDBSettings) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.post(`/ebina/project/settings/mongodb`, settings);
     switch (res.status) {
       case 200:
@@ -785,7 +851,7 @@ class EbinaAPI {
   // 400 情報おかしい
   // 401 認証おかしい
   public async getDatabases() {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(`ebina/database/databases`);
     switch (res.status) {
       case 200:
@@ -806,7 +872,7 @@ class EbinaAPI {
   // 400 情報おかしい
   // 401 認証おかしい
   public async getCollections(dbName: string) {
-    this.checkURL();
+    await this.preCheck();
     const res = await this.ax.get(`ebina/database/${dbName}/collections`);
     switch (res.status) {
       case 200:
@@ -824,7 +890,7 @@ class EbinaAPI {
   // 401 認証おかしい
   // 500 エラー
   public async getDocments(dbName: string, colName: string) {
-    this.checkURL();
+    await this.preCheck();
     return await this.ax.get(`ebina/database/${dbName}/${colName}/find`)
       .then((res) => {
         switch (res.status) {
@@ -855,7 +921,7 @@ class EbinaAPI {
   // 401 認証おかしい
   // 500 エラー
   public async getDBUsers() {
-    this.checkURL();
+    await this.preCheck();
     return await this.ax.get(`ebina/database/users`)
       .then((res) => {
         switch (res.status) {
@@ -892,7 +958,7 @@ class EbinaAPI {
     password: string;
     roles: { role: string; db: string }[];
   }) {
-    this.checkURL();
+    await this.preCheck();
     return await this.ax.post(`/ebina/database/user`, user).then((res) => {
       switch (res.status) {
         case 200:
@@ -919,7 +985,7 @@ class EbinaAPI {
   // 401 認証おかしい
   // 500 ファイル関係ミスった
   public async deleteMongoDBUser(username: string) {
-    this.checkURL();
+    await this.preCheck();
     return await this.ax.delete(`/ebina/database/user/${username}`)
       .then((res) => {
         switch (res.status) {
@@ -947,7 +1013,7 @@ class EbinaAPI {
   // 401 認証おかしい
   // 500 ファイル関係ミスった
   public async getCronList(appName: string): Promise<string[]> {
-    this.checkURL();
+    await this.preCheck();
     return this.ax.get(`/ebina/app/${appName}/cron/list`)
       .then((res) => {
         switch (res.status) {
@@ -976,7 +1042,7 @@ class EbinaAPI {
   // 401 認証おかしい
   // 500 ファイル関係ミスった
   public async getCron(appName: string, cronName: string): Promise<CronItem> {
-    this.checkURL();
+    await this.preCheck();
     return this.ax.get(`/ebina/app/${appName}/cron/${cronName}`)
       .then((res) => {
         switch (res.status) {
@@ -1009,7 +1075,7 @@ class EbinaAPI {
     cronName: string,
     cronItem: CronItem,
   ): Promise<CronItem> {
-    this.checkURL();
+    await this.preCheck();
     return this.ax.post(`/ebina/app/${appName}/cron/${cronName}`, cronItem)
       .then((res) => {
         switch (res.status) {
@@ -1042,7 +1108,7 @@ class EbinaAPI {
     cronName: string,
     cronItem: CronItem,
   ): Promise<CronItem> {
-    this.checkURL();
+    await this.preCheck();
     return this.ax.patch(`/ebina/app/${appName}/cron/${cronName}`, cronItem)
       .then((res) => {
         switch (res.status) {
@@ -1074,7 +1140,7 @@ class EbinaAPI {
     appName: string,
     cronName: string,
   ): Promise<CronItem> {
-    this.checkURL();
+    await this.preCheck();
     return this.ax.delete(`/ebina/app/${appName}/cron/${cronName}`)
       .then((res) => {
         switch (res.status) {
