@@ -10,7 +10,7 @@ type BaseMenuProps = {
 const BaseMenu: React.FC<BaseMenuProps> = (props: BaseMenuProps) => {
   const baseMenuItems = [
     { label: "Home", path: "", icon: <Home /> },
-    { label: "Users", path: "users", icon: <User /> },
+    { label: "Members", path: "members", icon: <User /> },
     { label: "Apps", path: "apps", icon: <Apps /> },
     { label: "Database", path: "database", icon: <Database /> },
     { label: "Settings", path: "settings", icon: <Settings /> },
