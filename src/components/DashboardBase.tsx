@@ -32,8 +32,8 @@ const DashboardBase = () => {
     "dashboard": {
       label: "Home",
     },
-    "users": {
-      label: "Users",
+    "members": {
+      label: "Members",
     },
     "apps": {
       label: "Apps",

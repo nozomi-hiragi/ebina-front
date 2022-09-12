@@ -17,7 +17,7 @@ import { Trash, UserPlus } from "tabler-icons-react";
 import { userSelector } from "../atoms";
 import EbinaAPI from "../EbinaAPI";
 
-const Users = () => {
+const Members = () => {
   const user = useRecoilValue(userSelector);
   const [users, setUsers] = useState<any[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -53,7 +53,7 @@ const Users = () => {
     <Stack>
       <Group position="apart">
         <Title order={4}>
-          Users
+          Members
         </Title>
         {hasSelectItem
           ? (
@@ -196,4 +196,4 @@ const Users = () => {
   );
 };
 
-export default Users;
+export default Members;

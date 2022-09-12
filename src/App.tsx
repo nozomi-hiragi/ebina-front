@@ -4,7 +4,7 @@ import RequireAuth from "./components/RequireAuth";
 import Enter from "./pages/Enter";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
-import Users from "./pages/Users";
+import Members from "./pages/Members";
 import ApiIndex from "./pages/API/ApiIndes";
 import ApiEdit from "./pages/API/ApiEdit";
 import EditIndex from "./pages/Edit/EditIndex";
@@ -33,7 +33,7 @@ function App() {
             }
           >
             <Route index element={<Home />} />
-            <Route path="users" element={<Users />} />
+            <Route path="members" element={<Members />} />
             <Route path="apps">
               <Route index element={<AppsIndex />} />
               <Route path=":appName">

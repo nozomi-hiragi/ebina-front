@@ -65,7 +65,12 @@ const Login = () => {
                   setPasswordLogin(true);
                   break;
                 case "WebAuthn":
-                  startAuthentication(ret.options).then((ret) => login(ret));
+                  startAuthentication(ret.options).then((ret) =>
+                    login({
+                      ...ret,
+                      response: { ...ret.response, userHandle: values.id },
+                    })
+                  );
                   break;
               }
             })
