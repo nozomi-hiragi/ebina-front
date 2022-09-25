@@ -16,6 +16,7 @@ import Database from "./pages/database/Database";
 import Collection from "./pages/database/Collection";
 import ConstanRun from "./pages/ConstantRun/ConstantRun";
 import ConstanRunDetail from "./pages/ConstantRun/ConstantRunDetail";
+import Routing from "./pages/Routing/Routing";
 
 function App() {
   return (
@@ -55,6 +56,9 @@ function App() {
             <Route path="database">
               <Route index element={<Database />} />
               <Route path=":dbName/:colName" element={<Collection />} />
+            </Route>
+            <Route path="routing">
+              <Route index element={<Routing />} />
             </Route>
             <Route path="settings" element={<Setting />} />
           </Route>

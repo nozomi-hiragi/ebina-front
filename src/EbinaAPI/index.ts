@@ -39,6 +39,12 @@ export type CronItem = {
   function: string;
 };
 
+export type NginxConf = {
+  hostname: string;
+  port: number;
+  www?: boolean;
+};
+
 class EbinaAPI {
   private url: URL | null = null;
   private ax: AxiosInstance = axios.create();
@@ -1169,6 +1175,206 @@ class EbinaAPI {
             case 400:
             case 401:
             case 500:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // ルート状態
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  public async getRoutingStatus(): Promise<string> {
+    await this.preCheck();
+    return this.ax.get(PathBuilder.routing.status)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // ルーター状態更新
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 失敗
+  // 503 本部ない
+  public async updateRouter(status: string): Promise<boolean> {
+    await this.preCheck();
+    return this.ax.put(PathBuilder.routing.status, { status })
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return true;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            default:
+              throw new EbinaApiError(err.response!);
+            case 500:
+            case 503:
+              return false;
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // ルート一覧
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  public async getRouteList(): Promise<string[]> {
+    await this.preCheck();
+    return this.ax.get(PathBuilder.routing.path)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // ルート
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  public async getRoute(name: string): Promise<NginxConf> {
+    await this.preCheck();
+    return this.ax.get(PathBuilder.routing.route(name))
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // ルート設定
+  // 201 変わった
+  // 200 変わんない
+  // 400 情報おかしい
+  // 401 認証おかしい
+  public async setRoute(name: string, conf: NginxConf): Promise<boolean> {
+    await this.preCheck();
+    return this.ax.put(PathBuilder.routing.route(name), conf)
+      .then((res) => {
+        switch (res.status) {
+          case 201:
+            return true;
+          case 200:
+            return false;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // ルート作成
+  // 201 OK
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 409 もうある
+  public async newRoute(name: string, conf: NginxConf): Promise<boolean> {
+    await this.preCheck();
+    return this.ax.post(PathBuilder.routing.route(name), conf)
+      .then((res) => {
+        switch (res.status) {
+          case 201:
+            return true;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 409:
+              return false;
+            case 400:
+            case 401:
+            default:
+              throw new EbinaApiError(err.response!);
+          }
+        } else {
+          throw err;
+        }
+      });
+  }
+
+  // ルート削除
+  // 200 OK
+  // 400 情報おかしい
+  // 401 認証おかしい
+  public async deleteRoute(name: string): Promise<boolean> {
+    await this.preCheck();
+    return this.ax.delete(PathBuilder.routing.route(name))
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return true;
+        }
+        throw new EbinaApiError(res);
+      }).catch((err) => {
+        if (err instanceof AxiosError) {
+          switch (err.response?.status) {
+            case 400:
+            case 401:
             default:
               throw new EbinaApiError(err.response!);
           }

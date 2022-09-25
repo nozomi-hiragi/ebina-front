@@ -3,6 +3,7 @@ const pEbinaI = pEbina + "/i";
 const pEbinaApp = pEbina + "/app";
 const pEbinaMember = pEbina + "/member";
 const pEbinaDatabase = pEbina + "/database";
+const pEbinaRouting = pEbina + "/routing";
 const pEbinaSettings = pEbina + "/settings";
 const pEbinaILogin = pEbinaI + "/login";
 const pEbinaIWebauthn = pEbinaI + "/webauthn";
@@ -61,6 +62,12 @@ export const PathBuilder = {
       find: `${pEbinaDatabase}/${db}/${collection}/find`,
     }),
   }),
+
+  routing: {
+    path: pEbinaRouting,
+    route: (name: string) => `${pEbinaRouting}/route/${name}`,
+    status: `${pEbinaRouting}/status`,
+  },
 
   settings: {
     path: pEbinaSettings,
