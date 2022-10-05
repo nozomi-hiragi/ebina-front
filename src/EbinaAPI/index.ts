@@ -26,6 +26,13 @@ type JWT = {
   exp: number;
 };
 
+export type WebAuthnSetting = {
+  rpName: string;
+  rpIDType: "variable" | "static";
+  rpID?: string;
+  attestationType?: AttestationConveyancePreference;
+};
+
 type MongoDBSettings = {
   hostname: string;
   port: number;
@@ -819,7 +826,45 @@ class EbinaAPI {
     }
   }
 
-  // mongodb設定所得
+  // WebAuthn設定取得
+  // 200 設定
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 503 ファイル関係ミスった
+  public async getWebAuthnSettings() {
+    await this.preCheck();
+    const res = await this.ax.get(PathBuilder.settings.webauthn);
+    switch (res.status) {
+      case 200:
+        return res.data as WebAuthnSetting;
+      case 400:
+      case 401:
+      case 503:
+      default:
+        throw new EbinaApiError(res);
+    }
+  }
+
+  // WebAuthn設定保存
+  // 200 ok
+  // 400 情報おかしい
+  // 401 認証おかしい
+  // 500 ファイル関係ミスった
+  public async setWebAuthnBSettings(settings: WebAuthnSetting) {
+    await this.preCheck();
+    const res = await this.ax.post(PathBuilder.settings.webauthn, settings);
+    switch (res.status) {
+      case 200:
+        return res.data;
+      case 400:
+      case 401:
+      case 500:
+      default:
+        throw new EbinaApiError(res);
+    }
+  }
+
+  // mongodb設定取得
   // 200 設定
   // 400 情報おかしい
   // 401 認証おかしい

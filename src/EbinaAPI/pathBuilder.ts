@@ -72,6 +72,7 @@ export const PathBuilder = {
   settings: {
     path: pEbinaSettings,
     mongodb: pEbinaSettings + "/mongodb",
+    webauthn: pEbinaSettings + "/webauthn",
   },
 };
 
