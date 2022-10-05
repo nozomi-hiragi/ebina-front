@@ -6,6 +6,7 @@ import {
   ArrowRampRight,
   Database,
   Home,
+  Id,
   Settings,
   User,
 } from "tabler-icons-react";
@@ -17,6 +18,7 @@ type BaseMenuProps = {
 const BaseMenu: React.FC<BaseMenuProps> = (props: BaseMenuProps) => {
   const baseMenuItems = [
     { label: "Home", path: "", icon: <Home /> },
+    { label: "Profile", path: "profile", icon: <Id /> },
     { label: "Members", path: "members", icon: <User /> },
     { label: "Apps", path: "apps", icon: <Apps /> },
     { label: "Database", path: "database", icon: <Database /> },

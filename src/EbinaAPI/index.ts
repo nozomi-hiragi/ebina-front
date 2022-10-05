@@ -254,7 +254,7 @@ class EbinaAPI {
     });
     switch (res.status) {
       case 200:
-        return;
+        return res.data as string[];
       case 400:
       case 401:
       case 404:
@@ -353,16 +353,27 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async getWebAuthnDeviceNames() {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.i.webauthn.device);
-    switch (res.status) {
-      case 200:
-        return res.data as string[];
-      case 400:
-      case 401:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.ax.get(PathBuilder.i.webauthn.device)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as string[];
+          default:
+            throw new EbinaApiError(res);
+        }
+      })
+      .catch((err) => {
+        if (!(err instanceof AxiosError)) throw err;
+        if (!err.response) throw err;
+        switch (err.response.status) {
+          case 500:
+            return undefined;
+          case 400:
+          case 401:
+          default:
+            throw new EbinaApiError(err.response);
+        }
+      });
   }
 
   // デバイス有効確認
