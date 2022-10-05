@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 import jwtDecode from "jwt-decode";
 import { Mutex } from "async-mutex";
 import * as LS from "../localstorageDelegate";
@@ -335,7 +335,7 @@ class EbinaAPI {
         }
       })
       .catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           const res = err.response!;
           throw new EbinaApiError(res);
         } else {
@@ -362,7 +362,7 @@ class EbinaAPI {
         }
       })
       .catch((err) => {
-        if (!(err instanceof AxiosError)) throw err;
+        if (!axios.isAxiosError(err)) throw err;
         if (!err.response) throw err;
         switch (err.response.status) {
           case 500:
@@ -853,7 +853,7 @@ class EbinaAPI {
         }
       })
       .catch((err) => {
-        if (!(err instanceof AxiosError)) throw err;
+        if (!axios.isAxiosError(err)) throw err;
         if (!err.response) throw err;
         switch (err.response.status) {
           case 503:
@@ -978,7 +978,7 @@ class EbinaAPI {
             return res.data as any[];
         }
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 500:
               return err.response.data;
@@ -1012,7 +1012,7 @@ class EbinaAPI {
             }[];
         }
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 500:
             case 400:
@@ -1046,7 +1046,7 @@ class EbinaAPI {
         }
       },
     ).catch((err) => {
-      if (err instanceof AxiosError) {
+      if (axios.isAxiosError(err)) {
         switch (err.response?.status) {
           case 400:
           case 401:
@@ -1074,7 +1074,7 @@ class EbinaAPI {
             return res.data;
         }
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1103,7 +1103,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1132,7 +1132,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1168,7 +1168,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1204,7 +1204,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1236,7 +1236,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1264,7 +1264,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1293,7 +1293,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1323,7 +1323,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1350,7 +1350,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1380,7 +1380,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:
@@ -1408,7 +1408,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 409:
               return false;
@@ -1437,7 +1437,7 @@ class EbinaAPI {
         }
         throw new EbinaApiError(res);
       }).catch((err) => {
-        if (err instanceof AxiosError) {
+        if (axios.isAxiosError(err)) {
           switch (err.response?.status) {
             case 400:
             case 401:

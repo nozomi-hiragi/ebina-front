@@ -44,6 +44,7 @@ const Routing = () => {
       if (ret !== "Disable") routerEnableHandler.open();
       setRouterStatus(ret);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routerStatus]);
 
   return (
