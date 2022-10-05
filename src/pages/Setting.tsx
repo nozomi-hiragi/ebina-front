@@ -18,17 +18,20 @@ const WebAuthnSettings = () => {
     initialValues: {
       rpName: "",
       rpIDType: "variable",
-      rpID: "",
+      rpID: undefined,
       attestationType: undefined,
     },
     validate: {
+      rpName: (value) => value ? null : "Please input RP Name",
       rpID: (value: string | undefined, values: WebAuthnSetting) =>
         values.rpIDType === "static" && !value ? "err" : null,
     },
   });
 
   useEffect(() => {
-    EbinaAPI.getWebAuthnSettings().then((settings) => {
+    EbinaAPI.getWebAuthnSettings().then((ret) => {
+      const settings = ret ??
+        { ...webauthnSettingsForm.values, attestationType: "direct" };
       webauthnSettingsForm.setValues(settings);
       setDisableChange(false);
     });
@@ -98,7 +101,6 @@ const MongoDBSettings = () => {
 
   const mongodbSettingsForm = useForm({
     initialValues: {
-      hostname: "",
       port: 0,
       username: "",
       password: "",
@@ -126,37 +128,29 @@ const MongoDBSettings = () => {
       })}
     >
       <Stack>
-        <TextInput
-          label="hostname"
-          placeholder="localhost"
-          required
-          disabled={disableChange}
-          {...mongodbSettingsForm.getInputProps("hostname")}
-        />
         <NumberInput
           label="port"
           placeholder="27017"
-          required
           disabled={disableChange}
           {...mongodbSettingsForm.getInputProps("port")}
         />
         <TextInput
           label="username"
           placeholder="env"
-          required
           disabled={disableChange}
           {...mongodbSettingsForm.getInputProps("username")}
         />
         <TextInput
           label="password"
           placeholder="env"
-          required
           disabled={disableChange}
           {...mongodbSettingsForm.getInputProps("password")}
         />
-        <Group position="right" mt="md">
-          <Button type="submit" disabled={disableChange}>Save</Button>
-        </Group>
+        {
+          // <Group position="right" mt="md">
+          //   <Button type="submit" disabled={disableChange}>Save</Button>
+          // </Group>
+        }
       </Stack>
     </form>
   );

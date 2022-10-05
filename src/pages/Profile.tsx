@@ -188,6 +188,7 @@ const WebAuthnDeviceSettings = (
                   EbinaAPI.getWebAuthnVerifyOptions(selected)
                     .then((res) => startAuthentication(res))
                     .then((res) => EbinaAPI.sendWebAuthnVerifyCredential(res))
+                    .then(() => alert("Verified!"))
                     .catch((err) => {
                       alert(err);
                     });

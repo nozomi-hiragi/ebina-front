@@ -34,7 +34,6 @@ export type WebAuthnSetting = {
 };
 
 type MongoDBSettings = {
-  hostname: string;
   port: number;
   username: "env" | string;
   password: "env" | string;
@@ -844,16 +843,27 @@ class EbinaAPI {
   // 503 ファイル関係ミスった
   public async getWebAuthnSettings() {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.settings.webauthn);
-    switch (res.status) {
-      case 200:
-        return res.data as WebAuthnSetting;
-      case 400:
-      case 401:
-      case 503:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.ax.get(PathBuilder.settings.webauthn)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as WebAuthnSetting;
+          default:
+            throw new EbinaApiError(res);
+        }
+      })
+      .catch((err) => {
+        if (!(err instanceof AxiosError)) throw err;
+        if (!err.response) throw err;
+        switch (err.response.status) {
+          case 503:
+            return undefined;
+          case 400:
+          case 401:
+          default:
+            throw new EbinaApiError(err.response);
+        }
+      });
   }
 
   // WebAuthn設定保存
