@@ -1,4 +1,10 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import {
+  ColorScheme,
+  ColorSchemeProvider,
+  MantineProvider,
+} from "@mantine/core";
+import { useColorScheme, useLocalStorage } from "@mantine/hooks";
 import DashboardBase from "./components/DashboardBase";
 import RequireAuth from "./components/RequireAuth";
 import Enter from "./pages/Enter";
@@ -20,53 +26,73 @@ import ConstanRunDetail from "./pages/ConstantRun/ConstantRunDetail";
 import Routing from "./pages/Routing/Routing";
 
 function App() {
+  const preferredColorScheme = useColorScheme();
+  const [colorScheme, setColorScheme] = useLocalStorage<ColorScheme>({
+    key: "color-scheme",
+    defaultValue: preferredColorScheme,
+    getInitialValueInEffect: true,
+  });
+  const toggleColorScheme = (v?: ColorScheme) =>
+    setColorScheme(v || colorScheme === "dark" ? "light" : "dark");
+
   return (
-    <BrowserRouter basename={process.env.PUBLIC_URL}>
-      <Routes>
-        <Route path="/">
-          <Route index element={<Enter />} />
-          <Route path="login" element={<Login />} />
-          <Route
-            path="dashboard"
-            element={
-              <RequireAuth>
-                <DashboardBase />
-              </RequireAuth>
-            }
-          >
-            <Route index element={<Home />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="members" element={<Members />} />
-            <Route path="apps">
-              <Route index element={<AppsIndex />} />
-              <Route path=":appName">
-                <Route index element={<AppsEdit />} />
-                <Route path="api">
-                  <Route index element={<ApiIndex />} />
-                  <Route path="edit" element={<ApiEdit />} />
+    <ColorSchemeProvider
+      colorScheme={colorScheme}
+      toggleColorScheme={toggleColorScheme}
+    >
+      <MantineProvider
+        theme={{ colorScheme }}
+        withNormalizeCSS
+        withGlobalStyles
+      >
+        <BrowserRouter basename={process.env.PUBLIC_URL}>
+          <Routes>
+            <Route path="/">
+              <Route index element={<Enter />} />
+              <Route path="login" element={<Login />} />
+              <Route
+                path="dashboard"
+                element={
+                  <RequireAuth>
+                    <DashboardBase />
+                  </RequireAuth>
+                }
+              >
+                <Route index element={<Home />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="members" element={<Members />} />
+                <Route path="apps">
+                  <Route index element={<AppsIndex />} />
+                  <Route path=":appName">
+                    <Route index element={<AppsEdit />} />
+                    <Route path="api">
+                      <Route index element={<ApiIndex />} />
+                      <Route path="edit" element={<ApiEdit />} />
+                    </Route>
+                    <Route path="edit">
+                      <Route index element={<EditIndex />} />
+                      <Route path=":path" element={<EditEdit />} />
+                    </Route>
+                    <Route path="constantrun">
+                      <Route index element={<ConstanRun />} />
+                      <Route path=":cronName" element={<ConstanRunDetail />} />
+                    </Route>
+                  </Route>
                 </Route>
-                <Route path="edit">
-                  <Route index element={<EditIndex />} />
-                  <Route path=":path" element={<EditEdit />} />
+                <Route path="database">
+                  <Route index element={<Database />} />
+                  <Route path=":dbName/:colName" element={<Collection />} />
                 </Route>
-                <Route path="constantrun">
-                  <Route index element={<ConstanRun />} />
-                  <Route path=":cronName" element={<ConstanRunDetail />} />
+                <Route path="routing">
+                  <Route index element={<Routing />} />
                 </Route>
+                <Route path="settings" element={<Setting />} />
               </Route>
             </Route>
-            <Route path="database">
-              <Route index element={<Database />} />
-              <Route path=":dbName/:colName" element={<Collection />} />
-            </Route>
-            <Route path="routing">
-              <Route index element={<Routing />} />
-            </Route>
-            <Route path="settings" element={<Setting />} />
-          </Route>
-        </Route>
-      </Routes>
-    </BrowserRouter>
+          </Routes>
+        </BrowserRouter>
+      </MantineProvider>
+    </ColorSchemeProvider>
   );
 }
 
