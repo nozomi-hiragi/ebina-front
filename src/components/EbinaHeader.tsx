@@ -1,6 +1,6 @@
 import React from "react";
-import { useSetRecoilState } from "recoil";
-import { useNavigate } from "react-router-dom";
+import { useRecoilState } from "recoil";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ActionIcon,
   Burger,
@@ -12,10 +12,10 @@ import {
   Title,
   useMantineColorScheme,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { Moon, Sun } from "tabler-icons-react";
 import { userSelector } from "../atoms";
 import EbinaAPI from "../EbinaAPI";
-import { useMediaQuery } from "@mantine/hooks";
 
 type HeaderProps = {
   hideSize?: MantineSize;
@@ -25,7 +25,7 @@ type HeaderProps = {
 
 const EbinaHeader: React.FC<HeaderProps> = (props) => {
   const navigate = useNavigate();
-  const setUser = useSetRecoilState(userSelector);
+  const [user, setUser] = useRecoilState(userSelector);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const isMid = useMediaQuery("(min-width: 768px)");
   const isSml = useMediaQuery("(min-width: 360px)");
@@ -57,16 +57,29 @@ const EbinaHeader: React.FC<HeaderProps> = (props) => {
           >
             {isDark ? <Sun /> : <Moon />}
           </ActionIcon>
-          <Button
-            color="inherit"
-            onClick={() => {
-              EbinaAPI.logout();
-              setUser(null);
-              navigate("/");
-            }}
-          >
-            Logout
-          </Button>
+          {user
+            ? (
+              <Button
+                color="inherit"
+                onClick={() => {
+                  EbinaAPI.logout();
+                  setUser(null);
+                  navigate("/");
+                }}
+              >
+                Logout
+              </Button>
+            )
+            : (
+              <Button
+                variant="gradient"
+                gradient={{ from: "pink", to: "red" }}
+                component={Link}
+                to="/login"
+              >
+                Login
+              </Button>
+            )}
         </Group>
       </Group>
     </Header>

@@ -7,7 +7,8 @@ import {
 import { useColorScheme, useLocalStorage } from "@mantine/hooks";
 import DashboardBase from "./components/DashboardBase";
 import RequireAuth from "./components/RequireAuth";
-import Enter from "./pages/Enter";
+import Entrance from "./pages/Entrance";
+import GettingStarted from "./pages/GettingStarted";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
@@ -48,7 +49,8 @@ function App() {
         <BrowserRouter basename={process.env.PUBLIC_URL}>
           <Routes>
             <Route path="/">
-              <Route index element={<Enter />} />
+              <Route index element={<Entrance />} />
+              <Route path="getting-started" element={<GettingStarted />} />
               <Route path="login" element={<Login />} />
               <Route
                 path="dashboard"
