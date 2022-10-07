@@ -211,6 +211,30 @@ class EbinaAPI {
     }
   }
 
+  // パスワード更新
+  // 200 変えれた
+  // 202 認証して
+  // 400 足らない
+  // 401 認証できてない
+  // 403 許可されてない
+  // 404 データない
+  // 405 パスワードのデータおかしい
+  public async updatePassword(
+    options: any,
+  ): Promise<{ ok: boolean; options?: any; status?: number }> {
+    await this.preCheck();
+    return await this.ax.put(PathBuilder.i.password, options)
+      .then((ret) => ({
+        ok: true,
+        options: ret.status === 202 ? ret.data : undefined,
+      }))
+      .catch((err) => {
+        if (!axios.isAxiosError(err)) throw err;
+        if (!err.response) throw err;
+        return { ok: false, status: err.response.status };
+      });
+  }
+
   // 登録オプション取得
   // origin:
   // 200 オプション
