@@ -157,13 +157,14 @@ class EbinaAPI {
   // 401 パスワードが違う
   // 404 メンバーない
   // 405 パスワードが設定されてない
-  public async login(
-    body:
-      | { type: "password"; id: string; pass: string }
-      | { type: "public-key"; [key: string]: any },
-  ) {
+  // 406 パスワードはだめ
+  public async loginWithPassword(id: string, pass: string) {
     this.checkURL();
-    const res = await this.ax.post(PathBuilder.i.login, body);
+    const res = await this.ax.post(PathBuilder.i.login.path, {
+      type: "password",
+      id,
+      pass,
+    });
     switch (res.status) {
       case 200:
         this.setTokens(res.data.tokens);
@@ -172,6 +173,7 @@ class EbinaAPI {
       case 401:
       case 404:
       case 405:
+      case 406:
       default:
         throw new EbinaApiError(res);
     }
@@ -347,13 +349,15 @@ class EbinaAPI {
   // 200 オプション
   // 400 情報足りない
   // 500 WebAuthnの設定おかしい
-  public async getLoginOptions(id: string) {
+  public async getLoginOptions(id?: string) {
     this.checkURL();
-    return await this.ax.get(PathBuilder.i.loginWith(id))
+    return await this.ax.post(PathBuilder.i.login.option, { id })
       .then((res) => {
         switch (res.status) {
-          case 200:
+          case 202:
             return res.data;
+          case 204:
+            return undefined;
           default:
             throw new EbinaApiError(res);
         }
@@ -364,6 +368,37 @@ class EbinaAPI {
           throw new EbinaApiError(res);
         } else {
           throw err;
+        }
+      });
+  }
+
+  // WebAuthnでログイン
+  // { type, id, pass }
+  // 200 ユーザーとトークン
+  // 400 情報足らない
+  // 404 メンバーない
+  // 500 WebAuthn設定おかしい
+  public async loginWithWAOption(result: any, sessionId: string) {
+    this.checkURL();
+    return await this.ax.post(PathBuilder.i.login.verify, { sessionId, result })
+      .then((ret) => {
+        switch (ret.status) {
+          case 200:
+            this.setTokens(ret.data.tokens);
+            return ret.data.member;
+          default:
+            throw new EbinaApiError(ret);
+        }
+      }).catch((err) => {
+        if (!axios.isAxiosError(err)) throw err;
+        if (!err.response) throw err;
+        const res = err.response;
+        switch (res.status) {
+          case 400:
+          case 404:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
         }
       });
   }

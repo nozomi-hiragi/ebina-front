@@ -17,7 +17,11 @@ const pCron = "/cron";
 export const PathBuilder = {
   i: {
     path: pEbinaI,
-    login: pEbinaILogin,
+    login: {
+      path: pEbinaILogin,
+      verify: pEbinaILogin + "/verify",
+      option: pEbinaILogin + "/option",
+    },
     loginWith: (id: string) => `${pEbinaILogin}/${id}`,
     logout: pEbinaI + "/logout",
     refresh: pEbinaI + "/refresh",
