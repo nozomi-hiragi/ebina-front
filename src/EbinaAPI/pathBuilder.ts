@@ -3,6 +3,7 @@ const pEbinaI = pEbina + "/i";
 const pEbinaApp = pEbina + "/app";
 const pEbinaMember = pEbina + "/member";
 const pEbinaDatabase = pEbina + "/database";
+const pEbinaRouting = pEbina + "/routing";
 const pEbinaSettings = pEbina + "/settings";
 const pEbinaILogin = pEbinaI + "/login";
 const pEbinaIWebauthn = pEbinaI + "/webauthn";
@@ -16,10 +17,15 @@ const pCron = "/cron";
 export const PathBuilder = {
   i: {
     path: pEbinaI,
-    login: pEbinaILogin,
+    login: {
+      path: pEbinaILogin,
+      verify: pEbinaILogin + "/verify",
+      option: pEbinaILogin + "/option",
+    },
     loginWith: (id: string) => `${pEbinaILogin}/${id}`,
     logout: pEbinaI + "/logout",
     refresh: pEbinaI + "/refresh",
+    password: pEbinaI + "/password",
     webauthn: {
       regist: pEbinaIWebauthn + "/regist",
       verify: pEbinaIWebauthn + "/verify",
@@ -62,9 +68,16 @@ export const PathBuilder = {
     }),
   }),
 
+  routing: {
+    path: pEbinaRouting,
+    route: (name: string) => `${pEbinaRouting}/route/${name}`,
+    status: `${pEbinaRouting}/status`,
+  },
+
   settings: {
     path: pEbinaSettings,
     mongodb: pEbinaSettings + "/mongodb",
+    webauthn: pEbinaSettings + "/webauthn",
   },
 };
 

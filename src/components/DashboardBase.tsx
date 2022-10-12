@@ -94,8 +94,8 @@ const DashboardBase = () => {
       navbarOffsetBreakpoint="sm"
       padding={0}
     >
-      <Stack>
-        <Breadcrumbs>
+      <Stack px="sm" sx={{ height: "100%" }}>
+        <Breadcrumbs mt="sm">
           {anchors}
         </Breadcrumbs>
         <Suspense>
