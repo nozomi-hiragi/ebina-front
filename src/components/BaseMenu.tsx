@@ -1,31 +1,13 @@
 import { MouseEventHandler } from "react";
 import { Link } from "react-router-dom";
 import { Group, Stack, Tooltip, UnstyledButton } from "@mantine/core";
-import {
-  Apps,
-  ArrowRampRight,
-  Database,
-  Home,
-  Id,
-  Settings,
-  User,
-} from "tabler-icons-react";
+import { menuItems } from "../App";
 
 type BaseMenuProps = {
   onClick?: MouseEventHandler<HTMLAnchorElement>;
 };
 
 const BaseMenu: React.FC<BaseMenuProps> = (props: BaseMenuProps) => {
-  const baseMenuItems = [
-    { label: "Home", path: "", icon: <Home /> },
-    { label: "Profile", path: "profile", icon: <Id /> },
-    { label: "Members", path: "members", icon: <User /> },
-    { label: "Apps", path: "apps", icon: <Apps /> },
-    { label: "Database", path: "database", icon: <Database /> },
-    { label: "Routing", path: "routing", icon: <ArrowRampRight /> },
-    { label: "Settings", path: "settings", icon: <Settings /> },
-  ];
-
   return (
     <Stack
       align="flex-start"
@@ -33,7 +15,7 @@ const BaseMenu: React.FC<BaseMenuProps> = (props: BaseMenuProps) => {
       spacing="xs"
       sx={{ height: "100%" }}
     >
-      {baseMenuItems.map((item) => (
+      {menuItems.map((item) => (
         <Tooltip key={item.label} label={item.label} position="right">
           <UnstyledButton<typeof Link>
             sx={{
