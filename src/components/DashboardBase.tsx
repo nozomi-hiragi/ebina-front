@@ -14,6 +14,7 @@ import EbinaHeader from "./EbinaHeader";
 import EbinaAPI from "../EbinaAPI";
 import { useSetRecoilState } from "recoil";
 import { userSelector } from "../atoms";
+import { getLabelFromPaht } from "../App";
 
 const DashboardBase = () => {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
@@ -28,37 +29,10 @@ const DashboardBase = () => {
   const location = useLocation();
   const paths = location.pathname.split("/").filter((value) => value !== "");
 
-  const labels: { [name: string]: { label: string } | undefined } = {
-    "dashboard": {
-      label: "Home",
-    },
-    "users": {
-      label: "Users",
-    },
-    "apps": {
-      label: "Apps",
-    },
-    "database": {
-      label: "Database",
-    },
-    "setting": {
-      label: "Settings",
-    },
-    "api": {
-      label: "API",
-    },
-    "edit": {
-      label: "Edit",
-    },
-    "constantrun": {
-      label: "Constant Run",
-    },
-  };
-
   const temp = ["/"];
   const anchors = paths.map((path) => {
     temp.push(path);
-    const label = labels[path]?.label ?? decodeURI(path);
+    const label = getLabelFromPaht(path);
     const to = temp.join("/");
     return path === paths[paths.length - 1]
       ? <Text key={to}>{label}</Text>
@@ -94,8 +68,8 @@ const DashboardBase = () => {
       navbarOffsetBreakpoint="sm"
       padding={0}
     >
-      <Stack>
-        <Breadcrumbs>
+      <Stack px="sm" sx={{ height: "100%" }}>
+        <Breadcrumbs mt="sm">
           {anchors}
         </Breadcrumbs>
         <Suspense>
