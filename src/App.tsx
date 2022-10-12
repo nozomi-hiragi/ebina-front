@@ -5,12 +5,21 @@ import {
   MantineProvider,
 } from "@mantine/core";
 import { useColorScheme, useLocalStorage } from "@mantine/hooks";
+import {
+  Apps,
+  ArrowRampRight,
+  Database,
+  Home,
+  Id,
+  Settings,
+  User,
+} from "tabler-icons-react";
 import DashboardBase from "./components/DashboardBase";
 import RequireAuth from "./components/RequireAuth";
 import Entrance from "./pages/Entrance";
 import GettingStarted from "./pages/GettingStarted";
 import Login from "./pages/Login";
-import Home from "./pages/Home";
+import TopPage from "./pages/Home";
 import Profile from "./pages/Profile";
 import Members from "./pages/Members";
 import ApiIndex from "./pages/API/ApiIndes";
@@ -20,11 +29,32 @@ import EditEdit from "./pages/Edit/EditEdit";
 import Setting from "./pages/Setting";
 import AppsIndex from "./pages/Apps/AppsIndex";
 import AppsEdit from "./pages/Apps/AppsEdit";
-import Database from "./pages/database/Database";
+import DatabasePage from "./pages/database/Database";
 import Collection from "./pages/database/Collection";
 import ConstanRun from "./pages/ConstantRun/ConstantRun";
 import ConstanRunDetail from "./pages/ConstantRun/ConstantRunDetail";
 import Routing from "./pages/Routing/Routing";
+
+export const menuItems = [
+  { label: "Home", path: "", icon: <Home /> },
+  { label: "Profile", path: "profile", icon: <Id /> },
+  { label: "Members", path: "members", icon: <User /> },
+  { label: "Apps", path: "apps", icon: <Apps /> },
+  { label: "Database", path: "database", icon: <Database /> },
+  { label: "Routing", path: "routing", icon: <ArrowRampRight /> },
+  { label: "Settings", path: "settings", icon: <Settings /> },
+];
+
+const pageLabels: { [path: string]: string | undefined } = {
+  "dashboard": "Home",
+  "api": "API",
+  "edit": "Edit",
+  "constantrun": "Constant Run",
+};
+
+export const getLabelFromPaht = (path: string) =>
+  menuItems.find((i) => i.path === path)?.label ??
+    pageLabels[path] ?? decodeURI(path);
 
 function App() {
   const preferredColorScheme = useColorScheme();
@@ -60,7 +90,7 @@ function App() {
                   </RequireAuth>
                 }
               >
-                <Route index element={<Home />} />
+                <Route index element={<TopPage />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="members" element={<Members />} />
                 <Route path="apps">
@@ -82,7 +112,7 @@ function App() {
                   </Route>
                 </Route>
                 <Route path="database">
-                  <Route index element={<Database />} />
+                  <Route index element={<DatabasePage />} />
                   <Route path=":dbName/:colName" element={<Collection />} />
                 </Route>
                 <Route path="routing">
