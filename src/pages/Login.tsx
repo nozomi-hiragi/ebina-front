@@ -1,59 +1,96 @@
 import { useEffect, useState } from "react";
-import { useRecoilState } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { useNavigate } from "react-router-dom";
-import { User, userSelector } from "../atoms";
+import { userSelector } from "../atoms";
 import EbinaAPI from "../EbinaAPI";
 import { useForm } from "@mantine/form";
 import {
   Button,
   Center,
+  DefaultProps,
   Group,
   Paper,
   PasswordInput,
+  Select,
   TextInput,
   Title,
 } from "@mantine/core";
 import {
   browserSupportsWebAuthnAutofill,
   startAuthentication,
+  startRegistration,
 } from "@simplewebauthn/browser";
 import { useLocalStorage } from "@mantine/hooks";
 
-const Login = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useRecoilState(userSelector);
-  const [passwordLogin, setPasswordLogin] = useState(false);
-  const [serverURL, setServerURL] = useLocalStorage<string>({
+type ServerSelectProps = {
+  error?: string;
+  onChangeServerURL?: (url: string) => void;
+};
+const ServerSelect = (
+  { error, onChangeServerURL, ...props }: ServerSelectProps & DefaultProps,
+) => {
+  const [msgError, setMsgError] = useState(error ?? "");
+  const [history, setHistory] = useLocalStorage<string[]>({
+    key: "server-history",
+    defaultValue: [],
+  });
+  const [url, setURL] = useLocalStorage<string>({
     key: "server-url",
     defaultValue: "",
   });
 
-  const loginForm = useForm({
-    initialValues: {
-      server: serverURL,
-      id: "",
-      pass: "",
-    },
-    validate: {
-      server: (value) => {
-        try {
-          const url = new URL(value);
-          console.log(url.protocol);
-          switch (url.protocol) {
-            case "http:":
-            case "https:":
-              return null;
-            default:
-              return "wrong protocol";
-          }
-        } catch (err) {
-          return "URL error";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => onChangeServerURL && onChangeServerURL(url), [url]);
+
+  return (
+    <Select
+      label="Server"
+      placeholder="Choose your server"
+      nothingFound="No servers"
+      data={history}
+      value={url}
+      creatable
+      clearable
+      searchable
+      getCreateLabel={(query) => `+ Add "${query}"`}
+      onCreate={(query) => {
+        setHistory(history.concat([query]));
+        return query;
+      }}
+      onChange={(query) => {
+        setMsgError("");
+        if (query === null && url) {
+          setHistory(history.filter((i) => i !== url));
         }
-      },
-    },
+        setURL(query ?? "");
+      }}
+      error={msgError}
+      {...props}
+    />
+  );
+};
+
+const LoginCard = () => {
+  const setUser = useSetRecoilState(userSelector);
+  const [loginMode, setLoginMode] = useState<
+    "Password" | "WebAuthn" | "Regist"
+  >("WebAuthn");
+  const [token, setToken] = useState("");
+  const [serverError, setServerError] = useState("");
+  const [serverURL, setServerURL] = useState("");
+
+  type LoginFormValues = {
+    id: string;
+    name: string;
+    pass: string;
+  };
+
+  const loginForm = useForm<LoginFormValues>({
+    initialValues: { id: "", name: "", pass: "" },
+    validate: {},
   });
 
-  const startAuth = (result: any, id?: string) =>
+  const startLoginAuth = (result: any, id?: string) =>
     startAuthentication(result.options, id === undefined)
       .then((ret) => {
         // ResidentKey非対応対応
@@ -62,95 +99,127 @@ const Login = () => {
           ret.response.userHandle = id;
         }
         return EbinaAPI.loginWithWAOption(ret, result.sessionId);
-      }).then((user) => setUserData(user));
+      }).then((user) => setUser(user));
 
-  useEffect(() => {
-    if (loginForm.values.server === serverURL) return;
-    loginForm.setValues({ server: serverURL });
-
-    // Conditional UI
+  const startConditionalUI = () =>
     browserSupportsWebAuthnAutofill().then((support) => {
       if (!support) return;
       console.log("Support Conditial UI");
-      EbinaAPI.getLoginOptions().then((ret) => startAuth(ret));
+      EbinaAPI.getLoginOptions().then((ret) => startLoginAuth(ret));
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverURL]);
+
+  const actualLoginActions = {
+    "WebAuthn": (result: any, id: string) => startLoginAuth(result, id),
+    "Password": () => setLoginMode("Password"),
+    "Regist": (result: { token: string }) => {
+      setToken(result.token);
+      setLoginMode("Regist");
+    },
+  };
+
+  const submitActions = {
+    "WebAuthn": (values: LoginFormValues) =>
+      EbinaAPI.getLoginOptions(values.id)
+        .then((ret) => actualLoginActions[ret.type](ret, values.id))
+        .catch((err) => console.log(err.message)),
+    "Password": (values: LoginFormValues) =>
+      EbinaAPI.loginWithPassword(values.id, values.pass)
+        .then((user) => setUser(user)),
+    "Regist": (values: LoginFormValues) =>
+      EbinaAPI.memberRegistRequest(values)
+        .then((ret) => startRegistration(ret))
+        .then((result) =>
+          EbinaAPI.memberRegistVerify({ id: values.id, result, token })
+        ).then(() => alert("Success!")),
+  };
+
+  return (
+    <Paper p={30} shadow="md" withBorder sx={{ width: 350 }}>
+      <Title order={1}>Login</Title>
+      <ServerSelect
+        mt="sm"
+        onChangeServerURL={(url) => {
+          const prevURL = serverURL;
+          setServerURL(url);
+          if (!url) return;
+          EbinaAPI.setURL(url);
+          if (prevURL === "") startConditionalUI();
+        }}
+        error={serverError}
+      />
+      <form
+        onSubmit={loginForm.onSubmit((values) => {
+          if (serverURL) submitActions[loginMode](values);
+          else setServerError("Input server url");
+        })}
+      >
+        <TextInput
+          mt="sm"
+          label="ID"
+          placeholder="ID"
+          autoComplete="username webauthn"
+          disabled={(!serverURL) || loginMode === "Regist"}
+          {...loginForm.getInputProps("id")}
+        />
+        {loginMode === "Regist" && (
+          <TextInput
+            mt="sm"
+            label="Name"
+            placeholder="Name"
+            required
+            autoComplete="nickname"
+            disabled={!serverURL}
+            {...loginForm.getInputProps("name")}
+          />
+        )} {loginMode !== "WebAuthn" && (
+          <PasswordInput
+            mt="sm"
+            id="pass"
+            label="Password"
+            required
+            autoComplete={loginMode === "Password"
+              ? "current-password"
+              : "new-password"}
+            disabled={!serverURL}
+            {...loginForm.getInputProps("pass")}
+          />
+        )}
+        <Group grow>
+          {loginMode === "Password" && (
+            <Button
+              mt="xl"
+              disabled={!serverURL}
+              onClick={() => setLoginMode("WebAuthn")}
+            >
+              Use WebAuthn
+            </Button>
+          )}
+          <Button
+            mt="xl"
+            disabled={!serverURL}
+            fullWidth={loginMode === "WebAuthn"}
+            type="submit"
+          >
+            {loginMode === "Regist" ? "Regist" : "Login"}
+          </Button>
+        </Group>
+      </form>
+    </Paper>
+  );
+};
+
+const Login = () => {
+  const navigate = useNavigate();
+  const user = useRecoilValue(userSelector);
 
   useEffect(() => {
     if (user) navigate("/dashboard");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const setUserData = (user: User) => {
-    setUser(user);
-    setServerURL(loginForm.values.server);
-  };
-
   return (
     <Center sx={{ height: "100vh" }}>
-      <Paper p={30} shadow="md" withBorder sx={{ width: 350 }}>
-        <Title order={1}>Login</Title>
-        <form
-          onSubmit={loginForm.onSubmit((values) => {
-            EbinaAPI.setURL(values.server);
-            if (passwordLogin) {
-              EbinaAPI.loginWithPassword(values.id, values.pass)
-                .then((user) => setUserData(user));
-            } else {
-              EbinaAPI.getLoginOptions(values.id)
-                .then((ret) => {
-                  if (ret) startAuth(ret, values.id);
-                  else setPasswordLogin(true);
-                }).catch((err) => console.log(err.message));
-            }
-          })}
-        >
-          <TextInput
-            mt="sm"
-            label="Server"
-            placeholder="http://localhost:3456"
-            type="url"
-            inputMode="url"
-            required
-            {...loginForm.getInputProps("server")}
-          />
-          <TextInput
-            mt="sm"
-            label="ID"
-            placeholder="ID"
-            autoComplete="username webauthn"
-            {...loginForm.getInputProps("id")}
-          />
-          {passwordLogin && (
-            <PasswordInput
-              mt="sm"
-              id="pass"
-              label="PASS"
-              required
-              autoComplete="current-password"
-              {...loginForm.getInputProps("pass")}
-            />
-          )}
-          <Group grow={passwordLogin}>
-            {passwordLogin && (
-              <Button
-                mt="xl"
-                onClick={() => setPasswordLogin(false)}
-              >
-                Use WebAuthn
-              </Button>
-            )}
-            <Button
-              mt="xl"
-              fullWidth={!passwordLogin}
-              type="submit"
-            >
-              Login
-            </Button>
-          </Group>
-        </form>
-      </Paper>
+      <LoginCard />
     </Center>
   );
 };

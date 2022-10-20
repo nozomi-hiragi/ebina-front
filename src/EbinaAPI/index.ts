@@ -132,22 +132,66 @@ class EbinaAPI {
 
   // User
 
-  // メンバー作成
+  // メンバー作成要求
   // { id, name, pass }
   // 201 できた
   // 400 情報足らない
-  // 406 IDがもうある
-  public async userRegist(user: { id: string; name: string; pass: string }) {
-    await this.preCheck();
-    const res = await this.ax.post(PathBuilder.member, user);
-    switch (res.status) {
-      case 201:
-        break;
-      case 400:
-      case 406:
-      default:
-        throw new EbinaApiError(res);
-    }
+  // 404 IDがもうある
+  public async memberRegistRequest(
+    user: { id: string; name: string; pass: string },
+  ) {
+    this.checkURL();
+    return await this.ax.post(PathBuilder.member.regist.option, user)
+      .then((res) => {
+        switch (res.status) {
+          case 201:
+          default:
+            return res.data;
+        }
+      })
+      .catch((err) => {
+        if (!axios.isAxiosError(err)) throw err;
+        if (!err.response) throw err;
+        const res = err.response;
+        switch (res.status) {
+          case 400:
+          case 404:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
+  }
+
+  // メンバー作成認証
+  // { id, result, token }
+  // 200 できた
+  // 400 情報足らない
+  // 401 トークンちがう
+  // 404 IDがもうある
+  public async memberRegistVerify(
+    body: { id: string; result: any; token: string },
+  ) {
+    this.checkURL();
+    return await this.ax.post(PathBuilder.member.regist.verify, body)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+          default:
+            return;
+        }
+      })
+      .catch((err) => {
+        if (!axios.isAxiosError(err)) throw err;
+        if (!err.response) throw err;
+        const res = err.response;
+        switch (res.status) {
+          case 400:
+          case 401:
+          case 404:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // ログイン
@@ -355,9 +399,10 @@ class EbinaAPI {
       .then((res) => {
         switch (res.status) {
           case 202:
-            return res.data;
-          case 204:
-            return undefined;
+            return res.data as
+              | { type: "WebAuthn"; options: any; sessionId: string }
+              | { type: "Password" }
+              | { type: "Regist"; token: string };
           default:
             throw new EbinaApiError(res);
         }
@@ -529,7 +574,7 @@ class EbinaAPI {
   // 200 空でも返す
   public async getUsers() {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.member);
+    const res = await this.ax.get(PathBuilder.member.path);
     switch (res.status) {
       case 200:
         return res.data;
@@ -545,7 +590,7 @@ class EbinaAPI {
   // 404 全部できない
   public async deleteUsers(ids: string[]) {
     await this.preCheck();
-    const res = await this.ax.delete(PathBuilder.member, {
+    const res = await this.ax.delete(PathBuilder.member.path, {
       params: { ids: ids.join(",") },
     });
     switch (res.status) {
