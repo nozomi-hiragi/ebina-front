@@ -60,7 +60,7 @@ class EbinaAPI {
 
   constructor() {
     this.url = EbinaAPI.stou(LS.get(LS.ITEM.Server));
-    this.token = LS.get(LS.ITEM.Token) ?? undefined;
+    this.token = undefined;
     this.refreshToken = LS.get(LS.ITEM.RefreshToken) ?? undefined;
     this.apply();
   }
@@ -83,7 +83,6 @@ class EbinaAPI {
       this.token = undefined;
       this.refreshToken = undefined;
     }
-    LS.set(LS.ITEM.Token, this.token ?? null);
     LS.set(LS.ITEM.RefreshToken, this.refreshToken ?? null);
     this.apply();
   }
@@ -103,7 +102,7 @@ class EbinaAPI {
   }
 
   async checkExired() {
-    await this.mutex.runExclusive(async () => {
+    return await this.mutex.runExclusive(async () => {
       const now = Date.now() * 0.001;
 
       if (!this.refreshToken) throw new ExpiredRefreshTokenError();
@@ -115,18 +114,13 @@ class EbinaAPI {
         throw new ExpiredRefreshTokenError();
       }
 
-      if (!this.token) throw new Error("no token");
-      const decodedToken = jwtDecode(this.token) as JWT;
-      const tokenExp = decodedToken.exp;
-      if (tokenExp < now) {
+      if (this.token) {
+        const decodedToken = jwtDecode(this.token) as JWT;
+        const tokenExp = decodedToken.exp;
+        if (tokenExp > now) return;
         console.log("token expired");
-        await this.refreshTokens().then(() => {
-          console.log("token refreshed");
-        }).catch(() => {
-          console.log("failed refresh token");
-        });
-        return;
       }
+      return await this.requestRefreshTokens();
     });
   }
 
@@ -223,22 +217,68 @@ class EbinaAPI {
     }
   }
 
-  // トークン更新
-  // 200 トークン
-  // 401 だめ
-  public async refreshTokens() {
+  // トークン更新要求
+  // 202 passかwebauthnか
+  // 400 情報不足
+  // 401 トークンおかしい
+  // 404 いない
+  public async requestRefreshTokens() {
     this.checkURL();
-    const res = await this.ax.post(PathBuilder.i.refresh, {
+    return await this.ax.post(PathBuilder.i.refresh.option, {
       refreshToken: this.refreshToken,
+    }).then((res) => {
+      switch (res.status) {
+        case 202:
+          return res.data as
+            | { type: "WebAuthn"; options: any }
+            | { type: "Password" };
+        default:
+          throw new EbinaApiError(res);
+      }
+    }).catch((err) => {
+      if (!axios.isAxiosError(err)) throw err;
+      if (!err.response) throw err;
+      const res = err.response;
+      switch (res.status) {
+        case 400:
+        case 401:
+        case 404:
+        default:
+          throw new EbinaApiError(res);
+      }
     });
-    switch (res.status) {
-      case 200:
-        this.setTokens(res.data);
-        return;
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+  }
+
+  // トークン更新承認
+  // 200 トークン
+  // 400 情報不足
+  // 401 認証おかしい
+  // 404 いない
+  public async verifyRefreshTokens(option: { result?: any; pass?: string }) {
+    this.checkURL();
+    return await this.ax.post(PathBuilder.i.refresh.verify, {
+      refreshToken: this.refreshToken,
+      ...option,
+    }).then((res) => {
+      switch (res.status) {
+        case 200:
+          this.setTokens(res.data);
+          return;
+        default:
+          throw new EbinaApiError(res);
+      }
+    }).catch((err) => {
+      if (!axios.isAxiosError(err)) throw err;
+      if (!err.response) throw err;
+      const res = err.response;
+      switch (res.status) {
+        case 400:
+        case 401:
+        case 404:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // ログアウト サーバー内のトークン消す
