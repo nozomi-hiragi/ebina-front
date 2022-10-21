@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRecoilValue, useSetRecoilState } from "recoil";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { userSelector } from "../atoms";
 import EbinaAPI from "../EbinaAPI";
 import { useForm } from "@mantine/form";
@@ -12,8 +12,10 @@ import {
   Paper,
   PasswordInput,
   Select,
+  Text,
   TextInput,
   Title,
+  useMantineColorScheme,
 } from "@mantine/core";
 import {
   browserSupportsWebAuthnAutofill,
@@ -211,6 +213,8 @@ const LoginCard = () => {
 const Login = () => {
   const navigate = useNavigate();
   const user = useRecoilValue(userSelector);
+  const [eula] = useLocalStorage<string>({ key: "eula", defaultValue: "" });
+  const { colorScheme } = useMantineColorScheme();
 
   useEffect(() => {
     if (user) navigate("/dashboard");
@@ -219,7 +223,23 @@ const Login = () => {
 
   return (
     <Center sx={{ height: "100vh" }}>
-      <LoginCard />
+      {eula
+        ? <LoginCard />
+        : (
+          <Paper p={30} shadow="md" withBorder sx={{ width: 350 }}>
+            <Text>EULAに同意してください。</Text>
+            <Group mt="lg" position="right">
+              <Button
+                variant="outline"
+                color={colorScheme === "dark" ? "gray" : "dark"}
+                component={Link}
+                to="/getting-started"
+              >
+                はじめかた
+              </Button>
+            </Group>
+          </Paper>
+        )}
     </Center>
   );
 };
