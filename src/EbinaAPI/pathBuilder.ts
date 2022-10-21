@@ -38,7 +38,13 @@ export const PathBuilder = {
     },
   },
 
-  member: pEbinaMember,
+  member: {
+    path: pEbinaMember,
+    regist: {
+      option: `${pEbinaMember}/regist/option`,
+      verify: `${pEbinaMember}/regist/verify`,
+    },
+  },
 
   app: pEbinaApp,
   appWith: (app: string) => ({

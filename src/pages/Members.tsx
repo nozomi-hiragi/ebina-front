@@ -8,12 +8,10 @@ import {
   Stack,
   Table,
   Text,
-  TextInput,
   Title,
   UnstyledButton,
 } from "@mantine/core";
-import { useForm } from "@mantine/form";
-import { Trash, UserPlus } from "tabler-icons-react";
+import { Trash } from "tabler-icons-react";
 import { userSelector } from "../atoms";
 import EbinaAPI from "../EbinaAPI";
 
@@ -21,7 +19,6 @@ const Members = () => {
   const user = useRecoilValue(userSelector);
   const [users, setUsers] = useState<any[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [refreshUser, setRefreshUser] = useState(true);
 
@@ -40,32 +37,17 @@ const Members = () => {
   ];
   const hasSelectItem = selected.length > 0;
 
-  const createMemberForm = useForm({
-    initialValues: {
-      id: "",
-      name: "",
-      pass: "",
-    },
-    validate: {},
-  });
-
   return (
     <Stack>
       <Group position="apart">
         <Title order={4}>
           Members
         </Title>
-        {hasSelectItem
-          ? (
-            <UnstyledButton onClick={() => setDeleteDialogOpen(true)}>
-              <Trash />
-            </UnstyledButton>
-          )
-          : (
-            <UnstyledButton onClick={() => setCreateDialogOpen(true)}>
-              <UserPlus />
-            </UnstyledButton>
-          )}
+        {hasSelectItem && (
+          <UnstyledButton onClick={() => setDeleteDialogOpen(true)}>
+            <Trash size={22} />
+          </UnstyledButton>
+        )}
       </Group>
       <Table>
         <thead>
@@ -127,48 +109,6 @@ const Members = () => {
           })}
         </tbody>
       </Table>
-      <Modal
-        opened={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
-        title={`Create User`}
-      >
-        <form
-          onSubmit={createMemberForm.onSubmit((user) => {
-            EbinaAPI.userRegist(user).then(() => {
-              setCreateDialogOpen(false);
-              setRefreshUser(true);
-            }).catch((err) => {
-              console.log(err.message);
-            });
-          })}
-        >
-          <TextInput
-            required
-            label="ID"
-            placeholder="ID"
-            type="text"
-            {...createMemberForm.getInputProps("id")}
-          />
-          <TextInput
-            required
-            label="Name"
-            placeholder="Name"
-            type="text"
-            {...createMemberForm.getInputProps("name")}
-          />
-          <TextInput
-            required
-            label="Pass"
-            placeholder="Pass"
-            type="password"
-            {...createMemberForm.getInputProps("pass")}
-          />
-          <Group position="right" mt="md">
-            <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-            <Button type="submit">Create</Button>
-          </Group>
-        </form>
-      </Modal>
       <Modal
         opened={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
