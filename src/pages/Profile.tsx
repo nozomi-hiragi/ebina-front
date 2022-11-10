@@ -82,9 +82,9 @@ const WebAuthnDeviceSettingCards = (
             disabled={!registDeviceName}
             onClick={() => {
               const name = registDeviceName;
-              EbinaAPI.getWebAuthnRegistOptions()
+              EbinaAPI.getWebAuthnRegistOptions(name)
                 .then((res) => startRegistration(res))
-                .then((res) => EbinaAPI.sendWebAuthnRegistCredential(res, name))
+                .then((res) => EbinaAPI.sendWebAuthnRegistCredential(res))
                 .then((res) => {
                   setRegistDeviceName("");
                   setEnabledNames(res);

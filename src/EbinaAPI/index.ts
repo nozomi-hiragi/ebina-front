@@ -300,9 +300,11 @@ class EbinaAPI {
   // 400 オリジンヘッダない
   // 404 メンバーがない
   // 500 WebAuthnの設定おかしい
-  public async getWebAuthnRegistOptions() {
+  public async getWebAuthnRegistOptions(deviceName: string) {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.i.webauthn.regist);
+    const res = await this.ax.get(PathBuilder.i.webauthn.regist, {
+      params: { deviceName },
+    });
     switch (res.status) {
       case 200:
         return res.data;
@@ -325,15 +327,9 @@ class EbinaAPI {
   // 409 チャレンジ控えがない
   // 410 チャレンジ古い
   // 500 WebAuthnの設定おかしい
-  public async sendWebAuthnRegistCredential(
-    credential: any,
-    deviceName: string,
-  ) {
+  public async sendWebAuthnRegistCredential(credential: any) {
     await this.preCheck();
-    const res = await this.ax.post(PathBuilder.i.webauthn.regist, {
-      ...credential,
-      deviceName,
-    });
+    const res = await this.ax.post(PathBuilder.i.webauthn.regist, credential);
     switch (res.status) {
       case 200:
         return res.data as string[];
