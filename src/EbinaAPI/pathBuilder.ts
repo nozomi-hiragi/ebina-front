@@ -24,10 +24,6 @@ export const PathBuilder = {
     },
     loginWith: (id: string) => `${pEbinaILogin}/${id}`,
     logout: pEbinaI + "/logout",
-    refresh: {
-      option: pEbinaI + "/refresh/option",
-      verify: pEbinaI + "/refresh/verify",
-    },
     password: pEbinaI + "/password",
     webauthn: {
       regist: pEbinaIWebauthn + "/regist",

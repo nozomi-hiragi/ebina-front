@@ -56,6 +56,7 @@ class EbinaAPI {
   private ax: AxiosInstance = axios.create();
   private token: string | undefined;
   private refreshToken: string | undefined;
+  private sessionIdForRefresh: string | undefined;
   private mutex = new Mutex();
 
   constructor() {
@@ -224,29 +225,14 @@ class EbinaAPI {
   // 404 いない
   public async requestRefreshTokens() {
     this.checkURL();
-    return await this.ax.post(PathBuilder.i.refresh.option, {
-      refreshToken: this.refreshToken,
-    }).then((res) => {
-      switch (res.status) {
-        case 202:
-          return res.data as
-            | { type: "WebAuthn"; options: any }
-            | { type: "Password" };
-        default:
-          throw new EbinaApiError(res);
-      }
-    }).catch((err) => {
-      if (!axios.isAxiosError(err)) throw err;
-      if (!err.response) throw err;
-      const res = err.response;
-      switch (res.status) {
-        case 400:
-        case 401:
-        case 404:
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
+    if (!this.refreshToken) throw new Error("no refresh token");
+    const decodedToken = jwtDecode(this.refreshToken) as JWT;
+
+    const ret = await this.getLoginOptions(decodedToken.id);
+    if (ret.type === "WebAuthn") {
+      this.sessionIdForRefresh = ret.sessionId;
+    }
+    return ret;
   }
 
   // トークン更新承認
@@ -256,29 +242,16 @@ class EbinaAPI {
   // 404 いない
   public async verifyRefreshTokens(option: { result?: any; pass?: string }) {
     this.checkURL();
-    return await this.ax.post(PathBuilder.i.refresh.verify, {
-      refreshToken: this.refreshToken,
-      ...option,
-    }).then((res) => {
-      switch (res.status) {
-        case 200:
-          this.setTokens(res.data);
-          return;
-        default:
-          throw new EbinaApiError(res);
-      }
-    }).catch((err) => {
-      if (!axios.isAxiosError(err)) throw err;
-      if (!err.response) throw err;
-      const res = err.response;
-      switch (res.status) {
-        case 400:
-        case 401:
-        case 404:
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
+    if (option.result) {
+      if (!this.sessionIdForRefresh) throw new Error("no pre refresh");
+      await this.loginWithWAOption(option.result, this.sessionIdForRefresh);
+    } else if (option.pass) {
+      if (!this.refreshToken) throw new Error("no refresh token");
+      const decodedToken = jwtDecode(this.refreshToken) as JWT;
+      await this.loginWithPassword(decodedToken.id, option.pass);
+    } else {
+      throw new Error("no auth options");
+    }
   }
 
   // ログアウト サーバー内のトークン消す
@@ -1330,6 +1303,7 @@ class EbinaAPI {
   // 200 ok
   // 400 情報おかしい
   // 401 認証おかしい
+  // 404
   // 500 ファイル関係ミスった
   public async updateCron(
     appName: string,
@@ -1352,6 +1326,7 @@ class EbinaAPI {
           switch (err.response?.status) {
             case 400:
             case 401:
+            case 404:
             case 500:
             default:
               throw new EbinaApiError(err.response!);
