@@ -47,7 +47,7 @@ export type CronItem = {
 
 export type NginxConf = {
   hostname: string;
-  port: number;
+  port: number | "koujou";
   www?: boolean;
 };
 
