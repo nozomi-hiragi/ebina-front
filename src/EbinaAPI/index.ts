@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import jwtDecode from "jwt-decode";
 import { Mutex } from "async-mutex";
 import * as LS from "../localstorageDelegate";
@@ -125,6 +125,41 @@ class EbinaAPI {
     });
   }
 
+  async post<D>(url: string, data?: D, config?: AxiosRequestConfig<D>) {
+    return await this.ax.post(url, data, config).catch((err) => {
+      if (!axios.isAxiosError(err) || !err.response) throw err;
+      return err.response;
+    });
+  }
+
+  async get<D>(url: string, config?: AxiosRequestConfig<D>) {
+    return await this.ax.get(url, config).catch((err) => {
+      if (!axios.isAxiosError(err) || !err.response) throw err;
+      return err.response;
+    });
+  }
+
+  async put<D>(url: string, data?: D, config?: AxiosRequestConfig<D>) {
+    return await this.ax.put(url, data, config).catch((err) => {
+      if (!axios.isAxiosError(err) || !err.response) throw err;
+      return err.response;
+    });
+  }
+
+  async patch<D>(url: string, data?: D, config?: AxiosRequestConfig<D>) {
+    return await this.ax.patch(url, data, config).catch((err) => {
+      if (!axios.isAxiosError(err) || !err.response) throw err;
+      return err.response;
+    });
+  }
+
+  async delete<D>(url: string, config?: AxiosRequestConfig<D>) {
+    return await this.ax.delete(url, config).catch((err) => {
+      if (!axios.isAxiosError(err) || !err.response) throw err;
+      return err.response;
+    });
+  }
+
   // User
 
   // メンバー作成要求
@@ -136,19 +171,11 @@ class EbinaAPI {
     user: { id: string; name: string; pass: string },
   ) {
     this.checkURL();
-    return await this.ax.post(PathBuilder.member.regist.option, user)
+    return await this.post(PathBuilder.member.regist.option, user)
       .then((res) => {
         switch (res.status) {
           case 201:
-          default:
             return res.data;
-        }
-      })
-      .catch((err) => {
-        if (!axios.isAxiosError(err)) throw err;
-        if (!err.response) throw err;
-        const res = err.response;
-        switch (res.status) {
           case 400:
           case 404:
           default:
@@ -167,19 +194,11 @@ class EbinaAPI {
     body: { id: string; result: any; token: string },
   ) {
     this.checkURL();
-    return await this.ax.post(PathBuilder.member.regist.verify, body)
+    return await this.post(PathBuilder.member.regist.verify, body)
       .then((res) => {
         switch (res.status) {
           case 200:
-          default:
             return;
-        }
-      })
-      .catch((err) => {
-        if (!axios.isAxiosError(err)) throw err;
-        if (!err.response) throw err;
-        const res = err.response;
-        switch (res.status) {
           case 400:
           case 401:
           case 404:
@@ -199,23 +218,23 @@ class EbinaAPI {
   // 406 パスワードはだめ
   public async loginWithPassword(id: string, pass: string) {
     this.checkURL();
-    const res = await this.ax.post(PathBuilder.i.login.path, {
-      type: "password",
-      id,
-      pass,
+    return await this.post(
+      PathBuilder.i.login.path,
+      { type: "password", id, pass },
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          this.setTokens(res.data.tokens);
+          return res.data.member;
+        case 400:
+        case 401:
+        case 404:
+        case 405:
+        case 406:
+        default:
+          throw new EbinaApiError(res);
+      }
     });
-    switch (res.status) {
-      case 200:
-        this.setTokens(res.data.tokens);
-        return res.data.member;
-      case 400:
-      case 401:
-      case 404:
-      case 405:
-      case 406:
-      default:
-        throw new EbinaApiError(res);
-    }
   }
 
   // トークン更新要求
@@ -259,15 +278,16 @@ class EbinaAPI {
   // 401 無かった
   public async logout() {
     await this.preCheck();
-    const res = await this.ax.post(PathBuilder.i.logout);
-    switch (res.status) {
-      case 200:
-        this.setTokens(null);
-        return;
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.post(PathBuilder.i.logout).then((res) => {
+      switch (res.status) {
+        case 200:
+          this.setTokens(null);
+          return;
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // パスワード更新
@@ -282,16 +302,16 @@ class EbinaAPI {
     options: any,
   ): Promise<{ ok: boolean; options?: any; status?: number }> {
     await this.preCheck();
-    return await this.ax.put(PathBuilder.i.password, options)
-      .then((ret) => ({
-        ok: true,
-        options: ret.status === 202 ? ret.data : undefined,
-      }))
-      .catch((err) => {
-        if (!axios.isAxiosError(err)) throw err;
-        if (!err.response) throw err;
-        return { ok: false, status: err.response.status };
-      });
+    return await this.put(PathBuilder.i.password, options).then((res) => {
+      switch (res.status) {
+        case 200:
+          return { ok: true };
+        case 202:
+          return { ok: true, options: res.data };
+        default:
+          return { ok: false, status: res.status };
+      }
+    });
   }
 
   // 登録オプション取得
@@ -302,19 +322,20 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async getWebAuthnRegistOptions(deviceName: string) {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.i.webauthn.regist, {
+    return await this.get(PathBuilder.i.webauthn.regist, {
       params: { deviceName },
+    }).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data;
+        case 400:
+        case 401:
+        case 404:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
     });
-    switch (res.status) {
-      case 200:
-        return res.data;
-      case 400:
-      case 401:
-      case 404:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
   }
 
   // 登録
@@ -329,19 +350,21 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async sendWebAuthnRegistCredential(credential: any) {
     await this.preCheck();
-    const res = await this.ax.post(PathBuilder.i.webauthn.regist, credential);
-    switch (res.status) {
-      case 200:
-        return res.data as string[];
-      case 400:
-      case 401:
-      case 404:
-      case 409:
-      case 410:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.post(PathBuilder.i.webauthn.regist, credential)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as string[];
+          case 400:
+          case 401:
+          case 404:
+          case 409:
+          case 410:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // 確認用オプション取得
@@ -353,19 +376,20 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async getWebAuthnVerifyOptions(deviceNames?: string[]) {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.i.webauthn.verify, {
+    return await this.get(PathBuilder.i.webauthn.verify, {
       params: { deviceNames: deviceNames?.join(",") },
+    }).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data;
+        case 400:
+        case 401:
+        case 404:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
     });
-    switch (res.status) {
-      case 200:
-        return res.data;
-      case 400:
-      case 401:
-      case 404:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
   }
 
   // 認証
@@ -381,20 +405,22 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async sendWebAuthnVerifyCredential(credential: any) {
     await this.preCheck();
-    const res = await this.ax.post(PathBuilder.i.webauthn.verify, credential);
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      case 404:
-      case 405:
-      case 409:
-      case 410:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.post(PathBuilder.i.webauthn.verify, credential)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return;
+          case 400:
+          case 401:
+          case 404:
+          case 405:
+          case 409:
+          case 410:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // ログイン用オプション取得
@@ -404,7 +430,7 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async getLoginOptions(id?: string) {
     this.checkURL();
-    return await this.ax.post(PathBuilder.i.login.option, { id })
+    return await this.post(PathBuilder.i.login.option, { id })
       .then((res) => {
         switch (res.status) {
           case 202:
@@ -414,14 +440,6 @@ class EbinaAPI {
               | { type: "Regist"; token: string };
           default:
             throw new EbinaApiError(res);
-        }
-      })
-      .catch((err) => {
-        if (axios.isAxiosError(err)) {
-          const res = err.response!;
-          throw new EbinaApiError(res);
-        } else {
-          throw err;
         }
       });
   }
@@ -434,25 +452,17 @@ class EbinaAPI {
   // 500 WebAuthn設定おかしい
   public async loginWithWAOption(result: any, sessionId: string) {
     this.checkURL();
-    return await this.ax.post(PathBuilder.i.login.verify, { sessionId, result })
+    return await this.post(PathBuilder.i.login.verify, { sessionId, result })
       .then((ret) => {
         switch (ret.status) {
           case 200:
             this.setTokens(ret.data.tokens);
             return ret.data.member;
-          default:
-            throw new EbinaApiError(ret);
-        }
-      }).catch((err) => {
-        if (!axios.isAxiosError(err)) throw err;
-        if (!err.response) throw err;
-        const res = err.response;
-        switch (res.status) {
           case 400:
           case 404:
           case 500:
           default:
-            throw new EbinaApiError(res);
+            throw new EbinaApiError(ret);
         }
       });
   }
@@ -465,25 +475,17 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async getWebAuthnDeviceNames() {
     await this.preCheck();
-    return await this.ax.get(PathBuilder.i.webauthn.device)
+    return await this.get(PathBuilder.i.webauthn.device)
       .then((res) => {
         switch (res.status) {
           case 200:
             return res.data as string[];
-          default:
-            throw new EbinaApiError(res);
-        }
-      })
-      .catch((err) => {
-        if (!axios.isAxiosError(err)) throw err;
-        if (!err.response) throw err;
-        switch (err.response.status) {
           case 500:
             return undefined;
           case 400:
           case 401:
           default:
-            throw new EbinaApiError(err.response);
+            throw new EbinaApiError(res);
         }
       });
   }
@@ -497,17 +499,17 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async checkEnableWebAuthnDevice(deviceName: string) {
     await this.preCheck();
-    const res = await this.ax.get(
-      PathBuilder.i.webauthn.deviceWith(deviceName).enable,
-    );
-    switch (res.status) {
-      case 200:
-        return res.data as boolean;
-      case 404:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.i.webauthn.deviceWith(deviceName).enable)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as boolean;
+          case 404:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // デバイス有効
@@ -519,18 +521,19 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async enableWebAuthnDevice(deviceName: string) {
     await this.preCheck();
-    const res = await this.ax.post(
+    return await this.post(
       PathBuilder.i.webauthn.deviceWith(deviceName).enable,
-    );
-    switch (res.status) {
-      case 200:
-      case 208:
-        return;
-      case 404:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+        case 208:
+          return;
+        case 404:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // デバイス無効
@@ -542,18 +545,19 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async disableWebAuthnDevice(deviceName: string) {
     await this.preCheck();
-    const res = await this.ax.post(
+    return await this.post(
       PathBuilder.i.webauthn.deviceWith(deviceName).disable,
-    );
-    switch (res.status) {
-      case 200:
-      case 208:
-        return;
-      case 404:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+        case 208:
+          return;
+        case 404:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // デバイスら削除
@@ -565,17 +569,18 @@ class EbinaAPI {
   // 500 WebAuthnの設定おかしい
   public async deleteWebAuthnDevice(deviceName: string) {
     await this.preCheck();
-    const res = await this.ax.delete(
+    return await this.delete(
       PathBuilder.i.webauthn.deviceWith(deviceName).path,
-    );
-    switch (res.status) {
-      case 200:
-        return;
-      case 404:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          return;
+        case 404:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // メンバー配列取得 ID無いなら全部
@@ -583,13 +588,14 @@ class EbinaAPI {
   // 200 空でも返す
   public async getUsers() {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.member.path);
-    switch (res.status) {
-      case 200:
-        return res.data;
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.member.path).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data;
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // メンバー配列削除
@@ -599,18 +605,19 @@ class EbinaAPI {
   // 404 全部できない
   public async deleteUsers(ids: string[]) {
     await this.preCheck();
-    const res = await this.ax.delete(PathBuilder.member.path, {
+    return await this.delete(PathBuilder.member.path, {
       params: { ids: ids.join(",") },
+    }).then((res) => {
+      switch (res.status) {
+        case 200:
+        case 206:
+          return;
+        case 401:
+        case 404:
+        default:
+          throw new EbinaApiError(res);
+      }
     });
-    switch (res.status) {
-      case 200:
-      case 206:
-        return;
-      case 401:
-      case 404:
-      default:
-        throw new EbinaApiError(res);
-    }
   }
 
   // Apps
@@ -619,14 +626,15 @@ class EbinaAPI {
   // 200 名前ら
   public async getAppNames() {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.app);
-    switch (res.status) {
-      case 200:
-        return res.data as string[];
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.app).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data as string[];
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // アプリ作成
@@ -634,15 +642,16 @@ class EbinaAPI {
   // 400 情報足らない
   public async createApp(name: string) {
     await this.preCheck();
-    const res = await this.ax.post(PathBuilder.appWith(name).path);
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.post(PathBuilder.appWith(name).path).then((res) => {
+      switch (res.status) {
+        case 200:
+          return;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // アプリ削除 ゴミ箱に移動
@@ -651,16 +660,17 @@ class EbinaAPI {
   // 500 フォルダ移動ミスった
   public async deleteApp(name: string) {
     await this.preCheck();
-    const res = await this.ax.delete(PathBuilder.appWith(name).path);
-    switch (res.status) {
-      case 200:
-        return;
-      case 401:
-      case 404:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.delete(PathBuilder.appWith(name).path).then((res) => {
+      switch (res.status) {
+        case 200:
+          return;
+        case 401:
+        case 404:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // API
@@ -669,14 +679,19 @@ class EbinaAPI {
   // 200 { status: 'started' | 'stop', started_at: number }
   public async getAPIStatus(appName: string) {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.appWith(appName).api.status);
-    switch (res.status) {
-      case 200:
-        return res.data as { status: "started" | "stop"; started_at: number };
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.appWith(appName).api.status)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as {
+              status: "started" | "stop";
+              started_at: number;
+            };
+          case 401:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // API起動状態更新
@@ -686,32 +701,34 @@ class EbinaAPI {
   // 500 起動できなかった
   public async updateAPIStatus(appName: string, status: "start" | "stop") {
     await this.preCheck();
-    const res = await this.ax.put(PathBuilder.appWith(appName).api.status, {
-      status,
-    });
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.put(PathBuilder.appWith(appName).api.status, { status })
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return;
+          case 400:
+          case 401:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // API一覧取得
   // 200 { path, api }
   public async getAPIs(appName: string) {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.appWith(appName).api.endpoint);
-    switch (res.status) {
-      case 200:
-        return res.data as { path: string; api: any }[];
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.appWith(appName).api.endpoint)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as { path: string; api: any }[];
+          case 401:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // API作成
@@ -721,18 +738,19 @@ class EbinaAPI {
   // 400 情報おかしい
   public async createPath(appName: string, path: string, api: TypeApi) {
     await this.preCheck();
-    const res = await this.ax.post(
+    return await this.post(
       PathBuilder.appWith(appName).api.endpointWith(path),
       api,
-    );
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          return;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // API取得
@@ -742,18 +760,18 @@ class EbinaAPI {
   // 404 ない
   public async getAPI(appName: string, path: string) {
     await this.preCheck();
-    const res = await this.ax.get(
-      PathBuilder.appWith(appName).api.endpointWith(path),
-    );
-    switch (res.status) {
-      case 200:
-        return res.data as TypeApi;
-      case 400:
-      case 401:
-      case 404:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.appWith(appName).api.endpointWith(path))
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as TypeApi;
+          case 400:
+          case 401:
+          case 404:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // API更新
@@ -762,18 +780,19 @@ class EbinaAPI {
   // 400 情報おかしい
   public async updateAPI(appName: string, path: string, api: TypeApi) {
     await this.preCheck();
-    const res = await this.ax.put(
+    return await this.put(
       PathBuilder.appWith(appName).api.endpointWith(path),
       api,
-    );
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          return;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // API削除
@@ -782,32 +801,34 @@ class EbinaAPI {
   // 404 パスない
   public async deleteAPI(appName: string, path: string) {
     await this.preCheck();
-    const res = await this.ax.delete(
+    return await this.delete(
       PathBuilder.appWith(appName).api.endpointWith(path),
-    );
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      case 404:
-      default:
-        throw new EbinaApiError(res);
-    }
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          return;
+        case 400:
+        case 401:
+        case 404:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // ポート取得
   // 200 { port: number }
   public async getPort(appName: string) {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.appWith(appName).api.port);
-    switch (res.status) {
-      case 200:
-        return res.data.port as number;
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.appWith(appName).api.port).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data.port as number;
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // ポート設定
@@ -816,17 +837,17 @@ class EbinaAPI {
   // 400 情報おかしい
   public async updatePort(appName: string, port: number) {
     await this.preCheck();
-    const res = await this.ax.put(PathBuilder.appWith(appName).api.port, {
-      port,
-    });
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.put(PathBuilder.appWith(appName).api.port, { port })
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return;
+          case 400:
+          case 401:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // スクリプトファイル作成
@@ -842,21 +863,22 @@ class EbinaAPI {
     data: string | undefined = undefined,
   ) {
     await this.preCheck();
-    const res = await this.ax.post(
+    return await this.post(
       PathBuilder.appWith(appName).scriptWith(path),
       data,
       { headers: { "content-type": "text/plain" } },
-    );
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      case 409:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          return;
+        case 400:
+        case 401:
+        case 409:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // スクリプトファイル一覧取得
@@ -864,15 +886,16 @@ class EbinaAPI {
   // 500 ファイル読めなかった
   public async getScriptList(appName: string) {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.appWith(appName).script);
-    switch (res.status) {
-      case 200:
-        return res.data as string[];
-      case 401:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.appWith(appName).script).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data as string[];
+        case 401:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // スクリプトファイル取得
@@ -884,20 +907,20 @@ class EbinaAPI {
   // 500 ファイル関係ミスった
   public async getScript(appName: string, path: string) {
     await this.preCheck();
-    const res = await this.ax.get(
-      PathBuilder.appWith(appName).scriptWith(path),
-    );
-    switch (res.status) {
-      case 200:
-        return res.data as string;
-      case 400:
-      case 401:
-      case 404:
-      case 409:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.appWith(appName).scriptWith(path))
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data as string;
+          case 400:
+          case 401:
+          case 404:
+          case 409:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // スクリプトファイル更新
@@ -909,21 +932,22 @@ class EbinaAPI {
   // 500 ファイル関係ミスった
   public async updateScript(appName: string, path: string, data: string) {
     await this.preCheck();
-    const res = await this.ax.patch(
+    return await this.patch(
       PathBuilder.appWith(appName).scriptWith(path),
       data,
       { headers: { "content-type": "text/plain" } },
-    );
-    switch (res.status) {
-      case 200:
-        return;
-      case 400:
-      case 401:
-      case 409:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          return;
+        case 400:
+        case 401:
+        case 409:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // スクリプトファイル削除
@@ -934,19 +958,19 @@ class EbinaAPI {
   // 500 ファイル関係ミスった
   public async deleteScript(appName: string, path: string) {
     await this.preCheck();
-    const res = await this.ax.delete(
-      PathBuilder.appWith(appName).scriptWith(path),
-    );
-    switch (res.status) {
-      case 200:
-        return;
-      case 401:
-      case 404:
-      case 409:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.delete(PathBuilder.appWith(appName).scriptWith(path))
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return;
+          case 401:
+          case 404:
+          case 409:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // WebAuthn設定取得
@@ -956,25 +980,17 @@ class EbinaAPI {
   // 503 ファイル関係ミスった
   public async getWebAuthnSettings() {
     await this.preCheck();
-    return await this.ax.get(PathBuilder.settings.webauthn)
+    return await this.get(PathBuilder.settings.webauthn)
       .then((res) => {
         switch (res.status) {
           case 200:
             return res.data as WebAuthnSetting;
-          default:
-            throw new EbinaApiError(res);
-        }
-      })
-      .catch((err) => {
-        if (!axios.isAxiosError(err)) throw err;
-        if (!err.response) throw err;
-        switch (err.response.status) {
           case 503:
             return undefined;
           case 400:
           case 401:
           default:
-            throw new EbinaApiError(err.response);
+            throw new EbinaApiError(res);
         }
       });
   }
@@ -986,16 +1002,18 @@ class EbinaAPI {
   // 500 ファイル関係ミスった
   public async setWebAuthnBSettings(settings: WebAuthnSetting) {
     await this.preCheck();
-    const res = await this.ax.post(PathBuilder.settings.webauthn, settings);
-    switch (res.status) {
-      case 200:
-        return res.data;
-      case 400:
-      case 401:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.post(PathBuilder.settings.webauthn, settings)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+          case 400:
+          case 401:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // mongodb設定取得
@@ -1005,16 +1023,17 @@ class EbinaAPI {
   // 503 ファイル関係ミスった
   public async getMongoDBSettings() {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.settings.mongodb);
-    switch (res.status) {
-      case 200:
-        return res.data as MongoDBSettings;
-      case 400:
-      case 401:
-      case 503:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.settings.mongodb).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data as MongoDBSettings;
+        case 400:
+        case 401:
+        case 503:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // mongodb設定保存
@@ -1024,16 +1043,18 @@ class EbinaAPI {
   // 500 ファイル関係ミスった
   public async setMongoDBSettings(settings: MongoDBSettings) {
     await this.preCheck();
-    const res = await this.ax.post(PathBuilder.settings.mongodb, settings);
-    switch (res.status) {
-      case 200:
-        return res.data;
-      case 400:
-      case 401:
-      case 500:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.post(PathBuilder.settings.mongodb, settings)
+      .then((res) => {
+        switch (res.status) {
+          case 200:
+            return res.data;
+          case 400:
+          case 401:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
+        }
+      });
   }
 
   // DB一覧
@@ -1042,19 +1063,20 @@ class EbinaAPI {
   // 401 認証おかしい
   public async getDatabases() {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.database.path);
-    switch (res.status) {
-      case 200:
-        return res.data as {
-          name: string;
-          sizeOnDisk?: number;
-          empty?: false;
-        }[];
-      case 400:
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.database.path).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data as {
+            name: string;
+            sizeOnDisk?: number;
+            empty?: false;
+          }[];
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // Collection一覧
@@ -1063,15 +1085,16 @@ class EbinaAPI {
   // 401 認証おかしい
   public async getCollections(dbName: string) {
     await this.preCheck();
-    const res = await this.ax.get(PathBuilder.databaseWith(dbName).path);
-    switch (res.status) {
-      case 200:
-        return res.data as string[];
-      case 400:
-      case 401:
-      default:
-        throw new EbinaApiError(res);
-    }
+    return await this.get(PathBuilder.databaseWith(dbName).path).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data as string[];
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // docs
@@ -1081,30 +1104,20 @@ class EbinaAPI {
   // 500 エラー
   public async getDocments(dbName: string, colName: string) {
     await this.preCheck();
-    return await this.ax.get(
+    return await this.get(
       PathBuilder.databaseWith(dbName).collection(colName).find,
-    )
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-          default:
-            return res.data as any[];
-        }
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 500:
-              return err.response.data;
-            case 400:
-            case 401:
-            default:
-              if (!err.response) throw err;
-              throw new EbinaApiError(err.response);
-          }
-        } else {
-          throw err;
-        }
-      });
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data as any[];
+        case 500:
+          return res.data;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // users
@@ -1114,30 +1127,20 @@ class EbinaAPI {
   // 500 エラー
   public async getDBUsers() {
     await this.preCheck();
-    return await this.ax.get(PathBuilder.database.user)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-          default:
-            return res.data as {
-              user: string;
-              roles: { role: string; db: string }[];
-            }[];
-        }
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 500:
-            case 400:
-            case 401:
-            default:
-              if (!err.response) throw err;
-              throw new EbinaApiError(err.response);
-          }
-        } else {
-          throw err;
-        }
-      });
+    return await this.get(PathBuilder.database.user).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data as {
+            user: string;
+            roles: { role: string; db: string }[];
+          }[];
+        case 500:
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // create mongodb uset
@@ -1151,26 +1154,18 @@ class EbinaAPI {
     roles: { role: string; db: string }[];
   }) {
     await this.preCheck();
-    return await this.ax.post(PathBuilder.database.user, user).then(
-      (res) => {
+    return await this.post(PathBuilder.database.user, user)
+      .then((res) => {
         switch (res.status) {
           case 200:
             return res.data;
-        }
-      },
-    ).catch((err) => {
-      if (axios.isAxiosError(err)) {
-        switch (err.response?.status) {
           case 400:
           case 401:
           case 500:
           default:
-            throw new EbinaApiError(err.response!);
+            throw new EbinaApiError(res);
         }
-      } else {
-        throw err;
-      }
-    });
+      });
   }
 
   // delete mongodb uset
@@ -1180,23 +1175,16 @@ class EbinaAPI {
   // 500 ファイル関係ミスった
   public async deleteMongoDBUser(username: string) {
     await this.preCheck();
-    return await this.ax.delete(PathBuilder.database.userWith(username))
+    return await this.delete(PathBuilder.database.userWith(username))
       .then((res) => {
         switch (res.status) {
           case 200:
             return res.data;
-        }
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            case 500:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
+          case 400:
+          case 401:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
         }
       });
   }
@@ -1208,26 +1196,17 @@ class EbinaAPI {
   // 500 ファイル関係ミスった
   public async getCronList(appName: string): Promise<string[]> {
     await this.preCheck();
-    return this.ax.get(PathBuilder.appWith(appName).cron)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return res.data as string[];
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            case 500:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
-        }
-      });
+    return this.get(PathBuilder.appWith(appName).cron).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data as string[];
+        case 400:
+        case 401:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // get cron
@@ -1237,24 +1216,16 @@ class EbinaAPI {
   // 500 ファイル関係ミスった
   public async getCron(appName: string, cronName: string): Promise<CronItem> {
     await this.preCheck();
-    return this.ax.get(PathBuilder.appWith(appName).cronWith(cronName))
+    return this.get(PathBuilder.appWith(appName).cronWith(cronName))
       .then((res) => {
         switch (res.status) {
           case 200:
             return res.data as CronItem;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            case 500:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
+          case 400:
+          case 401:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
         }
       });
   }
@@ -1270,27 +1241,16 @@ class EbinaAPI {
     cronItem: CronItem,
   ): Promise<CronItem> {
     await this.preCheck();
-    return this.ax.post(
-      PathBuilder.appWith(appName).cronWith(cronName),
-      cronItem,
-    )
+    return this.post(PathBuilder.appWith(appName).cronWith(cronName), cronItem)
       .then((res) => {
         switch (res.status) {
           case 200:
             return res.data;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            case 500:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
+          case 400:
+          case 401:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
         }
       });
   }
@@ -1307,30 +1267,21 @@ class EbinaAPI {
     cronItem: CronItem,
   ): Promise<CronItem> {
     await this.preCheck();
-    return this.ax.patch(
+    return this.patch(
       PathBuilder.appWith(appName).cronWith(cronName),
       cronItem,
-    )
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return res.data;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            case 404:
-            case 500:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
-        }
-      });
+    ).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data;
+        case 400:
+        case 401:
+        case 404:
+        case 500:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // delete cron
@@ -1343,24 +1294,16 @@ class EbinaAPI {
     cronName: string,
   ): Promise<CronItem> {
     await this.preCheck();
-    return this.ax.delete(PathBuilder.appWith(appName).cronWith(cronName))
+    return this.delete(PathBuilder.appWith(appName).cronWith(cronName))
       .then((res) => {
         switch (res.status) {
           case 200:
             return res.data;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            case 500:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
+          case 400:
+          case 401:
+          case 500:
+          default:
+            throw new EbinaApiError(res);
         }
       });
   }
@@ -1371,25 +1314,16 @@ class EbinaAPI {
   // 401 認証おかしい
   public async getRoutingStatus(): Promise<string> {
     await this.preCheck();
-    return this.ax.get(PathBuilder.routing.status)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return res.data;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
-        }
-      });
+    return this.get(PathBuilder.routing.status).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // ルーター状態更新
@@ -1400,28 +1334,19 @@ class EbinaAPI {
   // 503 本部ない
   public async updateRouter(status: string): Promise<boolean> {
     await this.preCheck();
-    return this.ax.put(PathBuilder.routing.status, { status })
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return true;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            default:
-              throw new EbinaApiError(err.response!);
-            case 500:
-            case 503:
-              return false;
-          }
-        } else {
-          throw err;
-        }
-      });
+    return this.put(PathBuilder.routing.status, { status }).then((res) => {
+      switch (res.status) {
+        case 200:
+          return true;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+        case 500:
+        case 503:
+          return false;
+      }
+    });
   }
 
   // ルート一覧
@@ -1430,25 +1355,16 @@ class EbinaAPI {
   // 401 認証おかしい
   public async getRouteList(): Promise<string[]> {
     await this.preCheck();
-    return this.ax.get(PathBuilder.routing.path)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return res.data;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
-        }
-      });
+    return this.get(PathBuilder.routing.path).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // ルート
@@ -1457,25 +1373,16 @@ class EbinaAPI {
   // 401 認証おかしい
   public async getRoute(name: string): Promise<NginxConf> {
     await this.preCheck();
-    return this.ax.get(PathBuilder.routing.route(name))
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return res.data;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
-        }
-      });
+    return this.get(PathBuilder.routing.route(name)).then((res) => {
+      switch (res.status) {
+        case 200:
+          return res.data;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // ルート設定
@@ -1485,27 +1392,18 @@ class EbinaAPI {
   // 401 認証おかしい
   public async setRoute(name: string, conf: NginxConf): Promise<boolean> {
     await this.preCheck();
-    return this.ax.put(PathBuilder.routing.route(name), conf)
-      .then((res) => {
-        switch (res.status) {
-          case 201:
-            return true;
-          case 200:
-            return false;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
-        }
-      });
+    return this.put(PathBuilder.routing.route(name), conf).then((res) => {
+      switch (res.status) {
+        case 201:
+          return true;
+        case 200:
+          return false;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 
   // ルート作成
@@ -1515,25 +1413,17 @@ class EbinaAPI {
   // 409 もうある
   public async newRoute(name: string, conf: NginxConf): Promise<boolean> {
     await this.preCheck();
-    return this.ax.post(PathBuilder.routing.route(name), conf)
+    return this.post(PathBuilder.routing.route(name), conf)
       .then((res) => {
         switch (res.status) {
           case 201:
             return true;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 409:
-              return false;
-            case 400:
-            case 401:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
+          case 409:
+            return false;
+          case 400:
+          case 401:
+          default:
+            throw new EbinaApiError(res);
         }
       });
   }
@@ -1544,25 +1434,16 @@ class EbinaAPI {
   // 401 認証おかしい
   public async deleteRoute(name: string): Promise<boolean> {
     await this.preCheck();
-    return this.ax.delete(PathBuilder.routing.route(name))
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return true;
-        }
-        throw new EbinaApiError(res);
-      }).catch((err) => {
-        if (axios.isAxiosError(err)) {
-          switch (err.response?.status) {
-            case 400:
-            case 401:
-            default:
-              throw new EbinaApiError(err.response!);
-          }
-        } else {
-          throw err;
-        }
-      });
+    return this.delete(PathBuilder.routing.route(name)).then((res) => {
+      switch (res.status) {
+        case 200:
+          return true;
+        case 400:
+        case 401:
+        default:
+          throw new EbinaApiError(res);
+      }
+    });
   }
 }
 
