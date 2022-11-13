@@ -11,11 +11,11 @@ import { Link } from "react-router-dom";
 import EbinaHeader from "../components/EbinaHeader";
 import { useMediaQuery } from "@mantine/hooks";
 import { useRecoilValue } from "recoil";
-import { userSelector } from "../recoil/user";
+import { loggedIn } from "../recoil/user";
 
 const Enter = () => {
   const { colorScheme } = useMantineColorScheme();
-  const user = useRecoilValue(userSelector);
+  const isLoggedIn = useRecoilValue(loggedIn);
   const isLrg = useMediaQuery("(min-width: 768px)");
   return (
     <AppShell header={<EbinaHeader />}>
@@ -45,9 +45,9 @@ const Enter = () => {
             gradient={{ from: "pink", to: "red" }}
             sx={{ height: 50 }}
             component={Link}
-            to={user ? "/dashboard" : "/login"}
+            to={isLoggedIn ? "/dashboard" : "/login"}
           >
-            {user ? "Dashboard" : "Login"}
+            {isLoggedIn ? "Dashboard" : "Login"}
           </Button>
           <Button
             size="xl"

@@ -14,7 +14,7 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { Moon, Sun } from "tabler-icons-react";
-import { userSelector } from "../recoil/user";
+import { loggedIn, tokenSelector } from "../recoil/user";
 import EbinaAPI from "../EbinaAPI";
 
 type HeaderProps = {
@@ -25,8 +25,8 @@ type HeaderProps = {
 
 const EbinaHeader: React.FC<HeaderProps> = (props) => {
   const navigate = useNavigate();
-  const user = useRecoilValue(userSelector);
-  const resetUser = useResetRecoilState(userSelector);
+  const isLoggedIn = useRecoilValue(loggedIn);
+  const resetToken = useResetRecoilState(tokenSelector);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const isMid = useMediaQuery("(min-width: 768px)");
   const isSml = useMediaQuery("(min-width: 360px)");
@@ -58,13 +58,13 @@ const EbinaHeader: React.FC<HeaderProps> = (props) => {
           >
             {isDark ? <Sun /> : <Moon />}
           </ActionIcon>
-          {user
+          {isLoggedIn
             ? (
               <Button
                 color="inherit"
                 onClick={() => {
                   EbinaAPI.logout();
-                  resetUser();
+                  resetToken();
                   navigate("/");
                 }}
               >

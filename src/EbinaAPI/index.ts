@@ -37,7 +37,7 @@ export type NginxConf = {
   www?: boolean;
 };
 
-const lsServer = new LocalStorage("server");
+export const lsServer = new LocalStorage("server");
 
 class EbinaAPI {
   private url: URL | null = null;
@@ -163,7 +163,7 @@ class EbinaAPI {
 
   // ログイン
   // { type, id, pass }
-  // 200 ユーザーとトークン
+  // 200 トークン
   // 400 情報足らない
   // 401 パスワードが違う
   // 404 メンバーない
@@ -177,8 +177,8 @@ class EbinaAPI {
     ).then((res) => {
       switch (res.status) {
         case 200:
-          this.setToken(res.data.token);
-          return res.data.member;
+          this.setToken(res.data);
+          return res.data as string;
         case 400:
         case 401:
         case 404:
@@ -363,7 +363,7 @@ class EbinaAPI {
 
   // WebAuthnでログイン
   // { type, id, pass }
-  // 200 ユーザーとトークン
+  // 200 トークン
   // 400 情報足らない
   // 404 メンバーない
   // 500 WebAuthn設定おかしい
@@ -373,8 +373,8 @@ class EbinaAPI {
       .then((ret) => {
         switch (ret.status) {
           case 200:
-            this.setToken(ret.data.token);
-            return ret.data.member;
+            this.setToken(ret.data);
+            return ret.data as string;
           case 400:
           case 404:
           case 500:

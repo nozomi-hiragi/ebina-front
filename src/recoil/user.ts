@@ -1,24 +1,58 @@
+import jwtDecode, { JwtPayload } from "jwt-decode";
 import { atom, DefaultValue, selector } from "recoil";
+import { lsServer } from "../EbinaAPI";
 import { ObjectLocalStorage } from "../localstorage";
 
-export type User = {
+export type Member = {
   id: string;
   name: string;
 };
 
-const lsUser = new ObjectLocalStorage<User>("user");
+type TokenPayload = {
+  id: string;
+} & JwtPayload;
 
-const userState = atom<User | undefined>({
-  key: "user",
-  default: lsUser.get(),
+const decodeToken = (token: string) => jwtDecode<TokenPayload>(token);
+
+const lsPayload = new ObjectLocalStorage<TokenPayload>("payload");
+const payloadState = atom<TokenPayload | undefined>({
+  key: "payload",
+  default: lsPayload.get(),
 });
-
-export const userSelector = selector<User | undefined>({
-  key: "userSelector",
-  get: ({ get }) => get(userState),
+export const payloadSelector = selector<TokenPayload | undefined>({
+  key: "payloadSelector",
+  get: ({ get }) => get(payloadState),
   set: ({ set }, newValue) => {
     if (newValue instanceof DefaultValue) newValue = undefined;
-    lsUser.set(newValue);
-    set(userState, newValue);
+    lsPayload.set(newValue);
+    set(payloadState, newValue);
+  },
+});
+
+const tokenState = atom({ key: "token", default: "" });
+export const tokenSelector = selector({
+  key: "tokenSelector",
+  get: ({ get }) => get(tokenState),
+  set: ({ set }, newValue) => {
+    if (newValue instanceof DefaultValue) newValue = "";
+    set(payloadSelector, newValue ? decodeToken(newValue) : undefined);
+    set(tokenState, newValue);
+  },
+});
+
+export const loggedIn = selector({
+  key: "loggedIn",
+  get: ({ get }) => get(payloadState) !== undefined,
+});
+
+export const getMyInfo = selector({
+  key: "getMyInfo",
+  get: async ({ get }) => {
+    const baseURL = lsServer.get();
+    const res = await fetch(`${baseURL}/ebina/i`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${get(tokenState)}` },
+    });
+    if (res.ok) return await res.json() as Member;
   },
 });

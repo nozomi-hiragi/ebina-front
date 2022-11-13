@@ -12,11 +12,11 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { Trash } from "tabler-icons-react";
-import { userSelector } from "../recoil/user";
+import { payloadSelector } from "../recoil/user";
 import EbinaAPI from "../EbinaAPI";
 
 const Members = () => {
-  const user = useRecoilValue(userSelector);
+  const payload = useRecoilValue(payloadSelector);
   const [users, setUsers] = useState<any[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -57,22 +57,24 @@ const Members = () => {
                 onChange={(e) => {
                   setSelected((v) =>
                     v.length ===
-                        ((users.filter((member) => member.id === user?.id)
+                        ((users.filter((member) => member.id === payload?.id)
                           .length * -1) + users.length)
                       ? []
-                      : users.filter((member) => member.id !== user?.id).map((
-                        member,
-                      ) => member.id)
+                      : users.filter((member) => member.id !== payload?.id).map(
+                        (
+                          member,
+                        ) => member.id,
+                      )
                   );
                 }}
                 checked={selected.length ===
                   ((users.filter((member) => {
-                    return member.id === user?.id;
+                    return member.id === payload?.id;
                   }).length * -1) + users.length)}
                 indeterminate={selected.length > 0 &&
                   selected.length !==
                     ((users.filter((member) => {
-                      return member.id === user?.id;
+                      return member.id === payload?.id;
                     }).length * -1) + users.length)}
               />
             </th>
@@ -89,7 +91,7 @@ const Members = () => {
               <tr key={member.id}>
                 <td>
                   <Checkbox
-                    disabled={!user || user.id === member.id}
+                    disabled={!payload || payload.id === member.id}
                     checked={selected.includes(member.id)}
                     onChange={(e) => {
                       if (e.currentTarget.checked) {

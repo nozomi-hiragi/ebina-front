@@ -15,8 +15,8 @@ import {
 import BaseMenu from "./BaseMenu";
 import EbinaHeader from "./EbinaHeader";
 import EbinaAPI from "../EbinaAPI";
-import { useRecoilValue, useResetRecoilState } from "recoil";
-import { userSelector } from "../recoil/user";
+import { useRecoilValue, useResetRecoilState, useSetRecoilState } from "recoil";
+import { payloadSelector, tokenSelector } from "../recoil/user";
 import { getLabelFromPaht } from "../App";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { Mutex } from "async-mutex";
@@ -28,21 +28,24 @@ type PasswordDialogProps = {
   onLoggedIn: () => void;
 };
 const PasswordDialog = (props: PasswordDialogProps) => {
-  const user = useRecoilValue(userSelector);
+  const payload = useRecoilValue(payloadSelector);
+  const setToken = useSetRecoilState(tokenSelector);
   const loginForm = useForm({ initialValues: { pass: "" } });
   return (
     <Modal centered opened={props.opend} onClose={props.onClose} title="Login">
       <form
         onSubmit={loginForm.onSubmit(async (values) => {
-          if (!user) {
-            throw new Error("No user");
+          if (!payload) {
+            throw new Error("No payload");
           }
-          await EbinaAPI.loginWithPassword(user.id, values.pass).then(() => {
-            props.onClose();
-            props.onLoggedIn();
-          }).catch(() => {
-            loginForm.setErrors({ pass: "Login failed" });
-          });
+          await EbinaAPI.loginWithPassword(payload.id, values.pass)
+            .then((newToken) => {
+              setToken(newToken);
+              props.onClose();
+              props.onLoggedIn();
+            }).catch(() => {
+              loginForm.setErrors({ pass: "Login failed" });
+            });
         })}
       >
         <PasswordInput
@@ -63,8 +66,9 @@ const PasswordDialog = (props: PasswordDialogProps) => {
 const mutex = new Mutex();
 const DashboardBase = () => {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const user = useRecoilValue(userSelector);
-  const resetUser = useResetRecoilState(userSelector);
+  const payload = useRecoilValue(payloadSelector);
+  const setToken = useSetRecoilState(tokenSelector);
+  const resetToken = useResetRecoilState(tokenSelector);
   const navigate = useNavigate();
   const [loaded, setLoaded] = useState(false);
   const [isPassword, setIsPassword] = useState(false);
@@ -76,19 +80,21 @@ const DashboardBase = () => {
           setLoaded(true);
           return;
         }
-        if (!user) throw new Error("no user");
-
-        await EbinaAPI.getLoginOptions(user.id).then(async (ret) => {
+        if (!payload) throw new Error("no payload");
+        await EbinaAPI.getLoginOptions(payload.id).then(async (ret) => {
           if (ret.type === "WebAuthn") {
             await startAuthentication(ret.options).then((result) =>
               EbinaAPI.loginWithWAOption(result, ret.sessionId)
-            ).then(() => setLoaded(true));
+            ).then((newToken) => {
+              setToken(newToken);
+              setLoaded(true);
+            });
           } else {
             setIsPassword(true);
           }
         });
       } catch {
-        resetUser();
+        resetToken();
         navigate("/");
       }
     });

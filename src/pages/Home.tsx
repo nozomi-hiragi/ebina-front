@@ -1,14 +1,19 @@
 import { useRecoilValue } from "recoil";
 import { Container, Title } from "@mantine/core";
-import { userSelector } from "../recoil/user";
+import { getMyInfo } from "../recoil/user";
+import { Suspense } from "react";
+
+const HomeTitle = () => {
+  const user = useRecoilValue(getMyInfo);
+  return <Title order={5}>{user ? `Hello ${user.name}` : "error"}</Title>;
+};
 
 const Dashboard = () => {
-  const user = useRecoilValue(userSelector);
   return (
     <Container p={8}>
-      <Title order={5}>
-        Hello {user?.name}
-      </Title>
+      <Suspense fallback={<>Loading...</>}>
+        <HomeTitle />
+      </Suspense>
     </Container>
   );
 };

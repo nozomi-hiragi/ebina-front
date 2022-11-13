@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { Link, useNavigate } from "react-router-dom";
-import { userSelector } from "../recoil/user";
+import { loggedIn, tokenSelector } from "../recoil/user";
 import EbinaAPI from "../EbinaAPI";
 import { useForm } from "@mantine/form";
 import {
@@ -73,7 +73,7 @@ const ServerSelect = (
 };
 
 const LoginCard = () => {
-  const setUser = useSetRecoilState(userSelector);
+  const setAuthToken = useSetRecoilState(tokenSelector);
   const [loginMode, setLoginMode] = useState<
     "Password" | "WebAuthn" | "Regist"
   >("WebAuthn");
@@ -101,7 +101,7 @@ const LoginCard = () => {
           ret.response.userHandle = id;
         }
         return EbinaAPI.loginWithWAOption(ret, result.sessionId);
-      }).then((user) => setUser(user));
+      }).then((token) => setAuthToken(token));
 
   const startConditionalUI = () =>
     browserSupportsWebAuthnAutofill().then((support) => {
@@ -126,7 +126,7 @@ const LoginCard = () => {
         .catch((err) => console.log(err.message)),
     "Password": (values: LoginFormValues) =>
       EbinaAPI.loginWithPassword(values.id, values.pass)
-        .then((user) => setUser(user)),
+        .then((token) => setAuthToken(token)),
     "Regist": (values: LoginFormValues) =>
       EbinaAPI.memberRegistRequest(values)
         .then((ret) => startRegistration(ret))
@@ -212,14 +212,14 @@ const LoginCard = () => {
 
 const Login = () => {
   const navigate = useNavigate();
-  const user = useRecoilValue(userSelector);
+  const isLoggedIn = useRecoilValue(loggedIn);
   const [eula] = useLocalStorage<string>({ key: "eula", defaultValue: "" });
   const { colorScheme } = useMantineColorScheme();
 
   useEffect(() => {
-    if (user) navigate("/dashboard");
+    if (isLoggedIn) navigate("/dashboard");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [isLoggedIn]);
 
   return (
     <Center sx={{ height: "100vh" }}>
