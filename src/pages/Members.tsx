@@ -12,7 +12,7 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { Trash } from "tabler-icons-react";
-import { userSelector } from "../atoms";
+import { userSelector } from "../recoil/user";
 import EbinaAPI from "../EbinaAPI";
 
 const Members = () => {

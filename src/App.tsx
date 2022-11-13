@@ -15,7 +15,7 @@ import {
   User,
 } from "tabler-icons-react";
 import DashboardBase from "./components/DashboardBase";
-import RequireAuth from "./components/RequireAuth";
+import CheckLoggedIn from "./components/CheckLoggedIn";
 import Entrance from "./pages/Entrance";
 import GettingStarted from "./pages/GettingStarted";
 import Login from "./pages/Login";
@@ -85,9 +85,9 @@ function App() {
               <Route
                 path="dashboard"
                 element={
-                  <RequireAuth>
+                  <CheckLoggedIn>
                     <DashboardBase />
-                  </RequireAuth>
+                  </CheckLoggedIn>
                 }
               >
                 <Route index element={<TopPage />} />

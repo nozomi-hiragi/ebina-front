@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import * as LS from "../localstorageDelegate";
+import { LocalStorage } from "../localstorage";
 import { TypeApi } from "../types";
 import PathBuilder from "./pathBuilder";
 
@@ -37,24 +37,26 @@ export type NginxConf = {
   www?: boolean;
 };
 
+const lsServer = new LocalStorage("server");
+
 class EbinaAPI {
   private url: URL | null = null;
   private ax: AxiosInstance = axios.create();
   private token: string | undefined;
 
   constructor() {
-    this.url = EbinaAPI.stou(LS.get(LS.ITEM.Server));
+    this.url = EbinaAPI.stou(lsServer.get());
     this.token = undefined;
     this.apply();
   }
 
-  private static stou(url: string | null) {
+  private static stou(url: string | undefined) {
     return url ? new URL(url) : null;
   }
 
-  public setURL(url: string | null) {
+  public setURL(url: string | undefined) {
     this.url = EbinaAPI.stou(url);
-    LS.set(LS.ITEM.Server, url);
+    lsServer.set(url);
     this.apply();
   }
 

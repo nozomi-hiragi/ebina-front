@@ -15,13 +15,12 @@ import {
 import BaseMenu from "./BaseMenu";
 import EbinaHeader from "./EbinaHeader";
 import EbinaAPI from "../EbinaAPI";
-import { useRecoilValue, useSetRecoilState } from "recoil";
-import { userSelector } from "../atoms";
+import { useRecoilValue, useResetRecoilState } from "recoil";
+import { userSelector } from "../recoil/user";
 import { getLabelFromPaht } from "../App";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { Mutex } from "async-mutex";
 import { useForm } from "@mantine/form";
-import * as LS from "../localstorageDelegate";
 
 type PasswordDialogProps = {
   opend: boolean;
@@ -64,7 +63,8 @@ const PasswordDialog = (props: PasswordDialogProps) => {
 const mutex = new Mutex();
 const DashboardBase = () => {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const setUser = useSetRecoilState(userSelector);
+  const user = useRecoilValue(userSelector);
+  const resetUser = useResetRecoilState(userSelector);
   const navigate = useNavigate();
   const [loaded, setLoaded] = useState(false);
   const [isPassword, setIsPassword] = useState(false);
@@ -76,8 +76,6 @@ const DashboardBase = () => {
           setLoaded(true);
           return;
         }
-        const userStr = LS.get(LS.ITEM.User);
-        const user = userStr ? JSON.parse(userStr) : null;
         if (!user) throw new Error("no user");
 
         await EbinaAPI.getLoginOptions(user.id).then(async (ret) => {
@@ -90,7 +88,7 @@ const DashboardBase = () => {
           }
         });
       } catch {
-        setUser(null);
+        resetUser();
         navigate("/");
       }
     });

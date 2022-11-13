@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { Link, useNavigate } from "react-router-dom";
-import { userSelector } from "../atoms";
+import { userSelector } from "../recoil/user";
 import EbinaAPI from "../EbinaAPI";
 import { useForm } from "@mantine/form";
 import {

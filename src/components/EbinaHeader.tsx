@@ -1,5 +1,5 @@
 import React from "react";
-import { useRecoilState } from "recoil";
+import { useRecoilValue, useResetRecoilState } from "recoil";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ActionIcon,
@@ -14,7 +14,7 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { Moon, Sun } from "tabler-icons-react";
-import { userSelector } from "../atoms";
+import { userSelector } from "../recoil/user";
 import EbinaAPI from "../EbinaAPI";
 
 type HeaderProps = {
@@ -25,7 +25,8 @@ type HeaderProps = {
 
 const EbinaHeader: React.FC<HeaderProps> = (props) => {
   const navigate = useNavigate();
-  const [user, setUser] = useRecoilState(userSelector);
+  const user = useRecoilValue(userSelector);
+  const resetUser = useResetRecoilState(userSelector);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const isMid = useMediaQuery("(min-width: 768px)");
   const isSml = useMediaQuery("(min-width: 360px)");
@@ -63,7 +64,7 @@ const EbinaHeader: React.FC<HeaderProps> = (props) => {
                 color="inherit"
                 onClick={() => {
                   EbinaAPI.logout();
-                  setUser(null);
+                  resetUser();
                   navigate("/");
                 }}
               >
