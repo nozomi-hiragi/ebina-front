@@ -1,6 +1,5 @@
 export const ITEM = {
   User: "user",
-  RefreshToken: "refreshToken",
   Server: "server",
 } as const;
 type Item = typeof ITEM[keyof typeof ITEM];

@@ -15,12 +15,13 @@ import {
 import BaseMenu from "./BaseMenu";
 import EbinaHeader from "./EbinaHeader";
 import EbinaAPI from "../EbinaAPI";
-import { useSetRecoilState } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { userSelector } from "../atoms";
 import { getLabelFromPaht } from "../App";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { Mutex } from "async-mutex";
 import { useForm } from "@mantine/form";
+import * as LS from "../localstorageDelegate";
 
 type PasswordDialogProps = {
   opend: boolean;
@@ -28,18 +29,22 @@ type PasswordDialogProps = {
   onLoggedIn: () => void;
 };
 const PasswordDialog = (props: PasswordDialogProps) => {
+  const user = useRecoilValue(userSelector);
   const loginForm = useForm({ initialValues: { pass: "" } });
   return (
     <Modal centered opened={props.opend} onClose={props.onClose} title="Login">
       <form
-        onSubmit={loginForm.onSubmit((values) =>
-          EbinaAPI.verifyRefreshTokens({ pass: values.pass }).then(() => {
+        onSubmit={loginForm.onSubmit(async (values) => {
+          if (!user) {
+            throw new Error("No user");
+          }
+          await EbinaAPI.loginWithPassword(user.id, values.pass).then(() => {
             props.onClose();
             props.onLoggedIn();
           }).catch(() => {
             loginForm.setErrors({ pass: "Login failed" });
-          })
-        )}
+          });
+        })}
       >
         <PasswordInput
           mt="lg"
@@ -65,21 +70,30 @@ const DashboardBase = () => {
   const [isPassword, setIsPassword] = useState(false);
 
   useEffect(() => {
-    mutex.runExclusive(async () =>
-      EbinaAPI.checkExired().then(async (ret) => {
-        if (!ret) return setLoaded(true);
-        if (ret.type === "WebAuthn") {
-          const result = await startAuthentication(ret.options);
-          await EbinaAPI.verifyRefreshTokens({ result })
-            .then(() => setLoaded(true));
-        } else {
-          setIsPassword(true);
+    mutex.runExclusive(async () => {
+      try {
+        if (EbinaAPI.hasToken()) {
+          setLoaded(true);
+          return;
         }
-      }).catch(() => {
+        const userStr = LS.get(LS.ITEM.User);
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!user) throw new Error("no user");
+
+        await EbinaAPI.getLoginOptions(user.id).then(async (ret) => {
+          if (ret.type === "WebAuthn") {
+            await startAuthentication(ret.options).then((result) =>
+              EbinaAPI.loginWithWAOption(result, ret.sessionId)
+            ).then(() => setLoaded(true));
+          } else {
+            setIsPassword(true);
+          }
+        });
+      } catch {
         setUser(null);
         navigate("/");
-      })
-    );
+      }
+    });
     // eslint-disable-next-line
   }, []);
 
