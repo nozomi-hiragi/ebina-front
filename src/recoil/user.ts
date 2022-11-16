@@ -1,6 +1,6 @@
 import jwtDecode, { JwtPayload } from "jwt-decode";
 import { atom, DefaultValue, selector } from "recoil";
-import { lsServer } from "../EbinaAPI";
+import { lsServer, myFetch } from "../EbinaAPI";
 import { ObjectLocalStorage } from "../localstorage";
 
 export type Member = {
@@ -49,7 +49,7 @@ export const getMyInfo = selector({
   key: "getMyInfo",
   get: async ({ get }) => {
     const baseURL = lsServer.get();
-    const res = await fetch(`${baseURL}/ebina/i`, {
+    const res = await myFetch(`${baseURL}/ebina/i`, {
       method: "GET",
       headers: { Authorization: `Bearer ${get(tokenState)}` },
     });

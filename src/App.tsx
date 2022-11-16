@@ -15,7 +15,6 @@ import {
   User,
 } from "tabler-icons-react";
 import DashboardBase from "./components/DashboardBase";
-import CheckLoggedIn from "./components/CheckLoggedIn";
 import Entrance from "./pages/Entrance";
 import GettingStarted from "./pages/GettingStarted";
 import Login from "./pages/Login";
@@ -82,14 +81,7 @@ function App() {
               <Route index element={<Entrance />} />
               <Route path="getting-started" element={<GettingStarted />} />
               <Route path="login" element={<Login />} />
-              <Route
-                path="dashboard"
-                element={
-                  <CheckLoggedIn>
-                    <DashboardBase />
-                  </CheckLoggedIn>
-                }
-              >
+              <Route path="dashboard" element={<DashboardBase />}>
                 <Route index element={<TopPage />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="members" element={<Members />} />

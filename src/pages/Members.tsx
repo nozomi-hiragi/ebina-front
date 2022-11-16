@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useRecoilValue } from "recoil";
+import { useMemo, useState } from "react";
+import { useRecoilState, useRecoilValue } from "recoil";
 import {
   Button,
   Checkbox,
@@ -14,20 +14,23 @@ import {
 import { Trash } from "tabler-icons-react";
 import { payloadSelector } from "../recoil/user";
 import EbinaAPI from "../EbinaAPI";
+import { getMembers } from "../recoil/member";
 
 const Members = () => {
   const payload = useRecoilValue(payloadSelector);
-  const [users, setUsers] = useState<any[]>([]);
+  const [members, setMembers] = useRecoilState(getMembers);
   const [selected, setSelected] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [refreshUser, setRefreshUser] = useState(true);
 
-  useEffect(() => {
-    EbinaAPI.getUsers()
-      .then((res) => setUsers(res))
-      .catch((err) => alert(err));
-    setRefreshUser(false);
-  }, [refreshUser]);
+  const membersWOM = useMemo(
+    () => members.filter((member) => member.id !== payload?.id),
+    [members, payload],
+  );
+  const isCheckedAll = useMemo(
+    () => selected.length === membersWOM.length,
+    [selected, membersWOM],
+  );
+  const hasSelect = useMemo(() => selected.length > 0, [selected]);
 
   const columns = [
     { field: "id", headerName: "ID", flex: 0 },
@@ -35,15 +38,12 @@ const Members = () => {
     { field: "created_at", headerName: "Create Date", minWidth: 200, flex: 1 },
     { field: "updated_at", headerName: "Update Date", minWidth: 200, flex: 1 },
   ];
-  const hasSelectItem = selected.length > 0;
 
   return (
     <Stack>
       <Group position="apart">
-        <Title order={4}>
-          Members
-        </Title>
-        {hasSelectItem && (
+        <Title order={4}>Members</Title>
+        {hasSelect && (
           <UnstyledButton onClick={() => setDeleteDialogOpen(true)}>
             <Trash size={22} />
           </UnstyledButton>
@@ -54,61 +54,40 @@ const Members = () => {
           <tr>
             <th>
               <Checkbox
-                onChange={(e) => {
-                  setSelected((v) =>
-                    v.length ===
-                        ((users.filter((member) => member.id === payload?.id)
-                          .length * -1) + users.length)
-                      ? []
-                      : users.filter((member) => member.id !== payload?.id).map(
-                        (
-                          member,
-                        ) => member.id,
-                      )
-                  );
-                }}
-                checked={selected.length ===
-                  ((users.filter((member) => {
-                    return member.id === payload?.id;
-                  }).length * -1) + users.length)}
-                indeterminate={selected.length > 0 &&
-                  selected.length !==
-                    ((users.filter((member) => {
-                      return member.id === payload?.id;
-                    }).length * -1) + users.length)}
+                onChange={() =>
+                  setSelected(
+                    isCheckedAll ? [] : membersWOM.map((member) => member.id),
+                  )}
+                checked={isCheckedAll}
+                indeterminate={hasSelect && !isCheckedAll}
               />
             </th>
             {columns.map((field) => (
-              <th key={field.field}>
-                {field.headerName}
-              </th>
+              <th key={field.field}>{field.headerName}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {users.map((member) => {
-            return (
-              <tr key={member.id}>
-                <td>
-                  <Checkbox
-                    disabled={!payload || payload.id === member.id}
-                    checked={selected.includes(member.id)}
-                    onChange={(e) => {
-                      if (e.currentTarget.checked) {
-                        setSelected([...selected, member.id]);
-                      } else {
-                        setSelected(selected.filter((v) => member.id !== v));
-                      }
-                    }}
-                  />
-                </td>
-                <td>{member.id}</td>
-                <td>{member.name}</td>
-                <td>{member.created_at}</td>
-                <td>{member.updated_at}</td>
-              </tr>
-            );
-          })}
+          {members.map((member) => (
+            <tr key={member.id}>
+              <td>
+                <Checkbox
+                  disabled={!payload || payload.id === member.id}
+                  checked={selected.includes(member.id)}
+                  onChange={({ currentTarget: { checked } }) =>
+                    setSelected(
+                      checked
+                        ? [...selected, member.id]
+                        : selected.filter((v) => member.id !== v),
+                    )}
+                />
+              </td>
+              <td>{member.id}</td>
+              <td>{member.name}</td>
+              <td>{member.created_at}</td>
+              <td>{member.updated_at}</td>
+            </tr>
+          ))}
         </tbody>
       </Table>
       <Modal
@@ -121,9 +100,10 @@ const Members = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button
             onClick={() => {
-              EbinaAPI.deleteUsers(selected).then((res) => {
+              EbinaAPI.deleteUsers(selected).then(() => {
                 setDeleteDialogOpen(false);
-                setRefreshUser(true);
+                setMembers(members
+                  .filter((member) => !selected.includes(member.id)));
                 setSelected([]);
               }).catch((err) => {
                 console.log(err);

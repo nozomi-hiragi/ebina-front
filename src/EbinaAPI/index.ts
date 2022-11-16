@@ -1,7 +1,15 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import { UnauthorizedError } from "../components/UnauthorizedErrorBoundary";
 import { LocalStorage } from "../localstorage";
 import { TypeApi } from "../types";
 import PathBuilder from "./pathBuilder";
+
+export const myFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  return await fetch(input, init).then((ret) => {
+    if (ret.status === 401) throw new UnauthorizedError();
+    return ret;
+  });
+};
 
 class EbinaApiError extends Error {
   status: number;
