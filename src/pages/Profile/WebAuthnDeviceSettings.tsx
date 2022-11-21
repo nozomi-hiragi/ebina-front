@@ -1,38 +1,24 @@
 import {
   Button,
-  Center,
   Checkbox,
   Group,
-  Paper,
-  PasswordInput,
   Select,
   SimpleGrid,
   Stack,
   Switch,
-  Tabs,
   Text,
   TextInput,
   Title,
 } from "@mantine/core";
-import EbinaAPI from "../EbinaAPI";
 import {
   startAuthentication,
   startRegistration,
 } from "@simplewebauthn/browser";
-import { ReactNode, useEffect, useState } from "react";
-import { Settings } from "tabler-icons-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useMediaQuery } from "@mantine/hooks";
-import { useForm } from "@mantine/form";
-
-const Card = ({ children, title }: { children: ReactNode; title: string }) => (
-  <Center>
-    <Paper p="lg" shadow="md" withBorder sx={{ width: 380, maxWidth: 380 }}>
-      <Text size="lg" weight={500} mb="xs">{title}</Text>
-      {children}
-    </Paper>
-  </Center>
-);
+import { Settings } from "tabler-icons-react";
+import EbinaAPI from "../../EbinaAPI";
+import SettingItemCard from "./SettingItemCard";
 
 const WebAuthnDeviceSettingCards = (
   { deviceNames, setDeviceNames }: {
@@ -70,7 +56,7 @@ const WebAuthnDeviceSettingCards = (
         { maxWidth: 630, cols: 1, spacing: "sm", verticalSpacing: "md" },
       ]}
     >
-      <Card title="Regist Device">
+      <SettingItemCard title="Regist Device">
         <TextInput
           placeholder="Device Name"
           label="Device Name"
@@ -96,11 +82,11 @@ const WebAuthnDeviceSettingCards = (
             Regist WebAuthn
           </Button>
         </Group>
-      </Card>
+      </SettingItemCard>
 
       {deviceNames.length !== 0 && (
         <>
-          <Card title="Delete Device">
+          <SettingItemCard title="Delete Device">
             <Select
               label="Devie"
               placeholder="Choose a device to delete"
@@ -124,9 +110,9 @@ const WebAuthnDeviceSettingCards = (
                 Delete Device
               </Button>
             </Group>
-          </Card>
+          </SettingItemCard>
 
-          <Card title="Enable Login Device">
+          <SettingItemCard title="Enable Login Device">
             <Switch.Group
               value={enabledNames}
               label="Select enable devices"
@@ -167,9 +153,9 @@ const WebAuthnDeviceSettingCards = (
                 />
               ))}
             </Switch.Group>
-          </Card>
+          </SettingItemCard>
 
-          <Card title="Check Device Auth">
+          <SettingItemCard title="Check Device Auth">
             <Checkbox.Group
               value={selectedNames}
               label="Select devices to check"
@@ -201,7 +187,7 @@ const WebAuthnDeviceSettingCards = (
                 Check
               </Button>
             </Group>
-          </Card>
+          </SettingItemCard>
         </>
       )}
     </SimpleGrid>
@@ -231,7 +217,7 @@ const WebAuthnDeviceSettings = () => {
           />
         )
         : (
-          <Card title="WebAuthn is not enabled on this server">
+          <SettingItemCard title="WebAuthn is not enabled on this server">
             <Text>
               Please setting WebAuthn on Setting page.
             </Text>
@@ -246,105 +232,10 @@ const WebAuthnDeviceSettings = () => {
                 Settings Page
               </Button>
             </Group>
-          </Card>
+          </SettingItemCard>
         )}
     </Stack>
   );
 };
 
-const PasswordSettings = () => {
-  const passwordForm = useForm({
-    initialValues: {
-      current: "",
-      new: "",
-    },
-    validate: {
-      current: (v) => v ? null : "Require current Password",
-      new: (v) => v ? null : "Require new Password",
-    },
-  });
-  return (
-    <Stack mx="xs">
-      <Title>Password Settings</Title>
-      <Card title="Change Password">
-        <form
-          onSubmit={passwordForm.onSubmit((values) => {
-            EbinaAPI.updatePassword(values).then((ret) => {
-              if (ret.ok) {
-                if (ret.options) {
-                  startAuthentication(ret.options).then((ret) => {
-                    EbinaAPI.updatePassword(ret).then((ret) => {
-                      if (ret.ok) {
-                        alert("Password change success");
-                        passwordForm.setValues({ current: "", new: "" });
-                      } else {
-                        if (ret.status === 404) {
-                          passwordForm.setFieldError(
-                            "current",
-                            "Wrong Password",
-                          );
-                        } else {
-                          alert("Auth failed");
-                        }
-                      }
-                    });
-                  });
-                  console.log(ret.options);
-                } else {
-                  alert("Password change success");
-                  passwordForm.setValues({ current: "", new: "" });
-                }
-              } else {
-                const message = ret.status === 401 ? "Wrong Password" : "error";
-                passwordForm.setFieldError("current", message);
-              }
-            });
-          })}
-        >
-          <Stack mt="md">
-            <PasswordInput
-              label="Current Password"
-              placeholder="12345678"
-              {...passwordForm.getInputProps("current")}
-            />
-            <PasswordInput
-              label="New Password"
-              placeholder="12345678"
-              {...passwordForm.getInputProps("new")}
-            />
-          </Stack>
-          <Group position="right" mt="md">
-            <Button type="submit" disabled={!passwordForm.isValid()}>
-              Change
-            </Button>
-          </Group>
-        </form>
-      </Card>
-    </Stack>
-  );
-};
-
-const Setting = () => {
-  const isLarge = useMediaQuery("(min-width: 1000px)");
-  return (
-    <Tabs
-      variant="outline"
-      defaultValue="webauthn"
-      orientation={isLarge ? "vertical" : "horizontal"}
-      sx={{ height: "100%" }}
-    >
-      <Tabs.List>
-        <Tabs.Tab value="webauthn">WebAuthn</Tabs.Tab>
-        <Tabs.Tab value="password">Password</Tabs.Tab>
-      </Tabs.List>
-      <Tabs.Panel value="webauthn">
-        <WebAuthnDeviceSettings />
-      </Tabs.Panel>
-      <Tabs.Panel value="password">
-        <PasswordSettings />
-      </Tabs.Panel>
-    </Tabs>
-  );
-};
-
-export default Setting;
+export default WebAuthnDeviceSettings;

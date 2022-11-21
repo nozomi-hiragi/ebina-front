@@ -19,7 +19,7 @@ import Entrance from "./pages/Entrance";
 import GettingStarted from "./pages/GettingStarted";
 import Login from "./pages/Login";
 import TopPage from "./pages/Home";
-import Profile from "./pages/Profile";
+import Profile from "./pages/Profile/Profile";
 import Members from "./pages/Members";
 import ApiIndex from "./pages/API/ApiIndes";
 import ApiEdit from "./pages/API/ApiEdit";
