@@ -361,8 +361,7 @@ class EbinaAPI {
           case 202:
             return res.data as
               | { type: "WebAuthn"; options: any; sessionId: string }
-              | { type: "Password" }
-              | { type: "Regist"; token: string };
+              | { type: "Password" };
           default:
             throw new EbinaApiError(res);
         }

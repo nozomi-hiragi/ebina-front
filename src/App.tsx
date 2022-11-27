@@ -33,6 +33,7 @@ import Collection from "./pages/database/Collection";
 import ConstanRun from "./pages/ConstantRun/ConstantRun";
 import ConstanRunDetail from "./pages/ConstantRun/ConstantRunDetail";
 import Routing from "./pages/Routing/Routing";
+import Regist from "./pages/Regist";
 
 export const menuItems = [
   { label: "Home", path: "", icon: <Home /> },
@@ -81,6 +82,7 @@ function App() {
               <Route index element={<Entrance />} />
               <Route path="getting-started" element={<GettingStarted />} />
               <Route path="login" element={<Login />} />
+              <Route path="regist" element={<Regist />} />
               <Route path="dashboard" element={<DashboardBase />}>
                 <Route index element={<TopPage />} />
                 <Route path="profile" element={<Profile />} />

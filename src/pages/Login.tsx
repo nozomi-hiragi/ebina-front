@@ -20,7 +20,6 @@ import {
 import {
   browserSupportsWebAuthnAutofill,
   startAuthentication,
-  startRegistration,
 } from "@simplewebauthn/browser";
 import { useLocalStorage } from "@mantine/hooks";
 
@@ -75,9 +74,8 @@ const ServerSelect = (
 const LoginCard = () => {
   const setAuthToken = useSetRecoilState(tokenSelector);
   const [loginMode, setLoginMode] = useState<
-    "Password" | "WebAuthn" | "Regist"
+    "Password" | "WebAuthn"
   >("WebAuthn");
-  const [token, setToken] = useState("");
   const [serverError, setServerError] = useState("");
   const [serverURL, setServerURL] = useState("");
 
@@ -113,10 +111,6 @@ const LoginCard = () => {
   const actualLoginActions = {
     "WebAuthn": (result: any, id: string) => startLoginAuth(result, id),
     "Password": () => setLoginMode("Password"),
-    "Regist": (result: { token: string }) => {
-      setToken(result.token);
-      setLoginMode("Regist");
-    },
   };
 
   const submitActions = {
@@ -127,12 +121,6 @@ const LoginCard = () => {
     "Password": (values: LoginFormValues) =>
       EbinaAPI.loginWithPassword(values.id, values.pass)
         .then((token) => setAuthToken(token)),
-    "Regist": (values: LoginFormValues) =>
-      EbinaAPI.memberRegistRequest(values)
-        .then((ret) => startRegistration(ret))
-        .then((result) =>
-          EbinaAPI.memberRegistVerify({ id: values.id, result, token })
-        ).then(() => alert("Success!")),
   };
 
   return (
@@ -160,20 +148,10 @@ const LoginCard = () => {
           label="ID"
           placeholder="ID"
           autoComplete="username webauthn"
-          disabled={(!serverURL) || loginMode === "Regist"}
+          disabled={!serverURL}
           {...loginForm.getInputProps("id")}
         />
-        {loginMode === "Regist" && (
-          <TextInput
-            mt="sm"
-            label="Name"
-            placeholder="Name"
-            required
-            autoComplete="nickname"
-            disabled={!serverURL}
-            {...loginForm.getInputProps("name")}
-          />
-        )} {loginMode !== "WebAuthn" && (
+        {loginMode !== "WebAuthn" && (
           <PasswordInput
             mt="sm"
             id="pass"
@@ -202,7 +180,7 @@ const LoginCard = () => {
             fullWidth={loginMode === "WebAuthn"}
             type="submit"
           >
-            {loginMode === "Regist" ? "Regist" : "Login"}
+            Login
           </Button>
         </Group>
       </form>

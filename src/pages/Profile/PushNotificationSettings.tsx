@@ -211,6 +211,7 @@ const PushSettings = () => {
       const deviceNames = await ret.json();
       setDeviceNames(deviceNames);
     });
+    // eslint-disable-next-line
   }, []);
 
   return (
