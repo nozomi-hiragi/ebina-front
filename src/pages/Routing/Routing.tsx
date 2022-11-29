@@ -7,6 +7,7 @@ import {
   Group,
   Modal,
   NumberInput,
+  Switch,
   Text,
   TextInput,
 } from "@mantine/core";
@@ -20,7 +21,7 @@ const Routing = () => {
     { [name: string]: NginxConf | undefined }
   >({});
   const [currentHostname, setCurrentHostname] = useState<string>("");
-  const [currentPort, setCurrentPort] = useState<number>(0);
+  const [currentPort, setCurrentPort] = useState<number | "koujou">(0);
   const [newDialog, newDialogHandler] = useDisclosure(false);
   const [newRouteName, setNewRouteName] = useState<string>("");
   const [accordionValue, setAccordionValue] = useState<string | null>(null);
@@ -141,17 +142,22 @@ const Routing = () => {
                   onChange={(event) =>
                     setCurrentHostname(event.currentTarget.value)}
                 />
-                <NumberInput
-                  label="Port"
-                  placeholder="3456"
-                  value={currentPort}
-                  onChange={(value) => setCurrentPort(value ?? 0)}
-                />
+                {Number.isInteger(currentPort)
+                  ? (
+                    <NumberInput
+                      label="Port"
+                      placeholder="3456"
+                      value={currentPort as number}
+                      onChange={(value) => setCurrentPort(value ?? 0)}
+                    />
+                  )
+                  : <TextInput label="Port" value={currentPort} disabled />}
                 <Group position="right" mt="md">
                   <Button
                     onClick={() => {
+                      const port = routeParams[route]?.port ?? 0;
                       setCurrentHostname(routeParams[route]?.hostname ?? "");
-                      setCurrentPort(routeParams[route]?.port ?? 0);
+                      setCurrentPort(port === "koujou" ? 0 : port);
                     }}
                   >
                     Reset
@@ -199,11 +205,21 @@ const Routing = () => {
           value={currentHostname}
           onChange={(event) => setCurrentHostname(event.currentTarget.value)}
         />
-        <NumberInput
-          label="Port"
-          placeholder="3456"
-          value={currentPort}
-          onChange={(value) => setCurrentPort(value ?? 0)}
+        {Number.isInteger(currentPort)
+          ? (
+            <NumberInput
+              label="Port"
+              placeholder="3456"
+              value={currentPort === "koujou" ? 0 : currentPort}
+              onChange={(value) => setCurrentPort(value ?? 0)}
+            />
+          )
+          : <TextInput label="Port" value={currentPort} disabled />}
+        <Switch
+          label="Port for Koujou"
+          mt="sm"
+          onChange={(e) =>
+            setCurrentPort(e.currentTarget.checked ? "koujou" : 0)}
         />
         <Group position="right" mt="md">
           <Button onClick={() => newDialogHandler.close()}>Cancel</Button>

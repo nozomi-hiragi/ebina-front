@@ -5,6 +5,8 @@ import {
   MantineProvider,
 } from "@mantine/core";
 import { useColorScheme, useLocalStorage } from "@mantine/hooks";
+import { ModalsProvider } from "@mantine/modals";
+import { NotificationsProvider } from "@mantine/notifications";
 import {
   Apps,
   ArrowRampRight,
@@ -15,13 +17,12 @@ import {
   User,
 } from "tabler-icons-react";
 import DashboardBase from "./components/DashboardBase";
-import RequireAuth from "./components/RequireAuth";
 import Entrance from "./pages/Entrance";
 import GettingStarted from "./pages/GettingStarted";
 import Login from "./pages/Login";
 import TopPage from "./pages/Home";
-import Profile from "./pages/Profile";
-import Members from "./pages/Members";
+import Profile from "./pages/Profile/Profile";
+import Members from "./pages/Members/Members";
 import ApiIndex from "./pages/API/ApiIndes";
 import ApiEdit from "./pages/API/ApiEdit";
 import EditIndex from "./pages/Edit/EditIndex";
@@ -34,6 +35,7 @@ import Collection from "./pages/database/Collection";
 import ConstanRun from "./pages/ConstantRun/ConstantRun";
 import ConstanRunDetail from "./pages/ConstantRun/ConstantRunDetail";
 import Routing from "./pages/Routing/Routing";
+import Regist from "./pages/Regist";
 
 export const menuItems = [
   { label: "Home", path: "", icon: <Home /> },
@@ -76,53 +78,54 @@ function App() {
         withNormalizeCSS
         withGlobalStyles
       >
-        <BrowserRouter basename={process.env.PUBLIC_URL}>
-          <Routes>
-            <Route path="/">
-              <Route index element={<Entrance />} />
-              <Route path="getting-started" element={<GettingStarted />} />
-              <Route path="login" element={<Login />} />
-              <Route
-                path="dashboard"
-                element={
-                  <RequireAuth>
-                    <DashboardBase />
-                  </RequireAuth>
-                }
-              >
-                <Route index element={<TopPage />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="members" element={<Members />} />
-                <Route path="apps">
-                  <Route index element={<AppsIndex />} />
-                  <Route path=":appName">
-                    <Route index element={<AppsEdit />} />
-                    <Route path="api">
-                      <Route index element={<ApiIndex />} />
-                      <Route path="edit" element={<ApiEdit />} />
+        <NotificationsProvider>
+          <ModalsProvider>
+            <BrowserRouter basename={process.env.PUBLIC_URL}>
+              <Routes>
+                <Route path="/">
+                  <Route index element={<Entrance />} />
+                  <Route path="getting-started" element={<GettingStarted />} />
+                  <Route path="login" element={<Login />} />
+                  <Route path="regist" element={<Regist />} />
+                  <Route path="dashboard" element={<DashboardBase />}>
+                    <Route index element={<TopPage />} />
+                    <Route path="profile" element={<Profile />} />
+                    <Route path="members" element={<Members />} />
+                    <Route path="apps">
+                      <Route index element={<AppsIndex />} />
+                      <Route path=":appName">
+                        <Route index element={<AppsEdit />} />
+                        <Route path="api">
+                          <Route index element={<ApiIndex />} />
+                          <Route path="edit" element={<ApiEdit />} />
+                        </Route>
+                        <Route path="edit">
+                          <Route index element={<EditIndex />} />
+                          <Route path=":path" element={<EditEdit />} />
+                        </Route>
+                        <Route path="constantrun">
+                          <Route index element={<ConstanRun />} />
+                          <Route
+                            path=":cronName"
+                            element={<ConstanRunDetail />}
+                          />
+                        </Route>
+                      </Route>
                     </Route>
-                    <Route path="edit">
-                      <Route index element={<EditIndex />} />
-                      <Route path=":path" element={<EditEdit />} />
+                    <Route path="database">
+                      <Route index element={<DatabasePage />} />
+                      <Route path=":dbName/:colName" element={<Collection />} />
                     </Route>
-                    <Route path="constantrun">
-                      <Route index element={<ConstanRun />} />
-                      <Route path=":cronName" element={<ConstanRunDetail />} />
+                    <Route path="routing">
+                      <Route index element={<Routing />} />
                     </Route>
+                    <Route path="settings" element={<Setting />} />
                   </Route>
                 </Route>
-                <Route path="database">
-                  <Route index element={<DatabasePage />} />
-                  <Route path=":dbName/:colName" element={<Collection />} />
-                </Route>
-                <Route path="routing">
-                  <Route index element={<Routing />} />
-                </Route>
-                <Route path="settings" element={<Setting />} />
-              </Route>
-            </Route>
-          </Routes>
-        </BrowserRouter>
+              </Routes>
+            </BrowserRouter>
+          </ModalsProvider>
+        </NotificationsProvider>
       </MantineProvider>
     </ColorSchemeProvider>
   );

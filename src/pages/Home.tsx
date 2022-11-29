@@ -1,16 +1,14 @@
-import { useRecoilValue } from 'recoil'
-import { userSelector } from "../atoms";
-import { Container, Title } from '@mantine/core';
+import { useRecoilValue } from "recoil";
+import { Container, Title } from "@mantine/core";
+import { getMyInfo } from "../recoil/user";
 
 const Dashboard = () => {
-  const user = useRecoilValue(userSelector)
+  const user = useRecoilValue(getMyInfo);
   return (
-    <Container p={8} >
-      <Title order={5}>
-        Hello {user?.name}
-      </Title>
+    <Container p={8}>
+      <Title order={5}>{user ? `Hello ${user.name}` : "error"}</Title>
     </Container>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;
