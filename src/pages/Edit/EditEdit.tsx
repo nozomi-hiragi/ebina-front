@@ -2,25 +2,35 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ActionIcon,
+  ColorScheme,
   Container,
   Group,
   TextInput,
   Title,
   Tooltip,
 } from "@mantine/core";
+import { useColorScheme, useLocalStorage } from "@mantine/hooks";
 import { DeviceFloppy, Refresh, Trash } from "tabler-icons-react";
-import CopenhagenEditor from "../../components/CopenhagenEditor";
+import Editor from "@monaco-editor/react";
+import Monaco from "monaco-editor/esm/vs/editor/editor.api";
 import EbinaAPI from "../../EbinaAPI";
 
 let isGettingJs = false;
 
 const EditEdit = () => {
+  const [colorScheme] = useLocalStorage<ColorScheme>({
+    key: "color-scheme",
+    defaultValue: useColorScheme(),
+    getInitialValueInEffect: true,
+  });
   const { path } = useParams();
   const [isNew, setIsNew] = useState(path === "new");
   const [filename, setFilename] = useState(isNew ? "" : path!);
 
   const [data, setData] = useState<string>("");
-  const [editor, setEditor] = useState<any | null>(null);
+  const [editor, setEditor] = useState<
+    Monaco.editor.IStandaloneCodeEditor | null
+  >(null);
   const [save, setSave] = useState(false);
   const [refresh, setRefresh] = useState(false);
   const appName = useParams().appName ?? "";
@@ -53,11 +63,11 @@ const EditEdit = () => {
   useEffect(() => {
     if (save && filename) {
       const result = isNew
-        ? EbinaAPI.createScript(appName, filename, editor!.value)
-        : EbinaAPI.updateScript(appName, filename, editor!.value);
+        ? EbinaAPI.createScript(appName, filename, editor!.getValue())
+        : EbinaAPI.updateScript(appName, filename, editor!.getValue());
       result.then(() => {
         setIsNew(false);
-        setData(editor!.value);
+        setData(editor!.getValue());
         localStorage.removeItem(lsKey);
         setSave(false);
       }).catch((err) => {
@@ -70,7 +80,7 @@ const EditEdit = () => {
   const initValue = localStorage.getItem(lsKey) ?? data;
 
   return (
-    <Container m={0}>
+    <Container m={0} h="100%">
       <Group position="apart">
         {isNew
           ? (
@@ -117,16 +127,14 @@ const EditEdit = () => {
           </Tooltip>
         </Group>
       </Group>
-      <Container m={0}>
-        <CopenhagenEditor
-          language="javascript"
-          rows={30}
-          onChange={(e, v, cursor) => localStorage.setItem(lsKey, v)}
-          onSave={(editor, value) => setSave(true)}
-          onMount={(editor, value) => setEditor(editor)}
-          value={initValue}
-        />
-      </Container>
+      <Editor
+        height="90%"
+        defaultLanguage="typescript"
+        defaultValue={initValue}
+        theme={colorScheme === "light" ? "light" : "vs-dark"}
+        onChange={(v, e) => localStorage.setItem(lsKey, v ?? "")}
+        onMount={(editor, monaco) => setEditor(editor)}
+      />
     </Container>
   );
 };
