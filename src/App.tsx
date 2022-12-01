@@ -20,7 +20,7 @@ import DashboardBase from "./components/DashboardBase";
 import Entrance from "./pages/Entrance";
 import GettingStarted from "./pages/GettingStarted";
 import Login from "./pages/Login";
-import TopPage from "./pages/Home";
+import TopPage from "./pages/Home/Home";
 import Profile from "./pages/Profile/Profile";
 import Members from "./pages/Members/Members";
 import ApiIndex from "./pages/API/ApiIndes";
