@@ -1,5 +1,11 @@
 import { startRegistration } from "@simplewebauthn/browser";
-import { getEbina, postEbina, postEbinaWithWA } from ".";
+import {
+  fetchWithToken,
+  getEbina,
+  newEbinaURL,
+  postEbina,
+  postEbinaWithWA,
+} from ".";
 
 // 仮メンバー登録用
 export const requestTempMember = (
@@ -54,3 +60,19 @@ export const getTempMembers = (token: string) =>
     if (!res.ok) throw new Error(res.statusText);
     return res.json();
   }).then((json) => json as any[]);
+
+// メンバー配列取得
+export const getMembers = (token: string) =>
+  getEbina("/member", token).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+    return res.json();
+  }).then((json) => json as any[]);
+
+// メンバー削除
+export const deleteMembers = async (token: string, ids: string[]) => {
+  const url = newEbinaURL("/member");
+  url.searchParams.set("ids", ids.join(","));
+  return await fetchWithToken(url, "DELETE", token).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+  });
+};

@@ -1,6 +1,8 @@
 import { atom, DefaultValue, selector } from "recoil";
-import EbinaAPI from "../EbinaAPI";
-import { getTempMembers as getTempMembersAPI } from "../EbinaAPI/member";
+import {
+  getMembers as getMembersAPI,
+  getTempMembers as getTempMembersAPI,
+} from "../EbinaAPI/member";
 import { tokenSelector } from "./user";
 
 const membersState = atom<any[] | null>({ key: "members", default: null });
@@ -11,7 +13,7 @@ export const getMembers = selector({
     const members = get(membersState);
     const membersFetch = get(membersFetchState);
     if (members && (membersFetch < 0)) return members;
-    return EbinaAPI.getUsers().then((ret) => ret as any[]);
+    return getMembersAPI(get(tokenSelector));
   },
   set: ({ set, get }, newValue) => {
     if (newValue instanceof DefaultValue) {

@@ -4,8 +4,9 @@ import {
 } from "@simplewebauthn/browser";
 import EbinaAPI, {
   deleteEbina,
+  fetchWithToken,
   getEbina,
-  lsServer,
+  newEbinaURL,
   postEbina,
   putEbinaWithWA,
 } from ".";
@@ -13,7 +14,7 @@ import { Member } from "../recoil/user";
 
 // ログイン用オプション取得
 export const getLoginOptions = (id?: string) =>
-  fetch(`${lsServer.get()}/ebina/i/login/option`, {
+  fetch(newEbinaURL("/i/login/option"), {
     method: "POST",
     body: JSON.stringify({ id }),
   }).then((res) => {
@@ -27,7 +28,7 @@ export const getLoginOptions = (id?: string) =>
 
 // パスワードログイン
 export const loginWithPassword = (id: string, pass: string) =>
-  fetch(`${lsServer.get()}/ebina/i/login`, {
+  fetch(newEbinaURL("/i/login"), {
     method: "POST",
     body: JSON.stringify({ type: "password", id, pass }),
   }).then((res) => {
@@ -40,7 +41,7 @@ export const loginWithPassword = (id: string, pass: string) =>
 
 // WebAuthnでログイン
 export const loginWithWAOption = (result: any, sessionId: string) =>
-  fetch(`${lsServer.get()}/ebina/i/login/verify`, {
+  fetch(newEbinaURL("/i/login/verify"), {
     method: "POST",
     body: JSON.stringify({ result, sessionId }),
   }).then((res) => {
@@ -66,8 +67,13 @@ export const getMe = (token: string) =>
   }).then((json) => json as Member);
 
 // WebAuthnデバイス登録
-export const registWebAuthnDevice = (token: string, deviceName: string) =>
-  getEbina(`/i/webauthn/regist?deviceName=${deviceName}`, token).then((res) => {
+export const registWebAuthnDevice = async (
+  token: string,
+  deviceName: string,
+) => {
+  const url = newEbinaURL("/i/webauthn/regist");
+  if (deviceName) url.searchParams.set("deviceName", deviceName);
+  return await fetchWithToken(url, "GET", token).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
     return res.json();
   }).then((options) => startRegistration(options)).then((result) =>
@@ -76,13 +82,18 @@ export const registWebAuthnDevice = (token: string, deviceName: string) =>
     if (!res.ok) throw new Error(res.statusText);
     return res.json();
   }).then((json) => json as string[]);
+};
 
 // WebAuthn認証確認
-export const checkWebAuthnVerify = (token: string, deviceNames?: string[]) =>
-  getEbina(
-    `/i/webauthn/verify?deviceNames=${deviceNames?.join(",")}`,
-    token,
-  ).then((res) => {
+export const checkWebAuthnVerify = async (
+  token: string,
+  deviceNames?: string[],
+) => {
+  const url = newEbinaURL("/i/webauthn/verify");
+  if (deviceNames && deviceNames.length !== 0) {
+    url.searchParams.set("deviceNames", deviceNames?.join(","));
+  }
+  return await fetchWithToken(url, "GET", token).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
     return res.json();
   }).then((options) => startAuthentication(options)).then((result) =>
@@ -90,6 +101,7 @@ export const checkWebAuthnVerify = (token: string, deviceNames?: string[]) =>
   ).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
   });
+};
 
 // WebAuthnデバイス名取得
 export const getWebAuthnDeviceNames = (token: string) =>

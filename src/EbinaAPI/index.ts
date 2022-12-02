@@ -5,13 +5,16 @@ import { LocalStorage } from "../localstorage";
 import { TypeApi } from "../types";
 import PathBuilder from "./pathBuilder";
 
-export const fetchEbina = (
-  path: string,
+export const newEbinaURL = (path: string) =>
+  new URL(`${lsServer.get()}/ebina${path}`);
+
+export const fetchWithToken = (
+  url: URL,
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   token: string,
   body?: BodyInit | null,
 ) =>
-  fetch(`${lsServer.get()}/ebina${path}`, {
+  fetch(url, {
     method,
     headers: { Authorization: `Bearer ${token}` },
     body,
@@ -23,24 +26,24 @@ export const fetchEbina = (
 export const getEbina = (
   path: string,
   token: string,
-) => fetchEbina(path, "GET", token);
+) => fetchWithToken(newEbinaURL(path), "GET", token);
 
 export const postEbina = (
   path: string,
   token: string,
   body?: BodyInit | null,
-) => fetchEbina(path, "POST", token, body);
+) => fetchWithToken(newEbinaURL(path), "POST", token, body);
 
 export const putEbina = (
   path: string,
   token: string,
   body?: BodyInit | null,
-) => fetchEbina(path, "PUT", token, body);
+) => fetchWithToken(newEbinaURL(path), "PUT", token, body);
 
 export const deleteEbina = (
   path: string,
   token: string,
-) => fetchEbina(path, "DELETE", token);
+) => fetchWithToken(newEbinaURL(path), "DELETE", token);
 
 export const postEbinaWithWA = (
   path: string,
@@ -173,43 +176,6 @@ class EbinaAPI {
     return await this.ax.delete(url, config).catch((err) => {
       if (!axios.isAxiosError(err) || !err.response) throw err;
       return err.response;
-    });
-  }
-
-  // メンバー配列取得 ID無いなら全部
-  // ?ids
-  // 200 空でも返す
-  public async getUsers() {
-    this.checkURL();
-    return await this.get(PathBuilder.member.path).then((res) => {
-      switch (res.status) {
-        case 200:
-          return res.data;
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
-  }
-
-  // メンバー配列削除
-  // ?ids
-  // 200 全部できた
-  // 206 一部できた
-  // 404 全部できない
-  public async deleteUsers(ids: string[]) {
-    this.checkURL();
-    return await this.delete(PathBuilder.member.path, {
-      params: { ids: ids.join(",") },
-    }).then((res) => {
-      switch (res.status) {
-        case 200:
-        case 206:
-          return;
-        case 401:
-        case 404:
-        default:
-          throw new EbinaApiError(res);
-      }
     });
   }
 

@@ -20,7 +20,7 @@ import { startAuthentication } from "@simplewebauthn/browser";
 import { useEffect, useState } from "react";
 import { useRecoilValue } from "recoil";
 import { Check, Dots, Edit, MessagePlus, Trash, X } from "tabler-icons-react";
-import { fetchEbina } from "../../EbinaAPI";
+import { fetchWithToken, newEbinaURL } from "../../EbinaAPI";
 import { tokenSelector } from "../../recoil/user";
 
 interface FuncItem {
@@ -150,8 +150,8 @@ const FuncItemCard = (
             autoClose: false,
             disallowClose: true,
           });
-          fetchEbina(
-            props.item.path,
+          fetchWithToken(
+            newEbinaURL(props.item.path),
             props.item.method,
             authToken,
             body,
@@ -172,8 +172,8 @@ const FuncItemCard = (
             } catch (err: any) {
               throw new Error(`WebAuthn error: ${err.message}`);
             }
-            return fetchEbina(
-              props.item.path,
+            return fetchWithToken(
+              newEbinaURL(props.item.path),
               props.item.method,
               authToken,
               waResult,

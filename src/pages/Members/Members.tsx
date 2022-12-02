@@ -4,13 +4,16 @@ import { Group, Stack, Tabs, Text, Title, UnstyledButton } from "@mantine/core";
 import { openConfirmModal } from "@mantine/modals";
 import { Check, Trash, UserCheck, UserPlus, X } from "tabler-icons-react";
 import { payloadSelector, tokenSelector } from "../../recoil/user";
-import EbinaAPI from "../../EbinaAPI";
 import { getMembers, getTempMembers } from "../../recoil/member";
 import RegistMemberDialog from "./RegistMemberDialog";
 import DeleteMemberDialog from "./DeleteMemberDialog";
 import MembersTable from "./MembersTable";
 import { showNotification } from "@mantine/notifications";
-import { admitTempMember, denyTempMember } from "../../EbinaAPI/member";
+import {
+  admitTempMember,
+  deleteMembers,
+  denyTempMember,
+} from "../../EbinaAPI/member";
 
 const Members = () => {
   const payload = useRecoilValue(payloadSelector);
@@ -146,7 +149,7 @@ const Members = () => {
         members={selectedMembers}
         onClose={() => setDeleteDialogOpen(false)}
         onDelete={() => {
-          EbinaAPI.deleteUsers(selectedMembers).then(() => {
+          deleteMembers(authToken, selectedMembers).then(() => {
             setDeleteDialogOpen(false);
             setMembers(members
               .filter((member) => !selectedMembers.includes(member.id)));
