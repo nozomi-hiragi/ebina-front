@@ -13,10 +13,22 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useEffect, useState } from "react";
+import { useRecoilValue } from "recoil";
 import { Trash } from "tabler-icons-react";
-import EbinaAPI, { NginxConf } from "../../EbinaAPI";
+import { NginxConf } from "../../EbinaAPI";
+import {
+  deleteRoute,
+  getRoute,
+  getRouteList,
+  getRoutingStatus,
+  newRoute,
+  setRoute,
+  updateRouter,
+} from "../../EbinaAPI/routing";
+import { tokenSelector } from "../../recoil/user";
 
 const Routing = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [routeParams, setRouteParams] = useState<
     { [name: string]: NginxConf | undefined }
   >({});
@@ -31,7 +43,7 @@ const Routing = () => {
 
   useEffect(() => {
     if (Object.keys(routeParams).length === 0) {
-      EbinaAPI.getRouteList().then((list) => {
+      getRouteList(authToken).then((list) => {
         const params: { [name: string]: NginxConf | undefined } = {};
         list.forEach((name) => params[name] = undefined);
         setRouteParams(params);
@@ -41,7 +53,7 @@ const Routing = () => {
   }, []);
 
   useEffect(() => {
-    EbinaAPI.getRoutingStatus().then((ret) => {
+    getRoutingStatus(authToken).then((ret) => {
       if (ret !== "Disable") routerEnableHandler.open();
       setRouterStatus(ret);
     });
@@ -63,7 +75,7 @@ const Routing = () => {
               ? (
                 <Button
                   onClick={() =>
-                    EbinaAPI.updateRouter("up")
+                    updateRouter(authToken, "up")
                       .then(() => setRouterStatus("Refreshing..."))}
                 >
                   Up
@@ -73,14 +85,14 @@ const Routing = () => {
                 <>
                   <Button
                     onClick={() =>
-                      EbinaAPI.updateRouter("rm")
+                      updateRouter(authToken, "rm")
                         .then(() => setRouterStatus("Refreshing..."))}
                   >
                     Remove
                   </Button>
                   <Button
                     onClick={() =>
-                      EbinaAPI.updateRouter("restart")
+                      updateRouter(authToken, "restart")
                         .then(() => setRouterStatus("Refreshing..."))}
                   >
                     Restart
@@ -110,7 +122,7 @@ const Routing = () => {
           setAccordionValue(value);
           if (!value) return;
           if (!routeParams[value]) {
-            EbinaAPI.getRoute(value).then((conf) => {
+            getRoute(authToken, value).then((conf) => {
               const newValue: { [name: string]: NginxConf | undefined } = {};
               newValue[value] = conf;
               setRouteParams({ ...routeParams, ...newValue });
@@ -169,7 +181,7 @@ const Routing = () => {
                         port: currentPort,
                         www: routeParams[route]?.www,
                       };
-                      EbinaAPI.setRoute(route, newConf).then((ret) => {
+                      setRoute(authToken, route, newConf).then((ret) => {
                         if (ret) {
                           const newValue: {
                             [name: string]: NginxConf | undefined;
@@ -229,7 +241,7 @@ const Routing = () => {
                 hostname: currentHostname,
                 port: currentPort,
               };
-              EbinaAPI.newRoute(newRouteName, newConf).then((ret) => {
+              newRoute(authToken, newRouteName, newConf).then((ret) => {
                 if (ret) {
                   const newValue: { [name: string]: NginxConf | undefined } =
                     {};
@@ -262,7 +274,7 @@ const Routing = () => {
           <Button
             color="red"
             onClick={() => {
-              EbinaAPI.deleteRoute(deleteRouteName).then(() => {
+              deleteRoute(authToken, deleteRouteName).then(() => {
                 const newParams = routeParams;
                 delete newParams[deleteRouteName];
                 setRouteParams(newParams);
