@@ -5,7 +5,11 @@ import jwtDecode, { JwtPayload } from "jwt-decode";
 import { Component, ReactNode, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecoilValue, useResetRecoilState, useSetRecoilState } from "recoil";
-import EbinaAPI from "../EbinaAPI";
+import {
+  getLoginOptions,
+  loginWithPassword,
+  loginWithWAOption,
+} from "../EbinaAPI/i";
 import { payloadSelector, tokenSelector } from "../recoil/user";
 
 export class UnauthorizedError extends Error {}
@@ -29,15 +33,14 @@ const PasswordDialog = (props: PasswordDialogProps) => {
           if (!payload) {
             throw new Error("No payload");
           }
-          await EbinaAPI.loginWithPassword(payload.id, values.pass)
-            .then((newToken) => {
-              token = newToken;
-              setToken(newToken);
-              props.onClose();
-              props.onLoggedIn();
-            }).catch(() => {
-              loginForm.setErrors({ pass: "Login failed" });
-            });
+          await loginWithPassword(payload.id, values.pass).then((newToken) => {
+            token = newToken;
+            setToken(newToken);
+            props.onClose();
+            props.onLoggedIn();
+          }).catch(() => {
+            loginForm.setErrors({ pass: "Login failed" });
+          });
         })}
       >
         <PasswordInput
@@ -69,17 +72,14 @@ const Reauth = (props: Props) => {
     try {
       if (token && !isExpired(token)) return;
       if (!payload) throw new Error("no payload");
-      EbinaAPI.getLoginOptions(payload.id).then(async (ret) => {
-        if (ret.type === "WebAuthn") {
-          await startAuthentication(ret.options).then((result) =>
-            EbinaAPI.loginWithWAOption(result, ret.sessionId)
-          ).then((newToken) => {
+      getLoginOptions(payload.id).then(async (ret) => {
+        if (ret.type === "Password") return setIsPassword(true);
+        startAuthentication(ret.options)
+          .then((result) => loginWithWAOption(result, ret.sessionId))
+          .then((newToken) => {
             token = newToken;
             setToken(newToken);
           });
-        } else {
-          setIsPassword(true);
-        }
       });
     } catch (err) {
       resetToken();

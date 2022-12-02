@@ -4,13 +4,13 @@ import { Group, Stack, Tabs, Text, Title, UnstyledButton } from "@mantine/core";
 import { openConfirmModal } from "@mantine/modals";
 import { Check, Trash, UserCheck, UserPlus, X } from "tabler-icons-react";
 import { payloadSelector, tokenSelector } from "../../recoil/user";
-import EbinaAPI, { lsServer, myFetch } from "../../EbinaAPI";
+import EbinaAPI from "../../EbinaAPI";
 import { getMembers, getTempMembers } from "../../recoil/member";
 import RegistMemberDialog from "./RegistMemberDialog";
 import DeleteMemberDialog from "./DeleteMemberDialog";
 import MembersTable from "./MembersTable";
 import { showNotification } from "@mantine/notifications";
-import { startAuthentication } from "@simplewebauthn/browser";
+import { admitTempMember, denyTempMember } from "../../EbinaAPI/member";
 
 const Members = () => {
   const payload = useRecoilValue(payloadSelector);
@@ -30,37 +30,13 @@ const Members = () => {
     selectedTempMembers,
   ]);
 
-  const apiAdmit = (body: any) => {
-    return myFetch(`${lsServer.get()}/ebina/member/temp/admit`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${authToken}` },
-      body: JSON.stringify(body),
-    });
-  };
-
-  const apiDeny = (body: any) => {
-    return myFetch(`${lsServer.get()}/ebina/member/temp/deny`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${authToken}` },
-      body: JSON.stringify(body),
-    });
-  };
-
   const openAdmitModal = useCallback((ids: string[]) =>
     openConfirmModal({
       title: "Admit Temp Member",
       children: <Text size="sm">Admit {ids.join(", ")}?</Text>,
       labels: { confirm: "Admit", cancel: "Cancel" },
       onConfirm: async () => {
-        await apiAdmit({ ids }).then(async (res) => {
-          if (!res.ok) throw new Error(await res.text());
-          return startAuthentication(await res.json());
-        }).then((res) => {
-          return apiAdmit(res);
-        }).then(async (res) => {
-          if (!res.ok) throw new Error(await res.text());
-          return await res.json() as string[];
-        }).then((successIds) => {
+        await admitTempMember(authToken, ids).then((successIds) => {
           setTempMemebers(tempMemebers!
             .filter((member) => !successIds.includes(member.id)));
           setSelectedTempMembers([]);
@@ -89,15 +65,7 @@ const Members = () => {
       children: <Text size="sm">Admit {ids.join(", ")}?</Text>,
       labels: { confirm: "Deny", cancel: "Cancel" },
       onConfirm: async () => {
-        await apiDeny({ ids }).then(async (res) => {
-          if (!res.ok) throw new Error(await res.text());
-          return startAuthentication(await res.json());
-        }).then((res) => {
-          return apiDeny(res);
-        }).then(async (res) => {
-          if (!res.ok) throw new Error(await res.text());
-          return await res.json() as string[];
-        }).then((successIds) => {
+        await denyTempMember(authToken, ids).then((successIds) => {
           setTempMemebers(tempMemebers!
             .filter((member) => !successIds.includes(member.id)));
           setSelectedTempMembers([]);

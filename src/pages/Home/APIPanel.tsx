@@ -20,7 +20,7 @@ import { startAuthentication } from "@simplewebauthn/browser";
 import { useEffect, useState } from "react";
 import { useRecoilValue } from "recoil";
 import { Check, Dots, Edit, MessagePlus, Trash, X } from "tabler-icons-react";
-import { lsServer, myFetch } from "../../EbinaAPI";
+import { fetchEbina } from "../../EbinaAPI";
 import { tokenSelector } from "../../recoil/user";
 
 interface FuncItem {
@@ -150,13 +150,12 @@ const FuncItemCard = (
             autoClose: false,
             disallowClose: true,
           });
-          const url = new URL(lsServer.get() ?? "");
-          url.pathname = props.item.path;
-          myFetch(url, {
-            method: props.item.method,
-            headers: { Authorization: `Bearer ${authToken}` },
+          fetchEbina(
+            props.item.path,
+            props.item.method,
+            authToken,
             body,
-          }).then(async (ret) => {
+          ).then(async (ret) => {
             if (!ret.ok) throw new Error(`${ret.status} ${ret.statusText}`);
             let json: any;
             try {
@@ -173,11 +172,12 @@ const FuncItemCard = (
             } catch (err: any) {
               throw new Error(`WebAuthn error: ${err.message}`);
             }
-            return myFetch(url, {
-              method: props.item.method,
-              headers: { Authorization: `Bearer ${authToken}` },
-              body: waResult,
-            }).then(async (ret) => {
+            return fetchEbina(
+              props.item.path,
+              props.item.method,
+              authToken,
+              waResult,
+            ).then(async (ret) => {
               if (!ret.ok) throw new Error(`${ret.status} ${ret.statusText}`);
               try {
                 return { body: await ret.text(), status: ret.status };

@@ -1,15 +1,70 @@
+import { startAuthentication } from "@simplewebauthn/browser";
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { UnauthorizedError } from "../components/UnauthorizedErrorBoundary";
 import { LocalStorage } from "../localstorage";
 import { TypeApi } from "../types";
 import PathBuilder from "./pathBuilder";
 
-export const myFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-  return await fetch(input, init).then((ret) => {
-    if (ret.status === 401) throw new UnauthorizedError();
-    return ret;
+export const fetchEbina = (
+  path: string,
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
+  token: string,
+  body?: BodyInit | null,
+) =>
+  fetch(`${lsServer.get()}/ebina${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  }).then((res) => {
+    if (res.status === 401) throw new UnauthorizedError();
+    return res;
   });
-};
+
+export const getEbina = (
+  path: string,
+  token: string,
+) => fetchEbina(path, "GET", token);
+
+export const postEbina = (
+  path: string,
+  token: string,
+  body?: BodyInit | null,
+) => fetchEbina(path, "POST", token, body);
+
+export const putEbina = (
+  path: string,
+  token: string,
+  body?: BodyInit | null,
+) => fetchEbina(path, "PUT", token, body);
+
+export const deleteEbina = (
+  path: string,
+  token: string,
+) => fetchEbina(path, "DELETE", token);
+
+export const postEbinaWithWA = (
+  path: string,
+  token: string,
+  body?: BodyInit | null,
+) =>
+  postEbina(path, token, body).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+    return res.json();
+  }).then((options) => startAuthentication(options)).then((result) =>
+    postEbina(path, token, JSON.stringify(result))
+  );
+
+export const putEbinaWithWA = (
+  path: string,
+  token: string,
+  body?: BodyInit | null,
+) =>
+  putEbina(path, token, body).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+    return res.json();
+  }).then((options) => startAuthentication(options)).then((result) =>
+    putEbina(path, token, JSON.stringify(result))
+  );
 
 class EbinaApiError extends Error {
   status: number;
@@ -68,7 +123,7 @@ class EbinaAPI {
     this.apply();
   }
 
-  private setToken(token: string | undefined) {
+  public setToken(token: string | undefined) {
     this.token = token;
     this.apply();
   }
@@ -118,392 +173,6 @@ class EbinaAPI {
     return await this.ax.delete(url, config).catch((err) => {
       if (!axios.isAxiosError(err) || !err.response) throw err;
       return err.response;
-    });
-  }
-
-  // User
-
-  // メンバー作成要求
-  // { id, name, pass }
-  // 201 できた
-  // 400 情報足らない
-  // 404 IDがもうある
-  public async memberRegistRequest(
-    user: { id: string; name: string; pass: string },
-  ) {
-    this.checkURL();
-    return await this.post(PathBuilder.member.regist.option, user)
-      .then((res) => {
-        switch (res.status) {
-          case 201:
-            return res.data;
-          case 400:
-          case 404:
-          default:
-            throw new EbinaApiError(res);
-        }
-      });
-  }
-
-  // メンバー作成認証
-  // { id, result, token }
-  // 200 できた
-  // 400 情報足らない
-  // 401 トークンちがう
-  // 404 IDがもうある
-  public async memberRegistVerify(
-    body: { id: string; result: any; token: string },
-  ) {
-    this.checkURL();
-    return await this.post(PathBuilder.member.regist.verify, body)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return;
-          case 400:
-          case 401:
-          case 404:
-          default:
-            throw new EbinaApiError(res);
-        }
-      });
-  }
-
-  // ログイン
-  // { type, id, pass }
-  // 200 トークン
-  // 400 情報足らない
-  // 401 パスワードが違う
-  // 404 メンバーない
-  // 405 パスワードが設定されてない
-  // 406 パスワードはだめ
-  public async loginWithPassword(id: string, pass: string) {
-    this.checkURL();
-    return await this.post(
-      PathBuilder.i.login.path,
-      { type: "password", id, pass },
-    ).then((res) => {
-      switch (res.status) {
-        case 200:
-          this.setToken(res.data);
-          return res.data as string;
-        case 400:
-        case 401:
-        case 404:
-        case 405:
-        case 406:
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
-  }
-
-  // ログアウト サーバー内のトークン消す
-  // 200 消せた
-  // 401 無かった
-  public async logout() {
-    this.checkURL();
-    return await this.post(PathBuilder.i.logout).then((res) => {
-      switch (res.status) {
-        case 200:
-          this.setToken(undefined);
-          return;
-        case 401:
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
-  }
-
-  // パスワード更新
-  // 200 変えれた
-  // 202 認証して
-  // 400 足らない
-  // 401 認証できてない
-  // 403 許可されてない
-  // 404 データない
-  // 405 パスワードのデータおかしい
-  public async updatePassword(
-    options: any,
-  ): Promise<{ ok: boolean; options?: any; status?: number }> {
-    this.checkURL();
-    return await this.put(PathBuilder.i.password, options).then((res) => {
-      switch (res.status) {
-        case 200:
-          return { ok: true };
-        case 202:
-          return { ok: true, options: res.data };
-        default:
-          return { ok: false, status: res.status };
-      }
-    });
-  }
-
-  // 登録オプション取得
-  // origin:
-  // 200 オプション
-  // 400 オリジンヘッダない
-  // 404 メンバーがない
-  // 500 WebAuthnの設定おかしい
-  public async getWebAuthnRegistOptions(deviceName: string) {
-    this.checkURL();
-    return await this.get(PathBuilder.i.webauthn.regist, {
-      params: { deviceName },
-    }).then((res) => {
-      switch (res.status) {
-        case 200:
-          return res.data;
-        case 400:
-        case 401:
-        case 404:
-        case 500:
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
-  }
-
-  // 登録
-  // origin:
-  // { ...credential, deviceName }
-  // 200 OK
-  // 400 情報おかしい
-  // 401 チャレンジ失敗
-  // 404 メンバーがない
-  // 409 チャレンジ控えがない
-  // 410 チャレンジ古い
-  // 500 WebAuthnの設定おかしい
-  public async sendWebAuthnRegistCredential(credential: any) {
-    this.checkURL();
-    return await this.post(PathBuilder.i.webauthn.regist, credential)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return res.data as string[];
-          case 400:
-          case 401:
-          case 404:
-          case 409:
-          case 410:
-          case 500:
-          default:
-            throw new EbinaApiError(res);
-        }
-      });
-  }
-
-  // 確認用オプション取得
-  // origin:
-  // ?names[]
-  // 200 オプション
-  // 400 情報足りない
-  // 404 メンバーがない
-  // 500 WebAuthnの設定おかしい
-  public async getWebAuthnVerifyOptions(deviceNames?: string[]) {
-    this.checkURL();
-    return await this.get(PathBuilder.i.webauthn.verify, {
-      params: { deviceNames: deviceNames?.join(",") },
-    }).then((res) => {
-      switch (res.status) {
-        case 200:
-          return res.data;
-        case 400:
-        case 401:
-        case 404:
-        case 500:
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
-  }
-
-  // 認証
-  // origin:
-  // { ...credential }
-  // 200 OK
-  // 400 情報おかしい
-  // 401 チャレンジ失敗
-  // 404 ものがない
-  // 405 パスワードが設定されてない
-  // 409 チャレンジ控えがない
-  // 410 チャレンジ古い
-  // 500 WebAuthnの設定おかしい
-  public async sendWebAuthnVerifyCredential(credential: any) {
-    this.checkURL();
-    return await this.post(PathBuilder.i.webauthn.verify, credential)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return;
-          case 400:
-          case 401:
-          case 404:
-          case 405:
-          case 409:
-          case 410:
-          case 500:
-          default:
-            throw new EbinaApiError(res);
-        }
-      });
-  }
-
-  // ログイン用オプション取得
-  // origin:
-  // 200 オプション
-  // 400 情報足りない
-  // 500 WebAuthnの設定おかしい
-  public async getLoginOptions(id?: string) {
-    this.checkURL();
-    return await this.post(PathBuilder.i.login.option, { id })
-      .then((res) => {
-        switch (res.status) {
-          case 202:
-            return res.data as
-              | { type: "WebAuthn"; options: any; sessionId: string }
-              | { type: "Password" };
-          default:
-            throw new EbinaApiError(res);
-        }
-      });
-  }
-
-  // WebAuthnでログイン
-  // { type, id, pass }
-  // 200 トークン
-  // 400 情報足らない
-  // 404 メンバーない
-  // 500 WebAuthn設定おかしい
-  public async loginWithWAOption(result: any, sessionId: string) {
-    this.checkURL();
-    return await this.post(PathBuilder.i.login.verify, { sessionId, result })
-      .then((ret) => {
-        switch (ret.status) {
-          case 200:
-            this.setToken(ret.data);
-            return ret.data as string;
-          case 400:
-          case 404:
-          case 500:
-          default:
-            throw new EbinaApiError(ret);
-        }
-      });
-  }
-
-  // デバイスら情報取得
-  // origin:
-  // ?names
-  // 200 空でも返す
-  // 400 情報足りない
-  // 500 WebAuthnの設定おかしい
-  public async getWebAuthnDeviceNames() {
-    this.checkURL();
-    return await this.get(PathBuilder.i.webauthn.device)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return res.data as string[];
-          case 500:
-            return undefined;
-          case 400:
-          case 401:
-          default:
-            throw new EbinaApiError(res);
-        }
-      });
-  }
-
-  // デバイス有効確認
-  // origin:
-  // :deviceName
-  // 200 OK
-  // 208 もうある
-  // 404 みつからない
-  // 500 WebAuthnの設定おかしい
-  public async checkEnableWebAuthnDevice(deviceName: string) {
-    this.checkURL();
-    return await this.get(PathBuilder.i.webauthn.deviceWith(deviceName).enable)
-      .then((res) => {
-        switch (res.status) {
-          case 200:
-            return res.data as boolean;
-          case 404:
-          case 500:
-          default:
-            throw new EbinaApiError(res);
-        }
-      });
-  }
-
-  // デバイス有効
-  // origin:
-  // :deviceName
-  // 200 OK
-  // 208 もうある
-  // 404 みつからない
-  // 500 WebAuthnの設定おかしい
-  public async enableWebAuthnDevice(deviceName: string) {
-    this.checkURL();
-    return await this.post(
-      PathBuilder.i.webauthn.deviceWith(deviceName).enable,
-    ).then((res) => {
-      switch (res.status) {
-        case 200:
-        case 208:
-          return;
-        case 404:
-        case 500:
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
-  }
-
-  // デバイス無効
-  // origin:
-  // :deviceName
-  // 200 OK
-  // 208 もうない
-  // 404 みつからない
-  // 500 WebAuthnの設定おかしい
-  public async disableWebAuthnDevice(deviceName: string) {
-    this.checkURL();
-    return await this.post(
-      PathBuilder.i.webauthn.deviceWith(deviceName).disable,
-    ).then((res) => {
-      switch (res.status) {
-        case 200:
-        case 208:
-          return;
-        case 404:
-        case 500:
-        default:
-          throw new EbinaApiError(res);
-      }
-    });
-  }
-
-  // デバイスら削除
-  // origin:
-  // :deviceName
-  // ?names
-  // 200 OK
-  // 404 みつからない
-  // 500 WebAuthnの設定おかしい
-  public async deleteWebAuthnDevice(deviceName: string) {
-    this.checkURL();
-    return await this.delete(
-      PathBuilder.i.webauthn.deviceWith(deviceName).path,
-    ).then((res) => {
-      switch (res.status) {
-        case 200:
-          return;
-        case 404:
-        case 500:
-        default:
-          throw new EbinaApiError(res);
-      }
     });
   }
 

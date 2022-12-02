@@ -14,7 +14,13 @@ import { useLocalStorage } from "@mantine/hooks";
 import { useEffect, useMemo, useState } from "react";
 import { useRecoilValue } from "recoil";
 import { X } from "tabler-icons-react";
-import { lsServer, myFetch } from "../../EbinaAPI";
+import {
+  checkSubscribedWebPushDevice,
+  deleteWebPushDevice,
+  getWebPushDeviceNames,
+  postWebPushTest,
+  registWebPushDevice,
+} from "../../EbinaAPI/i";
 import { tokenSelector } from "../../recoil/user";
 import SettingItemCard from "./SettingItemCard";
 
@@ -87,20 +93,9 @@ const RegistPushCard = () => {
         <Stepper.Step label="Subscribe" description="Regist your identifier">
           <form
             onSubmit={subscribeForm.onSubmit(() => {
-              myFetch(
-                `${lsServer.get()}/ebina/i/webpush/subscribed/${subscribeForm.values.deviceName}`,
-                {
-                  method: "GET",
-                  headers: { Authorization: `Bearer ${token}` },
-                },
-              ).then((ret) => {
-                if (!ret.ok) throw new Error(ret.status.toString());
-                return ret.json();
-              }).then((json) =>
-                json as {
-                  subscribed: boolean;
-                  applicationServerKey?: string;
-                }
+              checkSubscribedWebPushDevice(
+                token,
+                subscribeForm.values.deviceName,
               ).then(({ subscribed, applicationServerKey }) => {
                 if (subscribed) {
                   subscribeForm.setErrors({
@@ -113,15 +108,10 @@ const RegistPushCard = () => {
                   { userVisibleOnly: true, applicationServerKey },
                 ).then((subscription) => {
                   setSubscription(subscription);
-                  myFetch(`${lsServer.get()}/ebina/i/webpush/device`, {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({
-                      deviceName: subscribeForm.values.deviceName,
-                      subscription: subscription.toJSON(),
-                    }),
-                  }).then((res) => {
-                    if (!res.ok) throw new Error(res.status.toString());
+                  registWebPushDevice(token, {
+                    deviceName: subscribeForm.values.deviceName,
+                    subscription: subscription.toJSON(),
+                  }).then((isNew) => {
                     setDeviceName(subscribeForm.values.deviceName);
                   });
                 });
@@ -152,15 +142,10 @@ const RegistPushCard = () => {
                     return;
                   }
                   if (!subscription) setSubscription(sub);
-                  myFetch(`${lsServer.get()}/ebina/i/webpush/device`, {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({
-                      deviceName: subscribeForm.values.deviceName,
-                      subscription: sub.toJSON(),
-                    }),
-                  }).then((res) => {
-                    if (!res.ok) return alert(res.status);
+                  registWebPushDevice(token, {
+                    deviceName: subscribeForm.values.deviceName,
+                    subscription: sub.toJSON(),
+                  }).then((isNew) => {
                     setDeviceName(subscribeForm.values.deviceName);
                   });
                 });
@@ -168,15 +153,7 @@ const RegistPushCard = () => {
             >
               Resubscribe
             </Button>
-            <Button
-              onClick={() => {
-                myFetch(`${lsServer.get()}/ebina/i/webpush/test`, {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${token}` },
-                  body: JSON.stringify({ deviceName }),
-                });
-              }}
-            >
+            <Button onClick={() => postWebPushTest(token, deviceName)}>
               Request Test Push
             </Button>
             <Button
@@ -203,14 +180,9 @@ const PushSettings = () => {
   const token = useRecoilValue(tokenSelector);
 
   useEffect(() => {
-    myFetch(`${lsServer.get()}/ebina/i/webpush/devices/`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(async (ret) => {
-      if (!ret.ok) return;
-      const deviceNames = await ret.json();
-      setDeviceNames(deviceNames);
-    });
+    getWebPushDeviceNames(token)
+      .then((deviceNames) => setDeviceNames(deviceNames))
+      .catch(() => {});
     // eslint-disable-next-line
   }, []);
 
@@ -235,16 +207,11 @@ const PushSettings = () => {
                 <Button
                   disabled={selectDevice === null || selectDevice === ""}
                   onClick={() => {
-                    myFetch(`${lsServer.get()}/ebina/i/webpush/device/`, {
-                      method: "DELETE",
-                      headers: { Authorization: `Bearer ${token}` },
-                      body: JSON.stringify({ deviceName: selectDevice }),
-                    }).then(async (ret) => {
-                      if (!ret.ok) return;
-                      const deviceNames = await ret.json();
-                      setSelectDevice(null);
-                      setDeviceNames(deviceNames);
-                    });
+                    deleteWebPushDevice(token, selectDevice!)
+                      .then((deviceNames) => {
+                        setSelectDevice(null);
+                        setDeviceNames(deviceNames);
+                      });
                   }}
                 >
                   Delete
