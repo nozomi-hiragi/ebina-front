@@ -1,4 +1,17 @@
-import { getEbina, MongoDBSettings, postEbina, WebAuthnSetting } from ".";
+import { getEbina, postEbina } from ".";
+
+export type WebAuthnSetting = {
+  rpName: string;
+  rpIDType: "variable" | "static";
+  rpID?: string;
+  attestationType?: AttestationConveyancePreference;
+};
+
+export type MongoDBSettings = {
+  port: number;
+  username: "env" | string;
+  password: "env" | string;
+};
 
 // WebAuthn設定取得
 export const getWebAuthnSettings = (token: string) =>

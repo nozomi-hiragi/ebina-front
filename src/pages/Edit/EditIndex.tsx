@@ -11,16 +11,19 @@ import {
 import { Plus, Refresh } from "tabler-icons-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import EbinaAPI from "../../EbinaAPI";
+import { getScriptList } from "../../EbinaAPI/app/script";
+import { tokenSelector } from "../../recoil/user";
+import { useRecoilValue } from "recoil";
 
 const EditIndex = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [fileList, setFileList] = useState<string[]>([]);
   const [refreshState, setRefreshState] = useState(true);
   const appName = useParams().appName ?? "";
 
   useEffect(() => {
     if (refreshState) {
-      EbinaAPI.getScriptList(appName).then((list) => setFileList(list));
+      getScriptList(authToken, appName).then((list) => setFileList(list));
       setRefreshState(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

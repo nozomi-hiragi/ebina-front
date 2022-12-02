@@ -15,11 +15,20 @@ import {
 } from "@mantine/core";
 import { Plus, Refresh } from "tabler-icons-react";
 import { Link, useParams } from "react-router-dom";
-import EbinaAPI from "../../EbinaAPI";
+import {
+  getAPIs,
+  getAPIStatus,
+  getPort,
+  updateAPIStatus,
+  updatePort,
+} from "../../EbinaAPI/app/api";
+import { useRecoilValue } from "recoil";
+import { tokenSelector } from "../../recoil/user";
 
 var cacheAppName = "";
 
 const ApiIndex = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [apiState, setApiState] = useState<any>({});
   const [apis, setApisState] = useState<any[]>([]);
   const [refreshState, setRefreshState] = useState(true);
@@ -28,13 +37,13 @@ const ApiIndex = () => {
 
   useEffect(() => {
     if (refreshState || cacheAppName !== appName) {
-      EbinaAPI.getAPIStatus(appName).then((res) => {
+      getAPIStatus(authToken, appName).then((res) => {
         setApiState(res);
       });
-      EbinaAPI.getAPIs(appName).then((res) => {
+      getAPIs(authToken, appName).then((res) => {
         setApisState(res);
       });
-      EbinaAPI.getPort(appName).then((res) => {
+      getPort(authToken, appName).then((res) => {
         setPort(res);
       });
       setRefreshState(false);
@@ -97,7 +106,7 @@ const ApiIndex = () => {
           <Group>
             <Button
               onClick={() =>
-                EbinaAPI.updateAPIStatus(appName, "start").then(() =>
+                updateAPIStatus(authToken, appName, "start").then(() =>
                   setRefreshState(true)
                 )}
             >
@@ -105,7 +114,7 @@ const ApiIndex = () => {
             </Button>
             <Button
               onClick={() =>
-                EbinaAPI.updateAPIStatus(appName, "stop").then(() =>
+                updateAPIStatus(authToken, appName, "stop").then(() =>
                   setRefreshState(true)
                 )}
             >
@@ -128,9 +137,8 @@ const ApiIndex = () => {
           />
           <Button
             onClick={() =>
-              EbinaAPI.updatePort(appName, port).then(() =>
-                setRefreshState(true)
-              )}
+              updatePort(authToken, appName, port)
+                .then(() => setRefreshState(true))}
           >
             Save
           </Button>

@@ -8,7 +8,6 @@ import {
   Tabs,
   TextInput,
 } from "@mantine/core";
-import { WebAuthnSetting } from "../EbinaAPI";
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
 import {
@@ -16,6 +15,7 @@ import {
   getWebAuthnSettings,
   setMongoDBSettings,
   setWebAuthnBSettings,
+  WebAuthnSetting,
 } from "../EbinaAPI/settings";
 import { useRecoilValue } from "recoil";
 import { tokenSelector } from "../recoil/user";

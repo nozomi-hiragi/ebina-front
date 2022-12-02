@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { Link, useNavigate } from "react-router-dom";
 import { loggedIn, tokenSelector } from "../recoil/user";
-import EbinaAPI from "../EbinaAPI";
+import { lsServer } from "../EbinaAPI";
 import { useForm } from "@mantine/form";
 import {
   Button,
@@ -137,7 +137,7 @@ const LoginCard = () => {
           const prevURL = serverURL;
           setServerURL(url);
           if (!url) return;
-          EbinaAPI.setURL(url);
+          lsServer.set(url);
           if (prevURL === "") startConditionalUI();
         }}
         error={serverError}

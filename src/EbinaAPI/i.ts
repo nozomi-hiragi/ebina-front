@@ -2,7 +2,7 @@ import {
   startAuthentication,
   startRegistration,
 } from "@simplewebauthn/browser";
-import EbinaAPI, {
+import {
   deleteEbina,
   fetchWithToken,
   getEbina,
@@ -34,10 +34,7 @@ export const loginWithPassword = (id: string, pass: string) =>
   }).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
     return res.text();
-  }).then((token) => {
-    EbinaAPI.setToken(token); // @TODO
-    return token;
-  });
+  }).then((token) => token);
 
 // WebAuthnでログイン
 export const loginWithWAOption = (result: any, sessionId: string) =>
@@ -47,16 +44,12 @@ export const loginWithWAOption = (result: any, sessionId: string) =>
   }).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
     return res.text();
-  }).then((token) => {
-    EbinaAPI.setToken(token); // @TODO
-    return token;
-  });
+  }).then((token) => token);
 
 // ログアウト
 export const logout = (token: string) =>
   postEbina("/i/logout", token).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
-    EbinaAPI.setToken(undefined); // @TODO
   });
 
 // 自分取得

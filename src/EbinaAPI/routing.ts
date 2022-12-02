@@ -1,4 +1,10 @@
-import { deleteEbina, getEbina, NginxConf, postEbina, putEbina } from ".";
+import { deleteEbina, getEbina, postEbina, putEbina } from ".";
+
+export type NginxConf = {
+  hostname: string;
+  port: number | "koujou";
+  www?: boolean;
+};
 
 // ルーター状態
 export const getRoutingStatus = (token: string) =>

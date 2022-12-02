@@ -15,13 +15,13 @@ import { useDisclosure } from "@mantine/hooks";
 import { useEffect, useState } from "react";
 import { useRecoilValue } from "recoil";
 import { Trash } from "tabler-icons-react";
-import { NginxConf } from "../../EbinaAPI";
 import {
   deleteRoute,
   getRoute,
   getRouteList,
   getRoutingStatus,
   newRoute,
+  NginxConf,
   setRoute,
   updateRouter,
 } from "../../EbinaAPI/routing";
