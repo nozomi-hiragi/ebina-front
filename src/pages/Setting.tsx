@@ -8,11 +8,20 @@ import {
   Tabs,
   TextInput,
 } from "@mantine/core";
-import EbinaAPI, { WebAuthnSetting } from "../EbinaAPI";
+import { WebAuthnSetting } from "../EbinaAPI";
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
+import {
+  getMongoDBSettings,
+  getWebAuthnSettings,
+  setMongoDBSettings,
+  setWebAuthnBSettings,
+} from "../EbinaAPI/settings";
+import { useRecoilValue } from "recoil";
+import { tokenSelector } from "../recoil/user";
 
 const WebAuthnSettings = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [disableChange, setDisableChange] = useState(true);
   const webauthnSettingsForm = useForm<WebAuthnSetting>({
     initialValues: {
@@ -29,7 +38,7 @@ const WebAuthnSettings = () => {
   });
 
   useEffect(() => {
-    EbinaAPI.getWebAuthnSettings().then((ret) => {
+    getWebAuthnSettings(authToken).then((ret) => {
       const settings = ret ??
         { ...webauthnSettingsForm.values, attestationType: "direct" };
       webauthnSettingsForm.setValues(settings);
@@ -42,7 +51,7 @@ const WebAuthnSettings = () => {
     <form
       onSubmit={webauthnSettingsForm.onSubmit(() => {
         setDisableChange(true);
-        EbinaAPI.setWebAuthnBSettings(webauthnSettingsForm.values)
+        setWebAuthnBSettings(authToken, webauthnSettingsForm.values)
           .catch((err) => console.error(err))
           .finally(() => setDisableChange(false));
       })}
@@ -97,6 +106,7 @@ const WebAuthnSettings = () => {
 };
 
 const MongoDBSettings = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [disableChange, setDisableChange] = useState(true);
 
   const mongodbSettingsForm = useForm({
@@ -109,7 +119,7 @@ const MongoDBSettings = () => {
   });
 
   useEffect(() => {
-    EbinaAPI.getMongoDBSettings().then((res) => {
+    getMongoDBSettings(authToken).then((res) => {
       mongodbSettingsForm.setValues(res);
       setDisableChange(false);
     }).catch((err) => {
@@ -122,7 +132,7 @@ const MongoDBSettings = () => {
     <form
       onSubmit={mongodbSettingsForm.onSubmit(() => {
         setDisableChange(true);
-        EbinaAPI.setMongoDBSettings(mongodbSettingsForm.values)
+        setMongoDBSettings(authToken, mongodbSettingsForm.values)
           .catch((err) => console.error(err))
           .finally(() => setDisableChange(false));
       })}
