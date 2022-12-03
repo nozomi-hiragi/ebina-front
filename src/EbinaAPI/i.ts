@@ -8,6 +8,7 @@ import {
   getEbina,
   newEbinaURL,
   postEbina,
+  postEbinaWithWA,
   putEbinaWithWA,
 } from ".";
 import { Member } from "../recoil/user";
@@ -136,6 +137,20 @@ export const updatePassword = (
   putEbinaWithWA("/i/password", token, JSON.stringify(value)).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
   });
+
+// TOTP登録要求
+export const requestTOTP = (token: string) =>
+  postEbina("/i/totp/request", token).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+    return res.text();
+  });
+
+// TOTP登録
+export const updateTOTP = (token: string, pass: string, code: string) =>
+  postEbinaWithWA("/i/totp/regist", token, JSON.stringify({ pass, code }))
+    .then((res) => {
+      if (!res.ok) throw new Error(res.statusText);
+    });
 
 // WebPushデバイス登録
 export const registWebPushDevice = (
