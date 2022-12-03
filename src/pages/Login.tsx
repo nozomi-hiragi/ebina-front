@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { Link, useNavigate } from "react-router-dom";
 import { loggedIn, tokenSelector } from "../recoil/user";
@@ -36,17 +36,20 @@ const ServerSelect = (
   { error, onChangeServerURL, ...props }: ServerSelectProps & DefaultProps,
 ) => {
   const [msgError, setMsgError] = useState(error ?? "");
-  const [history, setHistory] = useLocalStorage<string[]>({
-    key: "server-history",
-    defaultValue: [],
-  });
-  const [url, setURL] = useLocalStorage<string>({
-    key: "server-url",
-    defaultValue: "",
-  });
+  const [history, setHistory] = useLocalStorage<string[]>(
+    { key: "server-history", defaultValue: [] },
+  );
+  const [serverURL, setServerURL] = useState(lsServer.get());
+  const saveServerURL = useCallback((url: string) => {
+    setServerURL(url);
+    lsServer.set(url);
+  }, [setServerURL]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => onChangeServerURL && onChangeServerURL(url), [url]);
+  useEffect(
+    () => onChangeServerURL && onChangeServerURL(serverURL ?? ""),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [serverURL],
+  );
 
   return (
     <Select
@@ -54,21 +57,21 @@ const ServerSelect = (
       placeholder="Choose your server"
       nothingFound="No servers"
       data={history}
-      value={url}
+      value={serverURL}
       creatable
       clearable
       searchable
       getCreateLabel={(query) => `+ Add "${query}"`}
       onCreate={(query) => {
-        setHistory(history.concat([query]));
+        setHistory([query, ...history.slice(0, 2)]);
         return query;
       }}
       onChange={(query) => {
         setMsgError("");
-        if (query === null && url) {
-          setHistory(history.filter((i) => i !== url));
+        if (query && history.includes(query)) {
+          setHistory((prev) => [query, ...prev.filter((v) => v !== query)]);
         }
-        setURL(query ?? "");
+        saveServerURL(query ?? "");
       }}
       error={msgError}
       {...props}
@@ -110,7 +113,10 @@ const LoginCard = () => {
     browserSupportsWebAuthnAutofill().then((support) => {
       if (!support) return;
       console.log("Support Conditial UI");
-      getLoginOptions().then((ret) => startLoginAuth(ret));
+      getLoginOptions().then((ret) => {
+        if (ret.type === "WebAuthn") startLoginAuth(ret);
+        else console.log("No WebAuthn options");
+      });
     });
 
   const actualLoginActions = {
@@ -136,9 +142,7 @@ const LoginCard = () => {
         onChangeServerURL={(url) => {
           const prevURL = serverURL;
           setServerURL(url);
-          if (!url) return;
-          lsServer.set(url);
-          if (prevURL === "") startConditionalUI();
+          if (url && prevURL === "") startConditionalUI();
         }}
         error={serverError}
       />
