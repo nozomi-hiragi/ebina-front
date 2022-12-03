@@ -12,7 +12,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { Plus, Refresh } from "tabler-icons-react";
-import { appNameListSelector } from "../../atoms";
+import { appNameListSelector } from "../../recoil/atoms";
 
 const AppList = () => {
   const navigate = useNavigate();

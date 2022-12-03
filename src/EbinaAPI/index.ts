@@ -1,6 +1,6 @@
 import { startAuthentication } from "@simplewebauthn/browser";
 import { UnauthorizedError } from "../components/UnauthorizedErrorBoundary";
-import { LocalStorage } from "../localstorage";
+import { LocalStorage } from "../utils/localstorage";
 
 export const lsServer = new LocalStorage("server");
 export const newEbinaURL = (path: string) =>

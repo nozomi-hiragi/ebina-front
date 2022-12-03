@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { DeviceFloppy, Trash } from "tabler-icons-react";
-import { appNameListSelector } from "../../atoms";
+import { appNameListSelector } from "../../recoil/atoms";
 import { createApp, deleteApp } from "../../EbinaAPI/app/app";
 import { tokenSelector } from "../../recoil/user";
 

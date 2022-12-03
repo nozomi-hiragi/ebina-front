@@ -1,6 +1,6 @@
 import { atom, selector } from "recoil";
-import { getAppNames } from "./EbinaAPI/app/app";
-import { tokenSelector } from "./recoil/user";
+import { getAppNames } from "../EbinaAPI/app/app";
+import { tokenSelector } from "./user";
 
 const appNameListState = atom<string[]>({ key: "appNameList", default: [] });
 export const appNameListSelector = selector<string[]>({

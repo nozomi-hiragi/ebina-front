@@ -15,7 +15,7 @@ import {
   ApiTypeList,
   TypeApiMethods,
   TypeApiTypes,
-} from "../../types";
+} from "../../types/types";
 import { createPath, deleteAPI, getAPI, updateAPI } from "../../EbinaAPI/app/api";
 import { tokenSelector } from "../../recoil/user";
 import { useRecoilValue } from "recoil";
