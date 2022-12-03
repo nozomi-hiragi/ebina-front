@@ -15,10 +15,19 @@ import {
 import { useForm } from "@mantine/form";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useRecoilValue } from "recoil";
 import { PlaylistAdd, Trash } from "tabler-icons-react";
-import EbinaAPI from "../../EbinaAPI";
+import {
+  createMongoDBUser,
+  deleteMongoDBUser,
+  getCollections,
+  getDatabases,
+  getDBUsers,
+} from "../../EbinaAPI/database";
+import { tokenSelector } from "../../recoil/user";
 
 const DatabaseData = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [dbNames, setDBNames] = useState<string[]>([]);
   const [colNames, setColNames] = useState<{ [key: string]: string[] }>({});
 
@@ -26,12 +35,11 @@ const DatabaseData = () => {
     const promises: Promise<any>[] = [];
     let newDBNames: string[];
     const newColNames = colNames;
-    EbinaAPI.getDatabases().then((ret) => {
+    getDatabases(authToken).then((ret) => {
       newDBNames = ret.map((it) => {
         promises.push(
-          EbinaAPI.getCollections(it.name).then((ret) =>
-            newColNames[it.name] = ret
-          ),
+          getCollections(authToken, it.name)
+            .then((ret) => newColNames[it.name] = ret),
         );
         return it.name;
       });
@@ -86,6 +94,7 @@ type DBUser = { user: string; roles: DBRole[] };
 type DBRole = { role: string; db: string };
 
 const Users = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [users, setUsers] = useState<{ [user: string]: DBUser }>({});
   const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
   const [deleteUsername, setDeleteUsername] = useState("");
@@ -109,7 +118,7 @@ const Users = () => {
   });
 
   useEffect(() => {
-    EbinaAPI.getDBUsers()
+    getDBUsers(authToken)
       .then((ret) => {
         const users: { [name: string]: DBUser } = {};
         ret.forEach((user) => users[user.user] = user);
@@ -150,7 +159,7 @@ const Users = () => {
       >
         <form
           onSubmit={createUserForm.onSubmit((value) => {
-            EbinaAPI.createMongoDBUser(createUserForm.values).then((ret) => {
+            createMongoDBUser(authToken, createUserForm.values).then((ret) => {
               if (ret.ok) {
                 createUserForm.values = {
                   username: "",
@@ -271,7 +280,7 @@ const Users = () => {
             </Button>
             <Button
               onClick={() => {
-                EbinaAPI.deleteMongoDBUser(deleteUsername).then((res) => {
+                deleteMongoDBUser(authToken, deleteUsername).then((res) => {
                   if (res.ok) {
                     setDeleteUsername("");
                   }

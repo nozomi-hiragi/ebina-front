@@ -10,12 +10,14 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useSetRecoilState } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { DeviceFloppy, Trash } from "tabler-icons-react";
 import { appNameListSelector } from "../../atoms";
-import EbinaAPI from "../../EbinaAPI";
+import { createApp, deleteApp } from "../../EbinaAPI/app/app";
+import { tokenSelector } from "../../recoil/user";
 
 const AppsEdit = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const navigate = useNavigate();
   const setAppNameList = useSetRecoilState(appNameListSelector);
   const [appName, setAppName] = useState(useParams().appName ?? "new");
@@ -67,7 +69,7 @@ const AppsEdit = () => {
             radius="xl"
             onClick={() => {
               if (isNew) {
-                EbinaAPI.createApp(appName).then((res) => {
+                createApp(authToken, appName).then(() => {
                   setAppNameList([]);
                   navigate(-1);
                 });
@@ -88,7 +90,7 @@ const AppsEdit = () => {
           <Button onClick={() => setIsOpenDialog(false)}>Cancel</Button>
           <Button
             onClick={() => {
-              EbinaAPI.deleteApp(appName).then(() => {
+              deleteApp(authToken, appName).then(() => {
                 setAppNameList([]);
                 navigate(-1);
               }).catch((err) => console.log(err));

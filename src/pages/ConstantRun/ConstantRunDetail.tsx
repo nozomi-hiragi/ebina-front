@@ -13,10 +13,20 @@ import { useForm } from "@mantine/form";
 import { showNotification } from "@mantine/notifications";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useRecoilValue } from "recoil";
 import { Check } from "tabler-icons-react";
-import EbinaAPI, { CronItem } from "../../EbinaAPI";
+import {
+  createCron,
+  CronItem,
+  deleteCron,
+  getCron,
+  updateCron,
+} from "../../EbinaAPI/app/cron";
+import { getScriptList } from "../../EbinaAPI/app/script";
+import { tokenSelector } from "../../recoil/user";
 
 const ConstanRunDetail = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const paramCronName = useParams().cronName ?? "new";
   const isNew = paramCronName === "new";
   const [newCronName, setNewCronName] = useState<string>(paramCronName);
@@ -38,7 +48,7 @@ const ConstanRunDetail = () => {
 
   useEffect(() => {
     if (!isNew) {
-      EbinaAPI.getCron(appName, paramCronName ?? "").then((ret) => {
+      getCron(authToken, appName, paramCronName ?? "").then((ret) => {
         const args = ret.function.split(">");
         cronEditForm.setValues({
           ...ret,
@@ -48,9 +58,7 @@ const ConstanRunDetail = () => {
         setPending(false);
       });
     }
-    EbinaAPI.getScriptList(appName).then((ret) => {
-      setScriptNames(ret);
-    });
+    getScriptList(authToken, appName).then((ret) => setScriptNames(ret));
     // eslint-disable-next-line
   }, [setPending]);
 
@@ -67,16 +75,8 @@ const ConstanRunDetail = () => {
               function: `${value.fileName}>${value.funcName}`,
             };
             const p = isNew
-              ? EbinaAPI.createCron(
-                appName,
-                newCronName ?? "",
-                item,
-              )
-              : EbinaAPI.updateCron(
-                appName,
-                newCronName ?? "",
-                item,
-              );
+              ? createCron(authToken, appName, newCronName ?? "", item)
+              : updateCron(authToken, appName, newCronName ?? "", item);
             p.then(() => {
               showNotification({
                 message: "Save successful",
@@ -149,15 +149,15 @@ const ConstanRunDetail = () => {
           <Button onClick={() => setOpenDeleteModal(false)}>Cancel</Button>
           <Button
             onClick={() => {
-              EbinaAPI.deleteCron(appName, paramCronName).then(() => {
-                navigate(-1);
-              }).catch((err) =>
-                showNotification({
-                  title: "Delete failed",
-                  message: JSON.stringify(err),
-                  color: "red",
-                })
-              );
+              deleteCron(authToken, appName, paramCronName)
+                .then(() => navigate(-1))
+                .catch((err) =>
+                  showNotification({
+                    title: "Delete failed",
+                    message: JSON.stringify(err),
+                    color: "red",
+                  })
+                );
             }}
           >
             Delete

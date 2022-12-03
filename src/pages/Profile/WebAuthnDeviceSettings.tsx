@@ -10,14 +10,20 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import {
-  startAuthentication,
-  startRegistration,
-} from "@simplewebauthn/browser";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useRecoilValue } from "recoil";
 import { Settings } from "tabler-icons-react";
-import EbinaAPI from "../../EbinaAPI";
+import {
+  checkEnableWebAuthnDevice,
+  checkWebAuthnVerify,
+  deleteWebAuthnDevice,
+  disableWebAuthnDevice,
+  enableWebAuthnDevice,
+  getWebAuthnDeviceNames,
+  registWebAuthnDevice,
+} from "../../EbinaAPI/i";
+import { tokenSelector } from "../../recoil/user";
 import SettingItemCard from "./SettingItemCard";
 
 const WebAuthnDeviceSettingCards = (
@@ -26,6 +32,7 @@ const WebAuthnDeviceSettingCards = (
     setDeviceNames: (v: string[]) => void;
   },
 ) => {
+  const authToken = useRecoilValue(tokenSelector);
   const [registDeviceName, setRegistDeviceName] = useState("");
   const [deleteDeviceName, setDeleteDeviceName] = useState("");
 
@@ -36,7 +43,7 @@ const WebAuthnDeviceSettingCards = (
     const enable: string[] = [];
     Promise.all(
       deviceNames.map((name) =>
-        EbinaAPI.checkEnableWebAuthnDevice(name).then((isEnable) => {
+        checkEnableWebAuthnDevice(authToken, name).then((isEnable) => {
           if (isEnable) enable.push(name);
         })
       ),
@@ -68,15 +75,11 @@ const WebAuthnDeviceSettingCards = (
             disabled={!registDeviceName}
             onClick={() => {
               const name = registDeviceName;
-              EbinaAPI.getWebAuthnRegistOptions(name)
-                .then((res) => startRegistration(res))
-                .then((res) => EbinaAPI.sendWebAuthnRegistCredential(res))
-                .then((res) => {
-                  setRegistDeviceName("");
-                  setEnabledNames(res);
-                  setDeviceNames(deviceNames.concat(name));
-                })
-                .catch((err) => alert(err));
+              registWebAuthnDevice(authToken, name).then((res) => {
+                setRegistDeviceName("");
+                setEnabledNames(res);
+                setDeviceNames(deviceNames.concat(name));
+              }).catch((err) => alert(err));
             }}
           >
             Regist WebAuthn
@@ -99,12 +102,10 @@ const WebAuthnDeviceSettingCards = (
                 disabled={!deleteDeviceName}
                 onClick={() => {
                   const name = deleteDeviceName;
-                  EbinaAPI.deleteWebAuthnDevice(name)
-                    .then(() => {
-                      setDeleteDeviceName("");
-                      setDeviceNames(deviceNames.filter((v) => v !== name));
-                    })
-                    .catch((err) => alert(err));
+                  deleteWebAuthnDevice(authToken, name).then(() => {
+                    setDeleteDeviceName("");
+                    setDeviceNames(deviceNames.filter((v) => v !== name));
+                  }).catch((err) => alert(err));
                 }}
               >
                 Delete Device
@@ -133,12 +134,12 @@ const WebAuthnDeviceSettingCards = (
                 let namesResult = new Set(enabled);
                 Promise.all([
                   ...toEnableDevices.map((name) =>
-                    EbinaAPI.enableWebAuthnDevice(name)
+                    enableWebAuthnDevice(authToken, name)
                       .then(() => namesResult.add(name))
                       .catch(() => {})
                   ),
                   ...toDisableDevices.map((name) =>
-                    EbinaAPI.disableWebAuthnDevice(name)
+                    disableWebAuthnDevice(authToken, name)
                       .then(() => namesResult.delete(name))
                       .catch(() => {})
                   ),
@@ -175,13 +176,9 @@ const WebAuthnDeviceSettingCards = (
                   const selected = selectedNames
                     .filter((v) => deviceNames.includes(v));
                   setSelectedNames(selected);
-                  EbinaAPI.getWebAuthnVerifyOptions(selected)
-                    .then((res) => startAuthentication(res))
-                    .then((res) => EbinaAPI.sendWebAuthnVerifyCredential(res))
+                  checkWebAuthnVerify(authToken, selected)
                     .then(() => alert("Verified!"))
-                    .catch((err) => {
-                      alert(err);
-                    });
+                    .catch((err) => alert(err));
                 }}
               >
                 Check
@@ -195,10 +192,11 @@ const WebAuthnDeviceSettingCards = (
 };
 
 const WebAuthnDeviceSettings = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [deviceNames, setDevieNames] = useState<string[] | undefined>();
 
   useEffect(() => {
-    EbinaAPI.getWebAuthnDeviceNames()
+    getWebAuthnDeviceNames(authToken)
       .then((names) => setDevieNames(names))
       .catch((err) => {
         alert(err);

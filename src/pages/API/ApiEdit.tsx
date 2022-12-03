@@ -10,13 +10,16 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import EbinaAPI from "../../EbinaAPI";
 import {
   ApiMethodList,
   ApiTypeList,
   TypeApiMethods,
   TypeApiTypes,
 } from "../../types";
+import { createPath, deleteAPI, getAPI, updateAPI } from "../../EbinaAPI/app/api";
+import { tokenSelector } from "../../recoil/user";
+import { useRecoilValue } from "recoil";
+import { getScriptList } from "../../EbinaAPI/app/script";
 
 function useQuery() {
   const { search } = useLocation();
@@ -24,6 +27,7 @@ function useQuery() {
 }
 
 const ApiEdit = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [jsList, setJsList] = useState<string[]>([]);
   const appName = useParams().appName ?? "";
@@ -33,13 +37,13 @@ const ApiEdit = () => {
   const queryPath = query.get("path");
 
   useEffect(() => {
-    EbinaAPI.getScriptList(appName).then((ret) => setJsList(ret));
+    getScriptList(authToken, appName).then((ret) => setJsList(ret));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (queryPath) {
-      EbinaAPI.getAPI(appName, queryPath).then((api) => {
+      getAPI(authToken, appName, queryPath).then((api) => {
         switch (api.type) {
           case "JavaScript":
             const args = api.value.split(">");
@@ -79,11 +83,11 @@ const ApiEdit = () => {
               break;
           }
           if (queryPath) {
-            EbinaAPI.updateAPI(appName, values.path, values).then((res) => {
+            updateAPI(authToken, appName, values.path, values).then(() => {
               navigate(-1);
             });
           } else {
-            EbinaAPI.createPath(appName, values.path, values).then((res) => {
+            createPath(authToken, appName, values.path, values).then(() => {
               navigate(-1);
             });
           }
@@ -162,7 +166,7 @@ const ApiEdit = () => {
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button
             onClick={() => {
-              EbinaAPI.deleteAPI(appName, queryPath!).then(() => {
+              deleteAPI(authToken, appName, queryPath!).then(() => {
                 setDeleteDialogOpen(false);
                 navigate(-1);
               }).catch((err) => {

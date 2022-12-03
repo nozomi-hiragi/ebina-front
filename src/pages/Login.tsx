@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { Link, useNavigate } from "react-router-dom";
 import { loggedIn, tokenSelector } from "../recoil/user";
-import EbinaAPI from "../EbinaAPI";
+import { lsServer } from "../EbinaAPI";
 import { useForm } from "@mantine/form";
 import {
   Button,
@@ -22,6 +22,11 @@ import {
   startAuthentication,
 } from "@simplewebauthn/browser";
 import { useLocalStorage } from "@mantine/hooks";
+import {
+  getLoginOptions,
+  loginWithPassword,
+  loginWithWAOption,
+} from "../EbinaAPI/i";
 
 type ServerSelectProps = {
   error?: string;
@@ -91,21 +96,21 @@ const LoginCard = () => {
   });
 
   const startLoginAuth = (result: any, id?: string) =>
-    startAuthentication(result.options, id === undefined)
-      .then((ret) => {
-        // ResidentKey非対応対応
-        if (ret.response.userHandle === undefined) {
-          if (id === undefined) throw new Error("id required");
-          ret.response.userHandle = id;
-        }
-        return EbinaAPI.loginWithWAOption(ret, result.sessionId);
-      }).then((token) => setAuthToken(token));
+    startAuthentication(result.options, id === undefined).then((ret) => {
+      // ResidentKey非対応対応
+      if (ret.response.userHandle === undefined) {
+        if (id === undefined) throw new Error("id required");
+        ret.response.userHandle = id;
+      }
+      return ret;
+    }).then((ret) => loginWithWAOption(ret, result.sessionId))
+      .then((token) => setAuthToken(token));
 
   const startConditionalUI = () =>
     browserSupportsWebAuthnAutofill().then((support) => {
       if (!support) return;
       console.log("Support Conditial UI");
-      EbinaAPI.getLoginOptions().then((ret) => startLoginAuth(ret));
+      getLoginOptions().then((ret) => startLoginAuth(ret));
     });
 
   const actualLoginActions = {
@@ -115,11 +120,11 @@ const LoginCard = () => {
 
   const submitActions = {
     "WebAuthn": (values: LoginFormValues) =>
-      EbinaAPI.getLoginOptions(values.id)
+      getLoginOptions(values.id)
         .then((ret) => actualLoginActions[ret.type](ret, values.id))
         .catch((err) => console.log(err.message)),
     "Password": (values: LoginFormValues) =>
-      EbinaAPI.loginWithPassword(values.id, values.pass)
+      loginWithPassword(values.id, values.pass)
         .then((token) => setAuthToken(token)),
   };
 
@@ -132,7 +137,7 @@ const LoginCard = () => {
           const prevURL = serverURL;
           setServerURL(url);
           if (!url) return;
-          EbinaAPI.setURL(url);
+          lsServer.set(url);
           if (prevURL === "") startConditionalUI();
         }}
         error={serverError}

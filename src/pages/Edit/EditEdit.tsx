@@ -13,11 +13,19 @@ import { useColorScheme, useLocalStorage } from "@mantine/hooks";
 import { DeviceFloppy, Refresh, Trash } from "tabler-icons-react";
 import Editor from "@monaco-editor/react";
 import Monaco from "monaco-editor/esm/vs/editor/editor.api";
-import EbinaAPI from "../../EbinaAPI";
+import {
+  createScript,
+  deleteScript,
+  getScript,
+  updateScript,
+} from "../../EbinaAPI/app/script";
+import { tokenSelector } from "../../recoil/user";
+import { useRecoilValue } from "recoil";
 
 let isGettingJs = false;
 
 const EditEdit = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [colorScheme] = useLocalStorage<ColorScheme>({
     key: "color-scheme",
     defaultValue: useColorScheme(),
@@ -42,7 +50,7 @@ const EditEdit = () => {
   useEffect(() => {
     if (isNeedJs && !isGettingJs) {
       isGettingJs = true;
-      EbinaAPI.getScript(appName, filename).then((res) => {
+      getScript(authToken, appName, filename).then((res) => {
         setData(res);
         if (!localStorage.getItem(lsKey)) editor?.setValue(res);
         isGettingJs = false;
@@ -63,8 +71,8 @@ const EditEdit = () => {
   useEffect(() => {
     if (save && filename) {
       const result = isNew
-        ? EbinaAPI.createScript(appName, filename, editor!.getValue())
-        : EbinaAPI.updateScript(appName, filename, editor!.getValue());
+        ? createScript(authToken, appName, filename, editor!.getValue())
+        : updateScript(authToken, appName, filename, editor!.getValue());
       result.then(() => {
         setIsNew(false);
         setData(editor!.getValue());
@@ -98,9 +106,8 @@ const EditEdit = () => {
                   size="xl"
                   radius="xl"
                   onClick={() =>
-                    EbinaAPI.deleteScript(appName, filename).then(() =>
-                      navigate(-1)
-                    )}
+                    deleteScript(authToken, appName, filename)
+                      .then(() => navigate(-1))}
                 >
                   <Trash />
                 </ActionIcon>

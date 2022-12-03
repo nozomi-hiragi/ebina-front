@@ -9,11 +9,10 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useLocalStorage } from "@mantine/hooks";
-import { startRegistration } from "@simplewebauthn/browser";
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import EbinaHeader from "../components/EbinaHeader";
-import { myFetch } from "../EbinaAPI";
+import { registTempMember } from "../EbinaAPI/member";
 
 const TOKEN_LEN = 32;
 
@@ -54,19 +53,7 @@ const RegistCard = () => {
       <Title order={1} mb="sm">Regist</Title>
       <form
         onSubmit={registForm.onSubmit(({ server, ...values }) => {
-          myFetch(`${server}/ebina/member/regist/option`, {
-            method: "POST",
-            body: JSON.stringify(values),
-          }).then(async (res) => {
-            if (!res.ok) throw new Error(res.status.toString());
-            return startRegistration(await res.json());
-          }).then((result) =>
-            myFetch(`${server}/ebina/member/regist/verify`, {
-              method: "POST",
-              body: JSON.stringify({ id: values.id, result }),
-            })
-          ).then((res) => {
-            if (!res.ok) throw new Error(res.status.toString());
+          registTempMember(server, values).then(() => {
             if (!history.includes(server)) setHistory([...history, server]);
             setURL(server);
             registForm.reset();

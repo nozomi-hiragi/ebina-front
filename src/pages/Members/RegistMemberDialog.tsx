@@ -19,7 +19,7 @@ import { useRecoilValue } from "recoil";
 import QRCode from "qrcode";
 import { tokenSelector } from "../../recoil/user";
 import { Check, Copy } from "tabler-icons-react";
-import { myFetch } from "../../EbinaAPI";
+import { requestTempMember } from "../../EbinaAPI/member";
 
 const MyCopyButton = (prop: { value: string }) => (
   <CopyButton value={prop.value} timeout={2000}>
@@ -92,19 +92,13 @@ const RegistMemberDialog = (props: Omit<ModalProps, "title">) => {
             onSubmit={requestRegistForm.onSubmit((values) => {
               const server = values.server ?? url;
               const front = values.front ?? frontBase;
-              myFetch(`${url}/ebina/member/regist/request`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${authToken}` },
-                body: JSON.stringify({ ...values, server, front }),
-              }).then((res) => {
-                if (!res.ok) throw new Error(res.status.toString());
-                return res.json();
-              }).then((ret) => {
+              requestTempMember(
+                authToken,
+                { ...values, server, front },
+              ).then((ret) => {
                 if (ret.url) setRegistURL(ret.url);
                 setToken(ret.token);
-              }).catch((err) => {
-                alert(err);
-              });
+              }).catch((err) => alert(err));
             })}
           >
             <TextInput

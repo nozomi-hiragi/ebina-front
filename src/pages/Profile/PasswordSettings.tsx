@@ -1,10 +1,14 @@
 import { Button, Group, PasswordInput, Stack, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { startAuthentication } from "@simplewebauthn/browser";
-import EbinaAPI from "../../EbinaAPI";
+import { showNotification } from "@mantine/notifications";
+import { useRecoilValue } from "recoil";
+import { Check } from "tabler-icons-react";
+import { updatePassword } from "../../EbinaAPI/i";
+import { tokenSelector } from "../../recoil/user";
 import SettingItemCard from "./SettingItemCard";
 
 const PasswordSettings = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const passwordForm = useForm({
     initialValues: {
       current: "",
@@ -21,35 +25,17 @@ const PasswordSettings = () => {
       <SettingItemCard title="Change Password">
         <form
           onSubmit={passwordForm.onSubmit((values) => {
-            EbinaAPI.updatePassword(values).then((ret) => {
-              if (ret.ok) {
-                if (ret.options) {
-                  startAuthentication(ret.options).then((ret) => {
-                    EbinaAPI.updatePassword(ret).then((ret) => {
-                      if (ret.ok) {
-                        alert("Password change success");
-                        passwordForm.setValues({ current: "", new: "" });
-                      } else {
-                        if (ret.status === 404) {
-                          passwordForm.setFieldError(
-                            "current",
-                            "Wrong Password",
-                          );
-                        } else {
-                          alert("Auth failed");
-                        }
-                      }
-                    });
-                  });
-                } else {
-                  alert("Password change success");
-                  passwordForm.setValues({ current: "", new: "" });
-                }
-              } else {
-                const message = ret.status === 401 ? "Wrong Password" : "error";
-                passwordForm.setFieldError("current", message);
-              }
-            });
+            updatePassword(authToken, values).then(() => {
+              showNotification({
+                title: "Password change success",
+                message: "Password chanded",
+                icon: <Check />,
+                color: "green",
+              });
+              passwordForm.setValues({ current: "", new: "" });
+            }).catch(() =>
+              passwordForm.setFieldError("current", "Wrong Password")
+            );
           })}
         >
           <Stack mt="md">
