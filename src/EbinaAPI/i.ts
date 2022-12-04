@@ -134,9 +134,18 @@ export const deleteWebAuthnDevice = async (
 // パスワード更新
 export const updatePassword = (
   token: string,
-  value: { current: string; new: string },
+  value: { current: string; to: string },
 ) =>
   putEbinaWithWA("/i/password", token, JSON.stringify(value)).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+  });
+
+// パスワードリセット
+export const resetPassword = (
+  token: string,
+  value: { code: string; to: string },
+) =>
+  postEbinaWithWA("/i/password", token, JSON.stringify(value)).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
   });
 
