@@ -70,7 +70,11 @@ const OneTimePass = () => {
                   autoComplete="current-password"
                   {...registForm.getInputProps("pass")}
                 />
-                <TOTPCodeInput {...registForm.getInputProps("code")} />
+                <TOTPCodeInput
+                  mt="sm"
+                  required
+                  {...registForm.getInputProps("code")}
+                />
                 <Button mt="xl" fullWidth type="submit">Regist</Button>
               </form>
             </Stack>
