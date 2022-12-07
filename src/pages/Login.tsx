@@ -5,6 +5,7 @@ import { loggedIn, tokenSelector } from "../recoil/user";
 import { lsServer } from "../EbinaAPI";
 import { useForm } from "@mantine/form";
 import {
+  Anchor,
   Button,
   Center,
   DefaultProps,
@@ -173,10 +174,19 @@ const LoginCard = () => {
             {...loginForm.getInputProps("pass")}
           />
         )}
+        <Group>
+          <Anchor
+            my="xs"
+            size="sm"
+            component={Link}
+            to={`/webauthn?i=${loginForm.values.id}`}
+          >
+            Add WebAuthn device
+          </Anchor>
+        </Group>
         <Group grow>
           {loginMode === "Password" && (
             <Button
-              mt="xl"
               disabled={!serverURL}
               onClick={() => setLoginMode("WebAuthn")}
             >
@@ -184,7 +194,6 @@ const LoginCard = () => {
             </Button>
           )}
           <Button
-            mt="xl"
             disabled={!serverURL}
             fullWidth={loginMode === "WebAuthn"}
             type="submit"

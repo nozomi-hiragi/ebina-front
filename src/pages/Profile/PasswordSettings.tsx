@@ -80,7 +80,6 @@ const PasswordSettings = () => {
         <SettingItemCard title="Reset Password">
           <form
             onSubmit={passResetForm.onSubmit((values) => {
-              console.log(values);
               resetPassword(authToken, {
                 ...values,
                 code: String(values.code).padStart(6, "0"),

@@ -1,4 +1,7 @@
-import { startRegistration } from "@simplewebauthn/browser";
+import {
+  startAuthentication,
+  startRegistration,
+} from "@simplewebauthn/browser";
 import {
   deleteEbina,
   getEbina,
@@ -58,26 +61,35 @@ export const getMe = (token: string) =>
 
 // WebAuthnデバイス登録
 export const registWebAuthnDevice = async (
-  token: string,
+  token: { type: "JWT" | "ID"; value: string },
   values: { deviceName: string; pass: string; code: string },
-) =>
-  await postEbina("/i/webauthn/regist", token, JSON.stringify(values))
-    .then((res) => {
-      if (res.ok) return res.json();
-      switch (res.status) {
-        case 403:
-          throw new Error("Auth failed");
-        case 405:
-          throw new Error("Auth feature was not implemented");
-        default:
-          throw new Error(res.statusText);
-      }
-    }).then((options) => startRegistration(options)).then((result) =>
-      postEbina("/i/webauthn/regist", token, JSON.stringify(result))
-    ).then((res) => {
-      if (!res.ok) throw new Error(res.statusText);
-      return res.json();
-    }).then((json) => json as string[]);
+) => {
+  const headers: HeadersInit = token.type === "JWT"
+    ? { Authorization: `Bearer ${token.value}` }
+    : { id: token.value };
+  return await fetch(
+    newEbinaURL("/i/webauthn/regist"),
+    { method: "POST", headers, body: JSON.stringify(values) },
+  ).then((res) => {
+    if (res.ok) return res.json();
+    switch (res.status) {
+      case 403:
+        throw new Error("Auth failed");
+      case 405:
+        throw new Error("Auth feature was not implemented");
+      default:
+        throw new Error(res.statusText);
+    }
+  }).then((options) => startRegistration(options)).then((result) =>
+    fetch(
+      newEbinaURL("/i/webauthn/regist"),
+      { method: "POST", headers, body: JSON.stringify(result) },
+    )
+  ).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+    return res.json();
+  }).then((json) => json as string[]);
+};
 
 // WebAuthn認証確認
 export const checkWebAuthnVerify = (token: string, deviceNames?: string[]) =>
@@ -157,12 +169,21 @@ export const requestTOTP = (token: string) =>
   });
 
 // TOTP登録
-export const updateTOTP = (token: string, pass: string, code: string) =>
-  postEbinaWithWA("/i/totp/regist", token, JSON.stringify({ pass, code }))
-    .then((res) => {
-      if (!res.ok) throw new Error(res.statusText);
-    });
-
+export const updateTOTP = async (token: string, pass: string, code: string) => {
+  const res = await postEbina(
+    "/i/totp/regist",
+    token,
+    JSON.stringify({ pass, code }),
+  );
+  if (!res.ok) throw new Error(res.statusText);
+  const body = await res.json();
+  if (res.status !== 202) return body;
+  return startAuthentication(body).then((result) =>
+    postEbina("/i/totp/regist", token, JSON.stringify(result))
+  ).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+  });
+};
 // WebPushデバイス登録
 export const registWebPushDevice = (
   token: string,

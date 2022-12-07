@@ -65,8 +65,7 @@ const RegistDeviceCard = (
     <SettingItemCard title="Regist Device">
       <form
         onSubmit={registForm.onSubmit((values) => {
-          console.log(values);
-          registWebAuthnDevice(authToken, {
+          registWebAuthnDevice({ type: "JWT", value: authToken }, {
             ...values,
             code: String(values.code).padStart(6, "0"),
           }).then((res) => {
@@ -231,7 +230,6 @@ const WebAuthnDeviceSettingCards = (
               label="Select enable devices"
               description="Enabled devices are available for login. When all devices are disabled, only first position device available for login."
               onChange={async (chosedNames) => {
-                console.log(chosedNames);
                 const chosed = chosedNames.filter((v) =>
                   deviceNames.includes(v)
                 );
