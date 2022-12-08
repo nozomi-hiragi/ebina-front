@@ -1,5 +1,5 @@
 import { deleteEbina, getEbina, postEbina, putEbina } from "..";
-import { TypeApi } from "../../types";
+import { TypeApi } from "../../types/types";
 
 // API起動状態取得
 export const getAPIStatus = (token: string, appName: string) =>

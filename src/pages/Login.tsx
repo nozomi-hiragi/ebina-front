@@ -1,32 +1,27 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import { Link, useNavigate } from "react-router-dom";
 import { loggedIn, tokenSelector } from "../recoil/user";
 import { lsServer } from "../EbinaAPI";
 import { useForm } from "@mantine/form";
 import {
+  Anchor,
   Button,
   Center,
   DefaultProps,
   Group,
   Paper,
-  PasswordInput,
   Select,
   Text,
   TextInput,
   Title,
   useMantineColorScheme,
 } from "@mantine/core";
-import {
-  browserSupportsWebAuthnAutofill,
-  startAuthentication,
-} from "@simplewebauthn/browser";
+import { browserSupportsWebAuthnAutofill } from "@simplewebauthn/browser";
 import { useLocalStorage } from "@mantine/hooks";
-import {
-  getLoginOptions,
-  loginWithPassword,
-  loginWithWAOption,
-} from "../EbinaAPI/i";
+import { login } from "../EbinaAPI/i";
+import { showNotification } from "@mantine/notifications";
+import { X } from "tabler-icons-react";
 
 type ServerSelectProps = {
   error?: string;
@@ -36,17 +31,19 @@ const ServerSelect = (
   { error, onChangeServerURL, ...props }: ServerSelectProps & DefaultProps,
 ) => {
   const [msgError, setMsgError] = useState(error ?? "");
-  const [history, setHistory] = useLocalStorage<string[]>({
-    key: "server-history",
-    defaultValue: [],
-  });
-  const [url, setURL] = useLocalStorage<string>({
-    key: "server-url",
-    defaultValue: "",
-  });
+  const [history, setHistory] = useLocalStorage<string[]>(
+    { key: "server-history", defaultValue: [] },
+  );
+  const [serverURL, setServerURL] = useState(lsServer.get());
+  const saveServerURL = useCallback((url: string) => {
+    setServerURL(url);
+    lsServer.set(url);
+  }, [setServerURL]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => onChangeServerURL && onChangeServerURL(url), [url]);
+  useEffect(
+    () => onChangeServerURL && onChangeServerURL(serverURL ?? ""),
+    [serverURL, onChangeServerURL],
+  );
 
   return (
     <Select
@@ -54,21 +51,21 @@ const ServerSelect = (
       placeholder="Choose your server"
       nothingFound="No servers"
       data={history}
-      value={url}
+      value={serverURL}
       creatable
       clearable
       searchable
       getCreateLabel={(query) => `+ Add "${query}"`}
       onCreate={(query) => {
-        setHistory(history.concat([query]));
+        setHistory((prev) => [query, ...prev.slice(0, 2)]);
         return query;
       }}
       onChange={(query) => {
         setMsgError("");
-        if (query === null && url) {
-          setHistory(history.filter((i) => i !== url));
+        if (query && history.includes(query)) {
+          setHistory((prev) => [query, ...prev.filter((v) => v !== query)]);
         }
-        setURL(query ?? "");
+        saveServerURL(query ?? "");
       }}
       error={msgError}
       {...props}
@@ -78,55 +75,17 @@ const ServerSelect = (
 
 const LoginCard = () => {
   const setAuthToken = useSetRecoilState(tokenSelector);
-  const [loginMode, setLoginMode] = useState<
-    "Password" | "WebAuthn"
-  >("WebAuthn");
-  const [serverError, setServerError] = useState("");
   const [serverURL, setServerURL] = useState("");
 
-  type LoginFormValues = {
-    id: string;
-    name: string;
-    pass: string;
-  };
+  const loginForm = useForm({ initialValues: { id: "" }, validate: {} });
 
-  const loginForm = useForm<LoginFormValues>({
-    initialValues: { id: "", name: "", pass: "" },
-    validate: {},
-  });
-
-  const startLoginAuth = (result: any, id?: string) =>
-    startAuthentication(result.options, id === undefined).then((ret) => {
-      // ResidentKey非対応対応
-      if (ret.response.userHandle === undefined) {
-        if (id === undefined) throw new Error("id required");
-        ret.response.userHandle = id;
-      }
-      return ret;
-    }).then((ret) => loginWithWAOption(ret, result.sessionId))
-      .then((token) => setAuthToken(token));
+  const startLoginAuth = (id?: string) => login(id).then(setAuthToken);
 
   const startConditionalUI = () =>
     browserSupportsWebAuthnAutofill().then((support) => {
-      if (!support) return;
-      console.log("Support Conditial UI");
-      getLoginOptions().then((ret) => startLoginAuth(ret));
-    });
-
-  const actualLoginActions = {
-    "WebAuthn": (result: any, id: string) => startLoginAuth(result, id),
-    "Password": () => setLoginMode("Password"),
-  };
-
-  const submitActions = {
-    "WebAuthn": (values: LoginFormValues) =>
-      getLoginOptions(values.id)
-        .then((ret) => actualLoginActions[ret.type](ret, values.id))
-        .catch((err) => console.log(err.message)),
-    "Password": (values: LoginFormValues) =>
-      loginWithPassword(values.id, values.pass)
-        .then((token) => setAuthToken(token)),
-  };
+      if (!support) throw new Error("Conditial UI Not Support");
+    }).then(() => startLoginAuth())
+      .catch((err: Error) => console.log(err.message));
 
   return (
     <Paper p={30} shadow="md" withBorder sx={{ width: 350 }}>
@@ -136,17 +95,21 @@ const LoginCard = () => {
         onChangeServerURL={(url) => {
           const prevURL = serverURL;
           setServerURL(url);
-          if (!url) return;
-          lsServer.set(url);
-          if (prevURL === "") startConditionalUI();
+          console.log(prevURL + "l" + url);
+          if (url && prevURL === "") startConditionalUI();
         }}
-        error={serverError}
       />
       <form
-        onSubmit={loginForm.onSubmit((values) => {
-          if (serverURL) submitActions[loginMode](values);
-          else setServerError("Input server url");
-        })}
+        onSubmit={loginForm.onSubmit((values) =>
+          startLoginAuth(values.id).catch((err) =>
+            showNotification({
+              title: "Login Error",
+              message: err.message,
+              color: "red",
+              icon: <X />,
+            })
+          )
+        )}
       >
         <TextInput
           mt="sm"
@@ -156,38 +119,17 @@ const LoginCard = () => {
           disabled={!serverURL}
           {...loginForm.getInputProps("id")}
         />
-        {loginMode !== "WebAuthn" && (
-          <PasswordInput
-            mt="sm"
-            id="pass"
-            label="Password"
-            required
-            autoComplete={loginMode === "Password"
-              ? "current-password"
-              : "new-password"}
-            disabled={!serverURL}
-            {...loginForm.getInputProps("pass")}
-          />
-        )}
-        <Group grow>
-          {loginMode === "Password" && (
-            <Button
-              mt="xl"
-              disabled={!serverURL}
-              onClick={() => setLoginMode("WebAuthn")}
-            >
-              Use WebAuthn
-            </Button>
-          )}
-          <Button
-            mt="xl"
-            disabled={!serverURL}
-            fullWidth={loginMode === "WebAuthn"}
-            type="submit"
+        <Group>
+          <Anchor
+            my="xs"
+            size="sm"
+            component={Link}
+            to={`/webauthn?i=${loginForm.values.id}`}
           >
-            Login
-          </Button>
+            Add WebAuthn device
+          </Anchor>
         </Group>
+        <Button disabled={!serverURL} fullWidth type="submit">Login</Button>
       </form>
     </Paper>
   );
@@ -201,8 +143,7 @@ const Login = () => {
 
   useEffect(() => {
     if (isLoggedIn) navigate("/dashboard");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn]);
+  }, [isLoggedIn, navigate]);
 
   return (
     <Center sx={{ height: "100vh" }}>

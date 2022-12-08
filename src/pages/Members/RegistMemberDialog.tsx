@@ -12,7 +12,6 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useLocalStorage } from "@mantine/hooks";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useRecoilValue } from "recoil";
@@ -20,6 +19,7 @@ import QRCode from "qrcode";
 import { tokenSelector } from "../../recoil/user";
 import { Check, Copy } from "tabler-icons-react";
 import { requestTempMember } from "../../EbinaAPI/member";
+import { lsServer } from "../../EbinaAPI";
 
 const MyCopyButton = (prop: { value: string }) => (
   <CopyButton value={prop.value} timeout={2000}>
@@ -36,9 +36,7 @@ const MyCopyButton = (prop: { value: string }) => (
 const RegistMemberDialog = (props: Omit<ModalProps, "title">) => {
   const authToken = useRecoilValue(tokenSelector);
   const location = useLocation();
-  const [url] = useLocalStorage<string>(
-    { key: "server-url", defaultValue: "" },
-  );
+  const serverURL = lsServer.get();
   const frontBase = useMemo(
     () => window.location.href.replace(location.pathname, ""),
     // eslint-disable-next-line
@@ -90,7 +88,7 @@ const RegistMemberDialog = (props: Omit<ModalProps, "title">) => {
         : (
           <form
             onSubmit={requestRegistForm.onSubmit((values) => {
-              const server = values.server ?? url;
+              const server = values.server ?? serverURL;
               const front = values.front ?? frontBase;
               requestTempMember(
                 authToken,
@@ -104,7 +102,7 @@ const RegistMemberDialog = (props: Omit<ModalProps, "title">) => {
             <TextInput
               mb="sm"
               label="Server"
-              placeholder={url}
+              placeholder={serverURL}
               {...requestRegistForm.getInputProps("server")}
             />
             <TextInput

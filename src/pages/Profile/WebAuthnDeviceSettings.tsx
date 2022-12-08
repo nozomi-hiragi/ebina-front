@@ -1,7 +1,10 @@
 import {
   Button,
   Checkbox,
+  DefaultProps,
   Group,
+  PasswordInput,
+  SegmentedControl,
   Select,
   SimpleGrid,
   Stack,
@@ -10,10 +13,13 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { showNotification } from "@mantine/notifications";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useRecoilValue } from "recoil";
-import { Settings } from "tabler-icons-react";
+import { Check, Settings, Trash, TrashX, X } from "tabler-icons-react";
+import TOTPCodeInput from "../../components/TOTPCodeInput";
 import {
   checkEnableWebAuthnDevice,
   checkWebAuthnVerify,
@@ -26,6 +32,149 @@ import {
 import { tokenSelector } from "../../recoil/user";
 import SettingItemCard from "./SettingItemCard";
 
+const PasswordTOTPInput = (
+  { passwordInputProps, totpInputProps, ...props }:
+    & DefaultProps
+    & { passwordInputProps: any; totpInputProps: any },
+) => {
+  return (
+    <Group grow position="apart" {...props}>
+      <PasswordInput
+        required
+        label="Password"
+        placeholder="1qaz2wsx"
+        autoComplete="current-password"
+        {...passwordInputProps}
+      />
+      <TOTPCodeInput required placeholder="012345" {...totpInputProps} />
+    </Group>
+  );
+};
+
+const RegistDeviceCard = (
+  { onSuccess }: {
+    onSuccess?: (deviceName: string, enabledDeviceNames: string[]) => void;
+  },
+) => {
+  const authToken = useRecoilValue(tokenSelector);
+  const registForm = useForm<
+    { deviceName: string; pass: string; code?: number }
+  >({ initialValues: { deviceName: "", pass: "" }, validate: {} });
+
+  return (
+    <SettingItemCard title="Regist Device">
+      <form
+        onSubmit={registForm.onSubmit((values) => {
+          registWebAuthnDevice({ type: "JWT", value: authToken }, {
+            ...values,
+            code: String(values.code).padStart(6, "0"),
+          }).then((res) => {
+            registForm.reset();
+            onSuccess && onSuccess(values.deviceName, res);
+            showNotification({
+              title: "Regist Device Success",
+              message: "Device registed",
+              color: "green",
+              icon: <Check />,
+            });
+          }).catch((err: Error) =>
+            showNotification({
+              title: "Regist Device Failed",
+              message: err.message,
+              color: "red",
+              icon: <X />,
+            })
+          );
+        })}
+      >
+        <TextInput
+          required
+          label="Device Name"
+          placeholder="Device Name"
+          {...registForm.getInputProps("deviceName")}
+        />
+        <PasswordTOTPInput
+          mt="xs"
+          passwordInputProps={registForm.getInputProps("pass")}
+          totpInputProps={registForm.getInputProps("code")}
+        />
+        <Button mt="xl" fullWidth type="submit">Regist WebAuthn</Button>
+      </form>
+    </SettingItemCard>
+  );
+};
+
+const DeleteDeviceCard = ({ deviceNames, onSuccess }: {
+  deviceNames: string[];
+  onSuccess?: (deviceName: string) => void;
+}) => {
+  const authToken = useRecoilValue(tokenSelector);
+  const deleteForm = useForm<{
+    mode: "WebAuthn" | "Password";
+    deviceName: string;
+    pass: string;
+    code?: number;
+  }>({
+    initialValues: { mode: "WebAuthn", deviceName: "", pass: "" },
+    validate: { deviceName: (v) => v ? null : "Choose device" },
+  });
+  return (
+    <SettingItemCard title="Delete Device">
+      <form
+        onSubmit={deleteForm.onSubmit(({ mode, deviceName, ...values }) => {
+          deleteWebAuthnDevice(authToken, deviceName, mode, {
+            ...values,
+            code: String(values.code).padStart(6, "0"),
+          }).then(() => {
+            deleteForm.reset();
+            onSuccess && onSuccess(deviceName);
+            showNotification({
+              title: "Delete Device Success",
+              message: "Device removed",
+              color: "green",
+              icon: <Trash />,
+            });
+          }).catch((err: Error) =>
+            showNotification({
+              title: "Delete Device Failed",
+              message: err.message,
+              color: "red",
+              icon: <TrashX />,
+            })
+          );
+        })}
+      >
+        <Select
+          required
+          mb="sm"
+          label="Devie"
+          placeholder="Choose a device to delete"
+          data={deviceNames}
+          {...deleteForm.getInputProps("deviceName")}
+        />
+        <SegmentedControl
+          fullWidth
+          color="orange"
+          data={[
+            { label: "WebAuthn", value: "WebAuthn" },
+            { label: "Password & Code", value: "Password" },
+          ]}
+          {...deleteForm.getInputProps("mode")}
+        />
+        {deleteForm.values.mode === "Password" && (
+          <PasswordTOTPInput
+            passwordInputProps={deleteForm.getInputProps("pass")}
+            totpInputProps={deleteForm.getInputProps("code")}
+          />
+        )}
+        <Group position="right" mt="lg">
+          <Button type="submit">Delete Device</Button>
+        </Group>
+      </form>
+    </SettingItemCard>
+  );
+};
+
 const WebAuthnDeviceSettingCards = (
   { deviceNames, setDeviceNames }: {
     deviceNames: string[];
@@ -33,8 +182,6 @@ const WebAuthnDeviceSettingCards = (
   },
 ) => {
   const authToken = useRecoilValue(tokenSelector);
-  const [registDeviceName, setRegistDeviceName] = useState("");
-  const [deleteDeviceName, setDeleteDeviceName] = useState("");
 
   const [enabledNames, setEnabledNames] = useState<string[]>([]);
   const [selectedNames, setSelectedNames] = useState<string[]>([]);
@@ -63,63 +210,26 @@ const WebAuthnDeviceSettingCards = (
         { maxWidth: 630, cols: 1, spacing: "sm", verticalSpacing: "md" },
       ]}
     >
-      <SettingItemCard title="Regist Device">
-        <TextInput
-          placeholder="Device Name"
-          label="Device Name"
-          value={registDeviceName}
-          onChange={(e) => setRegistDeviceName(e.target.value)}
-        />
-        <Group position="right" mt="xs">
-          <Button
-            disabled={!registDeviceName}
-            onClick={() => {
-              const name = registDeviceName;
-              registWebAuthnDevice(authToken, name).then((res) => {
-                setRegistDeviceName("");
-                setEnabledNames(res);
-                setDeviceNames(deviceNames.concat(name));
-              }).catch((err) => alert(err));
-            }}
-          >
-            Regist WebAuthn
-          </Button>
-        </Group>
-      </SettingItemCard>
+      <RegistDeviceCard
+        onSuccess={(deviceName, enabledDeviceNames) => {
+          setEnabledNames(enabledDeviceNames);
+          setDeviceNames(deviceNames.concat(deviceName));
+        }}
+      />
 
       {deviceNames.length !== 0 && (
         <>
-          <SettingItemCard title="Delete Device">
-            <Select
-              label="Devie"
-              placeholder="Choose a device to delete"
-              value={deleteDeviceName}
-              data={deviceNames}
-              onChange={(name) => setDeleteDeviceName(name ?? "")}
-            />
-            <Group position="right" mt="xs">
-              <Button
-                disabled={!deleteDeviceName}
-                onClick={() => {
-                  const name = deleteDeviceName;
-                  deleteWebAuthnDevice(authToken, name).then(() => {
-                    setDeleteDeviceName("");
-                    setDeviceNames(deviceNames.filter((v) => v !== name));
-                  }).catch((err) => alert(err));
-                }}
-              >
-                Delete Device
-              </Button>
-            </Group>
-          </SettingItemCard>
-
+          <DeleteDeviceCard
+            deviceNames={deviceNames}
+            onSuccess={(deviceName) =>
+              setDeviceNames(deviceNames.filter((v) => v !== deviceName))}
+          />
           <SettingItemCard title="Enable Login Device">
             <Switch.Group
               value={enabledNames}
               label="Select enable devices"
               description="Enabled devices are available for login. When all devices are disabled, only first position device available for login."
               onChange={async (chosedNames) => {
-                console.log(chosedNames);
                 const chosed = chosedNames.filter((v) =>
                   deviceNames.includes(v)
                 );
@@ -177,8 +287,17 @@ const WebAuthnDeviceSettingCards = (
                     .filter((v) => deviceNames.includes(v));
                   setSelectedNames(selected);
                   checkWebAuthnVerify(authToken, selected)
-                    .then(() => alert("Verified!"))
-                    .catch((err) => alert(err));
+                    .then(() =>
+                      showNotification({
+                        message: "Verified!",
+                        color: "green",
+                        icon: <Check />,
+                      })
+                    ).catch((err: Error) =>
+                      showNotification(
+                        { message: err.message, color: "red", icon: <X /> },
+                      )
+                    );
                 }}
               >
                 Check
@@ -197,10 +316,14 @@ const WebAuthnDeviceSettings = () => {
 
   useEffect(() => {
     getWebAuthnDeviceNames(authToken)
-      .then((names) => setDevieNames(names))
-      .catch((err) => {
-        alert(err);
-      });
+      .then((names) => setDevieNames(names)).catch((err: Error) =>
+        showNotification({
+          title: "Get WebAuthn Devices Error",
+          message: err.message,
+          color: "red",
+          icon: <X />,
+        })
+      );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

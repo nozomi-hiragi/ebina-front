@@ -36,6 +36,7 @@ import ConstanRun from "./pages/ConstantRun/ConstantRun";
 import ConstanRunDetail from "./pages/ConstantRun/ConstantRunDetail";
 import Routing from "./pages/Routing/Routing";
 import Regist from "./pages/Regist";
+import RegistWebAuthn from "./pages/RegistWebAuthn";
 
 export const menuItems = [
   { label: "Home", path: "", icon: <Home /> },
@@ -87,6 +88,7 @@ function App() {
                   <Route path="getting-started" element={<GettingStarted />} />
                   <Route path="login" element={<Login />} />
                   <Route path="regist" element={<Regist />} />
+                  <Route path="webauthn" element={<RegistWebAuthn />} />
                   <Route path="dashboard" element={<DashboardBase />}>
                     <Route index element={<TopPage />} />
                     <Route path="profile" element={<Profile />} />

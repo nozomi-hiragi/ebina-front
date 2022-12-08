@@ -1,7 +1,7 @@
 import jwtDecode, { JwtPayload } from "jwt-decode";
 import { atom, DefaultValue, selector } from "recoil";
 import { getMe } from "../EbinaAPI/i";
-import { ObjectLocalStorage } from "../localstorage";
+import { ObjectLocalStorage } from "../utils/localstorage";
 
 export type Member = {
   id: string;

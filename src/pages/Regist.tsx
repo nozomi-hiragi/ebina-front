@@ -12,15 +12,13 @@ import { useLocalStorage } from "@mantine/hooks";
 import { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import EbinaHeader from "../components/EbinaHeader";
+import { lsServer } from "../EbinaAPI";
 import { registTempMember } from "../EbinaAPI/member";
 
 const TOKEN_LEN = 32;
 
 const RegistCard = () => {
   const navigate = useNavigate();
-  const [url, setURL] = useLocalStorage<string>(
-    { key: "server-url", defaultValue: "" },
-  );
   const [history, setHistory] = useLocalStorage<string[]>(
     { key: "server-history", defaultValue: [] },
   );
@@ -29,7 +27,7 @@ const RegistCard = () => {
   const hasToken = useMemo(() => searchParams.has("t"), [searchParams]);
   const registForm = useForm({
     initialValues: {
-      server: searchParams.get("s") ?? url,
+      server: searchParams.get("s") ?? lsServer.get() ?? "",
       token: searchParams.get("t") ?? "",
       id: searchParams.get("i") ?? "",
       name: searchParams.get("n") ?? "",
@@ -54,8 +52,8 @@ const RegistCard = () => {
       <form
         onSubmit={registForm.onSubmit(({ server, ...values }) => {
           registTempMember(server, values).then(() => {
-            if (!history.includes(server)) setHistory([...history, server]);
-            setURL(server);
+            if (!history.includes(server)) setHistory([server, ...history]);
+            lsServer.set(server);
             registForm.reset();
             alert("Regist is success. Please request admit to admin.");
             navigate("/login");
