@@ -93,8 +93,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(options.title, options));
 });
 
-const isURL = (value: string) =>
-  new RegExp("^(https?:\\/\\/)?" + "i").test(value);
+const isURL = (value: string) => new RegExp("^(https?:\\/\\/)?").test(value);
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
