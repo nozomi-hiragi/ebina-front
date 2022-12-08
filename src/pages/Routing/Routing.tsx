@@ -7,20 +7,33 @@ import {
   Group,
   Modal,
   NumberInput,
+  Switch,
   Text,
   TextInput,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useEffect, useState } from "react";
+import { useRecoilValue } from "recoil";
 import { Trash } from "tabler-icons-react";
-import EbinaAPI, { NginxConf } from "../../EbinaAPI";
+import {
+  deleteRoute,
+  getRoute,
+  getRouteList,
+  getRoutingStatus,
+  newRoute,
+  NginxConf,
+  setRoute,
+  updateRouter,
+} from "../../EbinaAPI/routing";
+import { tokenSelector } from "../../recoil/user";
 
 const Routing = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const [routeParams, setRouteParams] = useState<
     { [name: string]: NginxConf | undefined }
   >({});
   const [currentHostname, setCurrentHostname] = useState<string>("");
-  const [currentPort, setCurrentPort] = useState<number>(0);
+  const [currentPort, setCurrentPort] = useState<number | "koujou">(0);
   const [newDialog, newDialogHandler] = useDisclosure(false);
   const [newRouteName, setNewRouteName] = useState<string>("");
   const [accordionValue, setAccordionValue] = useState<string | null>(null);
@@ -30,7 +43,7 @@ const Routing = () => {
 
   useEffect(() => {
     if (Object.keys(routeParams).length === 0) {
-      EbinaAPI.getRouteList().then((list) => {
+      getRouteList(authToken).then((list) => {
         const params: { [name: string]: NginxConf | undefined } = {};
         list.forEach((name) => params[name] = undefined);
         setRouteParams(params);
@@ -40,7 +53,7 @@ const Routing = () => {
   }, []);
 
   useEffect(() => {
-    EbinaAPI.getRoutingStatus().then((ret) => {
+    getRoutingStatus(authToken).then((ret) => {
       if (ret !== "Disable") routerEnableHandler.open();
       setRouterStatus(ret);
     });
@@ -62,7 +75,7 @@ const Routing = () => {
               ? (
                 <Button
                   onClick={() =>
-                    EbinaAPI.updateRouter("up")
+                    updateRouter(authToken, "up")
                       .then(() => setRouterStatus("Refreshing..."))}
                 >
                   Up
@@ -72,14 +85,14 @@ const Routing = () => {
                 <>
                   <Button
                     onClick={() =>
-                      EbinaAPI.updateRouter("rm")
+                      updateRouter(authToken, "rm")
                         .then(() => setRouterStatus("Refreshing..."))}
                   >
                     Remove
                   </Button>
                   <Button
                     onClick={() =>
-                      EbinaAPI.updateRouter("restart")
+                      updateRouter(authToken, "restart")
                         .then(() => setRouterStatus("Refreshing..."))}
                   >
                     Restart
@@ -109,7 +122,7 @@ const Routing = () => {
           setAccordionValue(value);
           if (!value) return;
           if (!routeParams[value]) {
-            EbinaAPI.getRoute(value).then((conf) => {
+            getRoute(authToken, value).then((conf) => {
               const newValue: { [name: string]: NginxConf | undefined } = {};
               newValue[value] = conf;
               setRouteParams({ ...routeParams, ...newValue });
@@ -141,17 +154,22 @@ const Routing = () => {
                   onChange={(event) =>
                     setCurrentHostname(event.currentTarget.value)}
                 />
-                <NumberInput
-                  label="Port"
-                  placeholder="3456"
-                  value={currentPort}
-                  onChange={(value) => setCurrentPort(value ?? 0)}
-                />
+                {Number.isInteger(currentPort)
+                  ? (
+                    <NumberInput
+                      label="Port"
+                      placeholder="3456"
+                      value={currentPort as number}
+                      onChange={(value) => setCurrentPort(value ?? 0)}
+                    />
+                  )
+                  : <TextInput label="Port" value={currentPort} disabled />}
                 <Group position="right" mt="md">
                   <Button
                     onClick={() => {
+                      const port = routeParams[route]?.port ?? 0;
                       setCurrentHostname(routeParams[route]?.hostname ?? "");
-                      setCurrentPort(routeParams[route]?.port ?? 0);
+                      setCurrentPort(port === "koujou" ? 0 : port);
                     }}
                   >
                     Reset
@@ -163,7 +181,7 @@ const Routing = () => {
                         port: currentPort,
                         www: routeParams[route]?.www,
                       };
-                      EbinaAPI.setRoute(route, newConf).then((ret) => {
+                      setRoute(authToken, route, newConf).then((ret) => {
                         if (ret) {
                           const newValue: {
                             [name: string]: NginxConf | undefined;
@@ -199,11 +217,21 @@ const Routing = () => {
           value={currentHostname}
           onChange={(event) => setCurrentHostname(event.currentTarget.value)}
         />
-        <NumberInput
-          label="Port"
-          placeholder="3456"
-          value={currentPort}
-          onChange={(value) => setCurrentPort(value ?? 0)}
+        {Number.isInteger(currentPort)
+          ? (
+            <NumberInput
+              label="Port"
+              placeholder="3456"
+              value={currentPort === "koujou" ? 0 : currentPort}
+              onChange={(value) => setCurrentPort(value ?? 0)}
+            />
+          )
+          : <TextInput label="Port" value={currentPort} disabled />}
+        <Switch
+          label="Port for Koujou"
+          mt="sm"
+          onChange={(e) =>
+            setCurrentPort(e.currentTarget.checked ? "koujou" : 0)}
         />
         <Group position="right" mt="md">
           <Button onClick={() => newDialogHandler.close()}>Cancel</Button>
@@ -213,7 +241,7 @@ const Routing = () => {
                 hostname: currentHostname,
                 port: currentPort,
               };
-              EbinaAPI.newRoute(newRouteName, newConf).then((ret) => {
+              newRoute(authToken, newRouteName, newConf).then((ret) => {
                 if (ret) {
                   const newValue: { [name: string]: NginxConf | undefined } =
                     {};
@@ -246,7 +274,7 @@ const Routing = () => {
           <Button
             color="red"
             onClick={() => {
-              EbinaAPI.deleteRoute(deleteRouteName).then(() => {
+              deleteRoute(authToken, deleteRouteName).then(() => {
                 const newParams = routeParams;
                 delete newParams[deleteRouteName];
                 setRouteParams(newParams);

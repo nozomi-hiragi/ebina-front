@@ -1,30 +1,24 @@
 import { Suspense, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   Anchor,
   AppShell,
   Breadcrumbs,
+  Center,
   Group,
+  Loader,
   Navbar,
   Stack,
   Text,
 } from "@mantine/core";
 import BaseMenu from "./BaseMenu";
 import EbinaHeader from "./EbinaHeader";
-import EbinaAPI from "../EbinaAPI";
-import { useSetRecoilState } from "recoil";
-import { userSelector } from "../atoms";
 import { getLabelFromPaht } from "../App";
+import UnauthorizedErrorBoundary from "./UnauthorizedErrorBoundary";
+import CheckLoggedIn from "./CheckLoggedIn";
 
 const DashboardBase = () => {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-  const setUser = useSetRecoilState(userSelector);
-  const navigate = useNavigate();
-
-  EbinaAPI.checkExired().catch(() => {
-    setUser(null);
-    navigate("/");
-  });
 
   const location = useLocation();
   const paths = location.pathname.split("/").filter((value) => value !== "");
@@ -72,9 +66,19 @@ const DashboardBase = () => {
         <Breadcrumbs mt="sm">
           {anchors}
         </Breadcrumbs>
-        <Suspense>
-          <Outlet />
-        </Suspense>
+        <UnauthorizedErrorBoundary>
+          <CheckLoggedIn>
+            <Suspense
+              fallback={
+                <Center>
+                  <Loader variant="bars" />
+                </Center>
+              }
+            >
+              <Outlet />
+            </Suspense>
+          </CheckLoggedIn>
+        </UnauthorizedErrorBoundary>
       </Stack>
     </AppShell>
   );

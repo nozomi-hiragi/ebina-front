@@ -24,7 +24,6 @@ export const PathBuilder = {
     },
     loginWith: (id: string) => `${pEbinaILogin}/${id}`,
     logout: pEbinaI + "/logout",
-    refresh: pEbinaI + "/refresh",
     password: pEbinaI + "/password",
     webauthn: {
       regist: pEbinaIWebauthn + "/regist",
@@ -38,7 +37,13 @@ export const PathBuilder = {
     },
   },
 
-  member: pEbinaMember,
+  member: {
+    path: pEbinaMember,
+    regist: {
+      option: `${pEbinaMember}/regist/option`,
+      verify: `${pEbinaMember}/regist/verify`,
+    },
+  },
 
   app: pEbinaApp,
   appWith: (app: string) => ({

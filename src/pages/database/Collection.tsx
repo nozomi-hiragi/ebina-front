@@ -1,9 +1,12 @@
 import { Stack, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import EbinaAPI from "../../EbinaAPI";
+import { useRecoilValue } from "recoil";
+import { getDocments } from "../../EbinaAPI/database";
+import { tokenSelector } from "../../recoil/user";
 
 const Collection = () => {
+  const authToken = useRecoilValue(tokenSelector);
   const dbName = useParams().dbName;
   const collectuonName = useParams().colName;
 
@@ -14,7 +17,7 @@ const Collection = () => {
       setret("error");
       return;
     }
-    EbinaAPI.getDocments(dbName, collectuonName).then((ret) => setret(ret));
+    getDocments(authToken, dbName, collectuonName).then((ret) => setret(ret));
     // eslint-disable-next-line
   }, []);
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { useRecoilState } from "recoil";
+import { useRecoilValue, useResetRecoilState } from "recoil";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ActionIcon,
@@ -14,8 +14,8 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { Moon, Sun } from "tabler-icons-react";
-import { userSelector } from "../atoms";
-import EbinaAPI from "../EbinaAPI";
+import { loggedIn, tokenSelector } from "../recoil/user";
+import { logout } from "../EbinaAPI/i";
 
 type HeaderProps = {
   hideSize?: MantineSize;
@@ -25,7 +25,9 @@ type HeaderProps = {
 
 const EbinaHeader: React.FC<HeaderProps> = (props) => {
   const navigate = useNavigate();
-  const [user, setUser] = useRecoilState(userSelector);
+  const isLoggedIn = useRecoilValue(loggedIn);
+  const authToken = useRecoilValue(tokenSelector);
+  const resetToken = useResetRecoilState(tokenSelector);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const isMid = useMediaQuery("(min-width: 768px)");
   const isSml = useMediaQuery("(min-width: 360px)");
@@ -57,13 +59,13 @@ const EbinaHeader: React.FC<HeaderProps> = (props) => {
           >
             {isDark ? <Sun /> : <Moon />}
           </ActionIcon>
-          {user
+          {isLoggedIn
             ? (
               <Button
                 color="inherit"
                 onClick={() => {
-                  EbinaAPI.logout();
-                  setUser(null);
+                  logout(authToken);
+                  resetToken();
                   navigate("/");
                 }}
               >
