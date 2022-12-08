@@ -13,7 +13,7 @@ import {
 import { Member } from "../recoil/user";
 
 // ログイン用オプション取得
-export const getLoginOptions = (id?: string) =>
+const getLoginOptions = (id?: string) =>
   fetch(newEbinaURL("/i/login/option"), {
     method: "POST",
     body: JSON.stringify({ id }),
@@ -21,30 +21,26 @@ export const getLoginOptions = (id?: string) =>
     if (!res.ok) throw new Error(res.statusText);
     return res.json();
   }).then((json) =>
-    json as
-      | { type: "WebAuthn"; options: any; sessionId: string }
-      | { type: "Password" }
+    json as { type: "WebAuthn"; options: any; sessionId: string }
   );
 
-// パスワードログイン
-export const loginWithPassword = (id: string, pass: string) =>
-  fetch(newEbinaURL("/i/login"), {
-    method: "POST",
-    body: JSON.stringify({ type: "password", id, pass }),
-  }).then((res) => {
-    if (!res.ok) throw new Error(res.statusText);
-    return res.text();
-  }).then((token) => token);
-
 // WebAuthnでログイン
-export const loginWithWAOption = (result: any, sessionId: string) =>
+const loginWithWAOption = (id: string, result: any, sessionId: string) =>
   fetch(newEbinaURL("/i/login/verify"), {
     method: "POST",
+    headers: id ? { id } : undefined,
     body: JSON.stringify({ result, sessionId }),
   }).then((res) => {
     if (!res.ok) throw new Error(res.statusText);
     return res.text();
   }).then((token) => token);
+
+// ログイン
+export const login = async (id?: string) => {
+  const { options, sessionId } = await getLoginOptions(id);
+  return startAuthentication(options, id === undefined)
+    .then((result) => loginWithWAOption(id ?? "", result, sessionId));
+};
 
 // ログアウト
 export const logout = (token: string) =>
