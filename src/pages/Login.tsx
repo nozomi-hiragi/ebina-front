@@ -95,7 +95,6 @@ const LoginCard = () => {
         onChangeServerURL={(url) => {
           const prevURL = serverURL;
           setServerURL(url);
-          console.log(prevURL + "l" + url);
           if (url && prevURL === "") startConditionalUI();
         }}
       />
