@@ -1,81 +1,90 @@
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import {
   ActionIcon,
-  Affix,
   Button,
-  Container,
-  Navbar,
+  Center,
+  Group,
+  Paper,
+  SimpleGrid,
   Stack,
   Text,
-  UnstyledButton,
+  TextInput,
+  Title,
 } from "@mantine/core";
-import { Link, useNavigate } from "react-router-dom";
-import { useRecoilValue, useSetRecoilState } from "recoil";
+import { useNavigate } from "react-router-dom";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { Plus, Refresh } from "tabler-icons-react";
 import { appNameListSelector } from "../../recoil/atoms";
+import { openConfirmModal } from "@mantine/modals";
+import { createApp } from "../../EbinaAPI/app/app";
+import { tokenSelector } from "../../recoil/user";
 
 const AppList = () => {
   const navigate = useNavigate();
-  const appNameList = useRecoilValue(appNameListSelector);
+  const [appNameList, setAppNameList] = useRecoilState(appNameListSelector);
+  const authToken = useRecoilValue(tokenSelector);
+  const [appName, setAppName] = useState("");
+  const openCreateModal = () =>
+    openConfirmModal({
+      title: "Create App",
+      centered: true,
+      children: (
+        <TextInput
+          id="appName"
+          label="App Name"
+          onChange={(e) => setAppName(e.target.value)}
+        />
+      ),
+      labels: { confirm: "Create", cancel: "Cancel" },
+      onConfirm: () =>
+        createApp(authToken, appName).then(() => setAppNameList([])),
+    });
+
   return (
-    <Stack>
+    <SimpleGrid
+      breakpoints={[
+        { minWidth: "xs", cols: 1 },
+        { minWidth: "sm", cols: 2 },
+        { minWidth: "lg", cols: 3 },
+        { minWidth: "xl", cols: 4 },
+      ]}
+    >
       {appNameList.map((appName) => (
-        <UnstyledButton
-          key={appName}
-          onClick={() => {
-            navigate(appName);
-          }}
-          p={4}
-          m={4}
-        >
-          <Navbar.Section>
-            <Text>{appName}</Text>
-          </Navbar.Section>
-        </UnstyledButton>
+        <Center key={appName}>
+          <Paper
+            w={300}
+            px={8}
+            py={4}
+            withBorder
+            onClick={() => navigate(appName)}
+          >
+            <Title order={2}>{appName}</Title>
+          </Paper>
+        </Center>
       ))}
-    </Stack>
+      <Center>
+        <Button w={300} onClick={openCreateModal}>
+          <Plus /> <Text fz="lg">New</Text>
+        </Button>
+      </Center>
+    </SimpleGrid>
   );
 };
 
 const AppsIndex = () => {
   const setAppNameList = useSetRecoilState(appNameListSelector);
   return (
-    <Container p={0}>
-      <Container
-        sx={{
-          height: 70,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-        fluid
-      >
-        <Text size="xl" weight={50}>Apps</Text>
-        <ActionIcon
-          size="xl"
-          radius="xl"
-          onClick={() => {
-            setAppNameList([]);
-          }}
-        >
+    <Stack>
+      <Group position="apart">
+        <Title>Apps</Title>
+        <ActionIcon size="xl" radius="xl" onClick={() => setAppNameList([])}>
           <Refresh />
         </ActionIcon>
-      </Container>
+      </Group>
       <Suspense>
         <AppList />
       </Suspense>
-      <Affix position={{ bottom: 20, right: 20 }}>
-        <Button
-          sx={{ width: 50, height: 50 }}
-          p={0}
-          radius="xl"
-          component={Link}
-          to="new"
-        >
-          <Plus />
-        </Button>
-      </Affix>
-    </Container>
+    </Stack>
   );
 };
 

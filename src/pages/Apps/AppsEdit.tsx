@@ -1,106 +1,43 @@
-import {
-  Affix,
-  Button,
-  Group,
-  Modal,
-  Stack,
-  Text,
-  TextInput,
-  Title,
-} from "@mantine/core";
-import { useState } from "react";
+import { Center, NavLink, Paper, Text, Title } from "@mantine/core";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
-import { DeviceFloppy, Trash } from "tabler-icons-react";
+import { Trash } from "tabler-icons-react";
 import { appNameListSelector } from "../../recoil/atoms";
-import { createApp, deleteApp } from "../../EbinaAPI/app/app";
+import { deleteApp } from "../../EbinaAPI/app/app";
 import { tokenSelector } from "../../recoil/user";
+import { openConfirmModal } from "@mantine/modals";
 
 const AppsEdit = () => {
   const authToken = useRecoilValue(tokenSelector);
   const navigate = useNavigate();
   const setAppNameList = useSetRecoilState(appNameListSelector);
-  const [appName, setAppName] = useState(useParams().appName ?? "new");
-  const [isNew] = useState(appName === "new");
-  const [isOpenDialog, setIsOpenDialog] = useState<boolean>(false);
+  const appName = useParams().appName;
+  if (!appName) return <>404</>;
 
-  const appMenuItems = [
-    { label: "API", path: `api` },
-    { label: "Edit", path: `edit` },
-    { label: "Constant Run", path: `constantrun` },
-  ];
+  const openDeleteModal = () =>
+    openConfirmModal({
+      title: "Delete App",
+      centered: true,
+      children: <Text color="red">{`Delete "${appName}"?`}</Text>,
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: () =>
+        deleteApp(authToken, appName).then(() => {
+          setAppNameList([]);
+          navigate(-1);
+        }).catch((err) => console.log(err)),
+    });
 
   return (
-    <Stack>
-      <Group p={8}>
-        {isNew
-          ? (
-            <TextInput
-              id="appName"
-              label="App Name"
-              onChange={(e) => setAppName(e.target.value)}
-            />
-          )
-          : <Title order={2}>{isNew ? "New App" : appName}</Title>}
-      </Group>
-      {!isNew && (
-        <Stack>
-          {appMenuItems.map((item) => (
-            <Button
-              key={item.label}
-              sx={{ width: 200 }}
-              component={Link}
-              to={item.path}
-            >
-              {item.label}
-            </Button>
-          ))}
-          <Group p={8} onClick={() => setIsOpenDialog(true)}>
-            <Trash />
-            <Text>Delete</Text>
-          </Group>
-        </Stack>
-      )}
-      {isNew && (
-        <Affix position={{ bottom: 20, right: 20 }}>
-          <Button
-            sx={{ width: 50, height: 50 }}
-            p={0}
-            radius="xl"
-            onClick={() => {
-              if (isNew) {
-                createApp(authToken, appName).then(() => {
-                  setAppNameList([]);
-                  navigate(-1);
-                });
-              }
-            }}
-          >
-            <DeviceFloppy />
-          </Button>
-        </Affix>
-      )}
-      <Modal
-        opened={isOpenDialog}
-        onClose={() => setIsOpenDialog(false)}
-        title={`Delete APP`}
-      >
-        <Text color="red">{`Delete "${appName}"?`}</Text>
-        <Group position="right">
-          <Button onClick={() => setIsOpenDialog(false)}>Cancel</Button>
-          <Button
-            onClick={() => {
-              deleteApp(authToken, appName).then(() => {
-                setAppNameList([]);
-                navigate(-1);
-              }).catch((err) => console.log(err));
-            }}
-          >
-            Delete
-          </Button>
-        </Group>
-      </Modal>
-    </Stack>
+    <Center>
+      <Paper withBorder px={8} py={4} w={200}>
+        <Title order={2}>{appName}</Title>
+        <NavLink label="API" component={Link} to="api" />
+        <NavLink label="Edit" component={Link} to="edit" />
+        <NavLink label="Constant Run" component={Link} to="constantrun" />
+        <NavLink label="Delete" icon={<Trash />} onClick={openDeleteModal} />
+      </Paper>
+    </Center>
   );
 };
 
