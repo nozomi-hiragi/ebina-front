@@ -23,8 +23,7 @@ import Login from "./pages/Login";
 import TopPage from "./pages/Home/Home";
 import Profile from "./pages/Profile/Profile";
 import Members from "./pages/Members/Members";
-import ApiIndex from "./pages/API/ApiIndes";
-import ApiEdit from "./pages/API/ApiEdit";
+import ApiIndex from "./pages/API/ApiIndex";
 import EditIndex from "./pages/Edit/EditIndex";
 import EditEdit from "./pages/Edit/EditEdit";
 import Setting from "./pages/Setting";
@@ -97,10 +96,7 @@ function App() {
                       <Route index element={<AppsIndex />} />
                       <Route path=":appName">
                         <Route index element={<AppsEdit />} />
-                        <Route path="api">
-                          <Route index element={<ApiIndex />} />
-                          <Route path="edit" element={<ApiEdit />} />
-                        </Route>
+                        <Route path="api" element={<ApiIndex />} />
                         <Route path="edit">
                           <Route index element={<EditIndex />} />
                           <Route path=":path" element={<EditEdit />} />
