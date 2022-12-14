@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   ActionIcon,
   Affix,
+  Box,
   Button,
   Center,
   Divider,
   Group,
+  NavLink,
   NumberInput,
   Paper,
   SimpleGrid,
@@ -30,12 +32,17 @@ import {
 import { getScriptList } from "../../EbinaAPI/app/script";
 import ApiDetailForm from "./ApiDetailForm";
 
+interface APIs {
+  apis: { path: string; name: string }[];
+  child: { [path: string]: APIs };
+}
+
 var cacheAppName = "";
 
 const ApiIndex = () => {
   const authToken = useRecoilValue(tokenSelector);
   const [apiState, setApiState] = useState<any>({});
-  const [apis, setApis] = useState<{ path: string; name: string }[]>([]);
+  const [apis, setApis] = useState<APIs>({ apis: [], child: {} });
   const [refreshState, setRefreshState] = useState(true);
   const [port, setPort] = useState<number>(0);
   const appName = useParams().appName ?? "";
@@ -51,8 +58,27 @@ const ApiIndex = () => {
         setApiState(res);
       });
       getAPIs(authToken, appName).then((res) => {
-        if ("version" in res) setApis(res.apis);
-        else setApis(res.map((it) => ({ path: it.path, name: it.api.name })));
+        if ("version" in res) {
+          const apis: APIs = { apis: [], child: {} };
+          res.apis.forEach((api) => {
+            const pathArray = api.path.split("/");
+            pathArray.pop();
+            let current: APIs = apis;
+            for (const path of pathArray) {
+              if (!current.child[path]) {
+                current.child[path] = { apis: [], child: {} };
+              }
+              current = current.child[path];
+            }
+            current.apis.push(api);
+          });
+          setApis(apis);
+        } else {
+          setApis({
+            apis: res.map((it) => ({ path: it.path, name: it.api.name })),
+            child: {},
+          });
+        }
       });
       getPort(authToken, appName).then((res) => {
         setPort(res);
@@ -95,6 +121,56 @@ const ApiIndex = () => {
         />
       ),
     });
+  };
+
+  const APIsComponent = (names: APIs, title: string = ""): ReactNode => {
+    return (
+      <Box>
+        {title && <Title order={5} my={10}>{title}</Title>}
+        <SimpleGrid
+          my={10}
+          breakpoints={[
+            { minWidth: "xs", cols: 1 },
+            { minWidth: 790, cols: 2 },
+            { minWidth: "lg", cols: 3 },
+          ]}
+        >
+          {names.apis.map((api) => (
+            <Center key={api.name} inline>
+              <Paper withBorder px="sm" pb="sm" w={424}>
+                <ApiDetailForm
+                  appName={appName}
+                  path={api.path}
+                  filenameList={filenameList}
+                  onSave={(item) =>
+                    showNotification({
+                      title: "Save Success",
+                      message: `${item.name} is saved`,
+                      color: "green",
+                      icon: <Check />,
+                    })}
+                  onDelete={() => setRefreshState(true)}
+                />
+              </Paper>
+            </Center>
+          ))}
+        </SimpleGrid>
+        {Object.keys(names.child).map((name) => {
+          const label = `${title}${name}/`;
+          return (
+            <NavLink
+              label={label}
+              active
+              color="indigo"
+              variant="filled"
+              childrenOffset={0}
+            >
+              {APIsComponent(names.child[name], label)}
+            </NavLink>
+          );
+        })}
+      </Box>
+    );
   };
 
   return (
@@ -163,36 +239,8 @@ const ApiIndex = () => {
         </Center>
       </Group>
       <Divider />
-      <Title order={5}>
-        API List
-      </Title>
-      <SimpleGrid
-        breakpoints={[
-          { minWidth: "xs", cols: 1 },
-          { minWidth: 790, cols: 2 },
-          { minWidth: "lg", cols: 3 },
-        ]}
-      >
-        {apis.map((api) => (
-          <Center key={api.name} inline>
-            <Paper withBorder px="sm" pb="sm" w={424}>
-              <ApiDetailForm
-                appName={appName}
-                path={api.path}
-                filenameList={filenameList}
-                onSave={(item) =>
-                  showNotification({
-                    title: "Save Success",
-                    message: `${item.name} is saved`,
-                    color: "green",
-                    icon: <Check />,
-                  })}
-                onDelete={() => setRefreshState(true)}
-              />
-            </Paper>
-          </Center>
-        ))}
-      </SimpleGrid>
+      <Title order={5}>API List</Title>
+      {APIsComponent(apis)}
       <Affix position={{ bottom: 20, right: 20 }}>
         <Button w={50} h={50} p={0} radius="xl" onClick={openNewAPIModal}>
           <Plus />

@@ -42,20 +42,20 @@ export const ApiDetailForm = (
   { appName, path = "", filenameList, onSave, onDelete }: APIDetailFormProps,
 ) => {
   const authToken = useRecoilValue(tokenSelector);
+  const [curPath, setcurPath] = useState(path);
+  const isNew = useMemo(() => curPath === "", [curPath]);
   const initialValues: APIValues = {
-    version: 0,
+    version: isNew ? 2 : 0,
     path,
     name: "",
     method: "get",
     type: "static",
     value: "",
   };
-  const [curPath, setcurPath] = useState(path);
   const [isEditing, setIsEditing] = useState(false);
   const [valuesCache, setValuesCache] = useState<APIValues>(initialValues);
   const editApiForm = useForm<APIValues>({ initialValues });
 
-  const isNew = useMemo(() => curPath === "", [curPath]);
   const isTypeScript = useMemo(() => editApiForm.values.type === "JavaScript", [
     editApiForm.values.type,
   ]);

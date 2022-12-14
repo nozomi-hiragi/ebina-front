@@ -46,10 +46,11 @@ export const getAPIs = (token: string, appName: string) =>
 
 // API取得
 export const getAPI = (token: string, appName: string, path: string) =>
-  getEbina(`/app/${appName}/api/endpoint/${path}`, token).then((res) => {
-    if (!res.ok) throw new Error(res.statusText);
-    return res.json();
-  }).then((json) => json as TypeApi);
+  getEbina(`/app/${appName}/api/endpoint/${encodeURIComponent(path)}`, token)
+    .then((res) => {
+      if (!res.ok) throw new Error(res.statusText);
+      return res.json();
+    }).then((json) => json as TypeApi);
 
 // API更新
 export const updateAPI = (
@@ -58,16 +59,20 @@ export const updateAPI = (
   path: string,
   api: TypeApi,
 ) =>
-  putEbina(`/app/${appName}/api/endpoint/${path}`, token, JSON.stringify(api))
-    .then((res) => {
-      if (!res.ok) throw new Error(res.statusText);
-    });
+  putEbina(
+    `/app/${appName}/api/endpoint/${encodeURIComponent(path)}`,
+    token,
+    JSON.stringify(api),
+  ).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+  });
 
 // API削除
 export const deleteAPI = (token: string, appName: string, path: string) =>
-  deleteEbina(`/app/${appName}/api/endpoint/${path}`, token).then((res) => {
-    if (!res.ok) throw new Error(res.statusText);
-  });
+  deleteEbina(`/app/${appName}/api/endpoint/${encodeURIComponent(path)}`, token)
+    .then((res) => {
+      if (!res.ok) throw new Error(res.statusText);
+    });
 
 // ポート設定
 export const updatePort = (token: string, appName: string, port: number) =>
