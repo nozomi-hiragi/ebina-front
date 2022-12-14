@@ -12,6 +12,7 @@ export type TypeApiTypes = "static" | "JavaScript";
 export type TypeApi = {
   version?: number;
   name: string;
+  path: string;
   method: TypeApiMethods;
   type: TypeApiTypes; // @TODO V1
   filename?: string;

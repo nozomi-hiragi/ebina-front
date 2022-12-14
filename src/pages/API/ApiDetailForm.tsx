@@ -15,12 +15,7 @@ import { showNotification } from "@mantine/notifications";
 import { useEffect, useMemo, useState } from "react";
 import { useRecoilValue } from "recoil";
 import { DeviceFloppy, Refresh, Trash, X } from "tabler-icons-react";
-import {
-  createPath,
-  deleteAPI,
-  getAPI,
-  updateAPI,
-} from "../../EbinaAPI/app/api";
+import { deleteAPI, getAPI, updateAPI } from "../../EbinaAPI/app/api";
 import { tokenSelector } from "../../recoil/user";
 import { ApiMethodList, TypeApiMethods, TypeApiTypes } from "../../types/types";
 
@@ -39,7 +34,7 @@ interface APIDetailFormProps {
   appName: string;
   path?: string;
   filenameList: string[];
-  onSave?: () => void;
+  onSave?: (values: APIValues) => void;
   onDelete?: () => void;
 }
 
@@ -55,23 +50,20 @@ export const ApiDetailForm = (
     type: "static",
     value: "",
   };
+  const [curPath, setcurPath] = useState(path);
   const [isEditing, setIsEditing] = useState(false);
   const [valuesCache, setValuesCache] = useState<APIValues>(initialValues);
   const editApiForm = useForm<APIValues>({ initialValues });
 
-  const isNew = useMemo(() => path === "", [path]);
+  const isNew = useMemo(() => curPath === "", [curPath]);
   const isTypeScript = useMemo(() => editApiForm.values.type === "JavaScript", [
     editApiForm.values.type,
   ]);
 
   useEffect(() => {
     if (isNew) return;
-    getAPI(authToken, appName, path).then((api) => {
-      const values: APIValues = {
-        version: 1,
-        ...api,
-        path,
-      };
+    getAPI(authToken, appName, curPath).then((api) => {
+      const values: APIValues = { version: 1, ...api };
       if (values.version === 2) {
         values.type = api.filename ? "JavaScript" : "static";
       } else {
@@ -85,7 +77,7 @@ export const ApiDetailForm = (
       setValuesCache(values);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path, authToken, appName]);
+  }, [curPath, authToken, appName]);
 
   useEffect(() => {
     if (isEditing) return;
@@ -101,19 +93,18 @@ export const ApiDetailForm = (
     openConfirmModal({
       title: "Delete API",
       centered: true,
-      children: <Text color="red">{`Delete "${path}"?`}</Text>,
+      children: <Text color="red">Delete "{editApiForm.values.name}"?</Text>,
       labels: { confirm: "Delete", cancel: "Cancel" },
       confirmProps: { color: "red" },
       onConfirm: () =>
-        deleteAPI(authToken, appName, path).then(onDelete)
-          .catch((err) =>
-            showNotification({
-              title: "Delete API Error",
-              message: err,
-              color: "red",
-              icon: <X />,
-            })
-          ),
+        deleteAPI(authToken, appName, curPath).then(onDelete).catch((err) =>
+          showNotification({
+            title: "Delete API Error",
+            message: err,
+            color: "red",
+            icon: <X />,
+          })
+        ),
     });
 
   return (
@@ -127,16 +118,25 @@ export const ApiDetailForm = (
         } else {
           values.filename = "";
         }
-        const callAPI = isNew ? createPath : updateAPI;
-        callAPI(authToken, appName, values.path, values).then(() => {
+        const path = isNew ? values.path : curPath;
+        updateAPI(authToken, appName, path, values).then(() => {
+          setcurPath(values.path);
           setValuesCache(values);
           setIsEditing(false);
-          onSave && onSave();
-        });
+          onSave && onSave(values);
+        }).catch((err: Error) =>
+          showNotification({
+            title: "Update API Error",
+            message: err.toString(),
+            color: "red",
+            icon: <X />,
+          })
+        );
       })}
     >
       <Group position="apart">
         <TextInput
+          w={220}
           placeholder="Name"
           required
           label={isNew ? "Name" : undefined}
@@ -152,15 +152,12 @@ export const ApiDetailForm = (
         )}
       </Group>
       <Stack>
-        <Group>
-          <TextInput
-            label="Path"
-            placeholder="Path"
-            required={isNew}
-            disabled={!isNew}
-            {...editApiForm.getInputProps("path")}
-          />
-        </Group>
+        <TextInput
+          label="Path"
+          placeholder="Path"
+          required
+          {...editApiForm.getInputProps("path")}
+        />
         <SegmentedControl
           data={ApiMethodList}
           {...editApiForm.getInputProps("method")}
@@ -174,7 +171,7 @@ export const ApiDetailForm = (
         />
         {isTypeScript
           ? (
-            <Group position="apart" grow>
+            <Group position="apart" grow mb={8}>
               <Select
                 label="Filename"
                 placeholder="Pick one"
