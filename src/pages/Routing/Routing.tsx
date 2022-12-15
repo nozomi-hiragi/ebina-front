@@ -1,56 +1,109 @@
 import {
   Accordion,
-  ActionIcon,
-  Box,
   Button,
   Container,
   Group,
-  Modal,
-  NumberInput,
-  Switch,
+  Paper,
+  Select,
+  SelectItem,
+  Stack,
   Text,
-  TextInput,
+  Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { closeModal, openModal } from "@mantine/modals";
+import { showNotification } from "@mantine/notifications";
+import { useEffect, useMemo, useState } from "react";
 import { useRecoilValue } from "recoil";
-import { Trash } from "tabler-icons-react";
+import { Check, X } from "tabler-icons-react";
 import {
-  deleteRoute,
-  getRoute,
+  getPorts,
   getRouteList,
   getRoutingStatus,
-  newRoute,
-  NginxConf,
-  setRoute,
+  setPort,
   updateRouter,
 } from "../../EbinaAPI/routing";
 import { tokenSelector } from "../../recoil/user";
+import NewRouteForm from "./NewRouteForm";
+import RouteDetail from "./RouteDetail";
+
+const AppPort = (
+  { name, port, data, onSave }: {
+    name: string;
+    port: number;
+    data: SelectItem[];
+    onSave: (port: number) => void;
+  },
+) => {
+  const portStr = port.toString();
+  const authToken = useRecoilValue(tokenSelector);
+  const [value, setValue] = useState<string | null>(portStr);
+  const editedData = data
+    .map((v) => ({ ...v, disabled: v.value === portStr ? false : v.disabled }));
+  const isChanged = useMemo(() => portStr !== value, [portStr, value]);
+  return (
+    <Group position="apart">
+      <Select
+        w={90}
+        label={name}
+        data={editedData}
+        value={value}
+        onChange={setValue}
+      />
+      <Button
+        mt={25}
+        disabled={!isChanged}
+        onClick={() => {
+          const port = Number(value);
+          setPort(authToken, name, port).then(() => {
+            onSave(port);
+            showNotification({
+              title: "Change Port Success",
+              message: `${portStr} to ${value}`,
+              color: "green",
+              icon: <Check />,
+            });
+          }).catch((err: Error) => {
+            showNotification({
+              title: "Change Port Failed",
+              message: err.toString(),
+              color: "red",
+              icon: <X />,
+            });
+          });
+        }}
+      >
+        Change
+      </Button>
+    </Group>
+  );
+};
 
 const Routing = () => {
   const authToken = useRecoilValue(tokenSelector);
-  const [routeParams, setRouteParams] = useState<
-    { [name: string]: NginxConf | undefined }
-  >({});
-  const [currentHostname, setCurrentHostname] = useState<string>("");
-  const [currentPort, setCurrentPort] = useState<number | "koujou">(0);
-  const [newDialog, newDialogHandler] = useDisclosure(false);
-  const [newRouteName, setNewRouteName] = useState<string>("");
-  const [accordionValue, setAccordionValue] = useState<string | null>(null);
-  const [deleteRouteName, setDeleteRouteName] = useState<string>("");
+  const [routeNames, setRouteNames] = useState<string[]>([]);
   const [routerStatus, setRouterStatus] = useState<string>("Unknown");
   const [isRouterEnable, routerEnableHandler] = useDisclosure(false);
+  const [appPorts, setAppPorts] = useState<{ [name: string]: number }>({});
+  const [portChoices, setPortChoices] = useState<SelectItem[]>([]);
 
   useEffect(() => {
-    if (Object.keys(routeParams).length === 0) {
-      getRouteList(authToken).then((list) => {
-        const params: { [name: string]: NginxConf | undefined } = {};
-        list.forEach((name) => params[name] = undefined);
-        setRouteParams(params);
-      });
-    }
+    if (routeNames.length === 0) getRouteList(authToken).then(setRouteNames);
+    getPorts(authToken).then(({ start, ports }) => {
+      const selectedPorts = Object.values(ports);
+      const portChoices: SelectItem[] = [];
+      for (let i = start; i < start + 100; i++) {
+        portChoices.push({
+          value: i.toString(),
+          label: i.toString(),
+          disabled: selectedPorts.includes(i),
+        });
+      }
+      setPortChoices(portChoices);
+      setAppPorts(ports);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authToken, setRouteNames, setAppPorts]);
 
   useEffect(() => {
     getRoutingStatus(authToken).then((ret) => {
@@ -58,10 +111,62 @@ const Routing = () => {
       setRouterStatus(ret);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routerStatus]);
+  }, [authToken, routerStatus]);
+
+  const openNewModal = () => {
+    const modalId = "newroute";
+    openModal({
+      modalId,
+      title: "New Route",
+      centered: true,
+      children: (
+        <NewRouteForm
+          onSave={(name) => {
+            setRouteNames((values) => {
+              values.push(name);
+              return values;
+            });
+            closeModal(modalId);
+          }}
+          onCancel={() => closeModal(modalId)}
+        />
+      ),
+    });
+  };
 
   return (
-    <Container>
+    <Stack>
+      <Title order={4}>App Port</Title>
+      <Stack>
+        <Group>
+          {Object.keys(appPorts).map((name) => (
+            <Paper p={10} withBorder>
+              <AppPort
+                name={name}
+                port={appPorts[name]}
+                data={portChoices}
+                onSave={(port) => {
+                  const prevPort = String(appPorts[name]);
+                  setAppPorts((value) => {
+                    value[name] = port;
+                    return value;
+                  });
+                  setPortChoices((value) =>
+                    value.map(({ disabled, ...v }) => {
+                      if (v.value === String(port)) {
+                        disabled = true;
+                      } else if (v.value === prevPort) {
+                        disabled = false;
+                      }
+                      return ({ ...v, disabled });
+                    })
+                  );
+                }}
+              />
+            </Paper>
+          ))}
+        </Group>
+      </Stack>
       <Container>
         <Group mb="md" position="apart">
           <Text>Status: {routerStatus}</Text>
@@ -103,193 +208,18 @@ const Routing = () => {
         )}
       </Container>
       <Group grow mb="md">
-        <Button
-          onClick={() => {
-            newDialogHandler.open();
-            setAccordionValue(null);
-            setCurrentHostname("");
-            setCurrentPort(0);
-          }}
-        >
-          New
-        </Button>
+        <Button onClick={() => openNewModal()}>New</Button>
       </Group>
-      <Accordion
-        variant="separated"
-        value={accordionValue}
-        sx={{ maxWidth: 300, width: 300 }}
-        onChange={(value) => {
-          setAccordionValue(value);
-          if (!value) return;
-          if (!routeParams[value]) {
-            getRoute(authToken, value).then((conf) => {
-              const newValue: { [name: string]: NginxConf | undefined } = {};
-              newValue[value] = conf;
-              setRouteParams({ ...routeParams, ...newValue });
-              setCurrentHostname(conf.hostname);
-              setCurrentPort(conf.port);
-            });
-          } else {
-            setCurrentHostname(routeParams[value]?.hostname ?? "");
-            setCurrentPort(routeParams[value]?.port ?? 0);
-          }
-        }}
-      >
-        {Object.keys(routeParams).map((route) => {
-          return (
-            <Accordion.Item key={route} value={route}>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Accordion.Control>
-                  {route}
-                </Accordion.Control>
-                <ActionIcon size="lg" onClick={() => setDeleteRouteName(route)}>
-                  <Trash size={20} />
-                </ActionIcon>
-              </Box>
-              <Accordion.Panel>
-                <TextInput
-                  label="Hostname"
-                  placeholder="example.com"
-                  value={currentHostname}
-                  onChange={(event) =>
-                    setCurrentHostname(event.currentTarget.value)}
-                />
-                {Number.isInteger(currentPort)
-                  ? (
-                    <NumberInput
-                      label="Port"
-                      placeholder="3456"
-                      value={currentPort as number}
-                      onChange={(value) => setCurrentPort(value ?? 0)}
-                    />
-                  )
-                  : <TextInput label="Port" value={currentPort} disabled />}
-                <Group position="right" mt="md">
-                  <Button
-                    onClick={() => {
-                      const port = routeParams[route]?.port ?? 0;
-                      setCurrentHostname(routeParams[route]?.hostname ?? "");
-                      setCurrentPort(port === "koujou" ? 0 : port);
-                    }}
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const newConf: NginxConf = {
-                        hostname: currentHostname,
-                        port: currentPort,
-                        www: routeParams[route]?.www,
-                      };
-                      setRoute(authToken, route, newConf).then((ret) => {
-                        if (ret) {
-                          const newValue: {
-                            [name: string]: NginxConf | undefined;
-                          } = {};
-                          newValue[route] = newConf;
-                          setRouteParams({ ...routeParams, ...newValue });
-                        }
-                      });
-                    }}
-                  >
-                    Save
-                  </Button>
-                </Group>
-              </Accordion.Panel>
-            </Accordion.Item>
-          );
-        })}
+      <Accordion variant="separated" w={300}>
+        {routeNames.map((route) => (
+          <RouteDetail
+            route={route}
+            onDelete={() =>
+              setRouteNames((value) => value.filter((v) => v !== route))}
+          />
+        ))}
       </Accordion>
-      <Modal
-        opened={newDialog}
-        onClose={() => newDialogHandler.close()}
-        title="New Route"
-      >
-        <TextInput
-          label="Name"
-          placeholder=""
-          value={newRouteName}
-          onChange={(event) => setNewRouteName(event.currentTarget.value)}
-        />
-        <TextInput
-          label="Hostname"
-          placeholder="example.com"
-          value={currentHostname}
-          onChange={(event) => setCurrentHostname(event.currentTarget.value)}
-        />
-        {Number.isInteger(currentPort)
-          ? (
-            <NumberInput
-              label="Port"
-              placeholder="3456"
-              value={currentPort === "koujou" ? 0 : currentPort}
-              onChange={(value) => setCurrentPort(value ?? 0)}
-            />
-          )
-          : <TextInput label="Port" value={currentPort} disabled />}
-        <Switch
-          label="Port for Koujou"
-          mt="sm"
-          onChange={(e) =>
-            setCurrentPort(e.currentTarget.checked ? "koujou" : 0)}
-        />
-        <Group position="right" mt="md">
-          <Button onClick={() => newDialogHandler.close()}>Cancel</Button>
-          <Button
-            onClick={() => {
-              const newConf: NginxConf = {
-                hostname: currentHostname,
-                port: currentPort,
-              };
-              newRoute(authToken, newRouteName, newConf).then((ret) => {
-                if (ret) {
-                  const newValue: { [name: string]: NginxConf | undefined } =
-                    {};
-                  newValue[newRouteName] = newConf;
-                  setRouteParams({ ...routeParams, ...newValue });
-                  newDialogHandler.close();
-                } else {
-                  alert("already");
-                }
-              }).catch((err) => {
-                alert(err);
-              });
-            }}
-          >
-            Save
-          </Button>
-        </Group>
-      </Modal>
-      <Modal
-        opened={deleteRouteName !== ""}
-        onClose={() => setDeleteRouteName("")}
-        title="Delete Route"
-      >
-        {deleteRouteName !== "" &&
-          <Text size="xl" color="red">Delete "{deleteRouteName}"?</Text>}
-        <Group position="right">
-          <Button onClick={() => setDeleteRouteName("")}>
-            Cancel
-          </Button>
-          <Button
-            color="red"
-            onClick={() => {
-              deleteRoute(authToken, deleteRouteName).then(() => {
-                const newParams = routeParams;
-                delete newParams[deleteRouteName];
-                setRouteParams(newParams);
-                setDeleteRouteName("");
-              }).catch((err) => {
-                setDeleteRouteName("");
-                alert(err);
-              });
-            }}
-          >
-            Delete
-          </Button>
-        </Group>
-      </Modal>
-    </Container>
+    </Stack>
   );
 };
 

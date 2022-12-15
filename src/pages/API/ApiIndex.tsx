@@ -5,16 +5,13 @@ import {
   Box,
   Button,
   Center,
-  Divider,
   Group,
   NavLink,
-  NumberInput,
   Paper,
   SimpleGrid,
   Stack,
   Text,
   Title,
-  Tooltip,
 } from "@mantine/core";
 import { showNotification } from "@mantine/notifications";
 import { closeModal, openModal } from "@mantine/modals";
@@ -22,13 +19,7 @@ import { Check, Plus, Refresh } from "tabler-icons-react";
 import { useParams } from "react-router-dom";
 import { useRecoilValue } from "recoil";
 import { tokenSelector } from "../../recoil/user";
-import {
-  getAPIs,
-  getAPIStatus,
-  getPort,
-  updateAPIStatus,
-  updatePort,
-} from "../../EbinaAPI/app/api";
+import { getAPIs } from "../../EbinaAPI/app/api";
 import { getScriptList } from "../../EbinaAPI/app/script";
 import ApiDetailForm from "./ApiDetailForm";
 
@@ -37,14 +28,10 @@ interface APIs {
   child: { [path: string]: APIs };
 }
 
-var cacheAppName = "";
-
 const ApiIndex = () => {
   const authToken = useRecoilValue(tokenSelector);
-  const [apiState, setApiState] = useState<any>({});
   const [apis, setApis] = useState<APIs>({ apis: [], child: {} });
   const [refreshState, setRefreshState] = useState(true);
-  const [port, setPort] = useState<number>(0);
   const appName = useParams().appName ?? "";
   const [filenameList, setFilenameList] = useState<string[]>([]);
 
@@ -53,56 +40,33 @@ const ApiIndex = () => {
   }, [authToken, appName]);
 
   useEffect(() => {
-    if (refreshState || cacheAppName !== appName) {
-      getAPIStatus(authToken, appName).then((res) => {
-        setApiState(res);
-      });
-      getAPIs(authToken, appName).then((res) => {
-        if ("version" in res) {
-          const apis: APIs = { apis: [], child: {} };
-          res.apis.forEach((api) => {
-            const pathArray = api.path.split("/");
-            pathArray.pop();
-            let current: APIs = apis;
-            for (const path of pathArray) {
-              if (!current.child[path]) {
-                current.child[path] = { apis: [], child: {} };
-              }
-              current = current.child[path];
+    if (!refreshState) return;
+    getAPIs(authToken, appName).then((res) => {
+      if ("version" in res) {
+        const apis: APIs = { apis: [], child: {} };
+        res.apis.forEach((api) => {
+          const pathArray = api.path.split("/");
+          pathArray.pop();
+          let current: APIs = apis;
+          for (const path of pathArray) {
+            if (!current.child[path]) {
+              current.child[path] = { apis: [], child: {} };
             }
-            current.apis.push(api);
-          });
-          setApis(apis);
-        } else {
-          setApis({
-            apis: res.map((it) => ({ path: it.path, name: it.api.name })),
-            child: {},
-          });
-        }
-      });
-      getPort(authToken, appName).then((res) => {
-        setPort(res);
-      });
-      setRefreshState(false);
-      cacheAppName = appName;
-    }
+            current = current.child[path];
+          }
+          current.apis.push(api);
+        });
+        setApis(apis);
+      } else {
+        setApis({
+          apis: res.map((it) => ({ path: it.path, name: it.api.name })),
+          child: {},
+        });
+      }
+    });
+    setRefreshState(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshState, appName]);
-
-  let labelStartButton: string = "";
-  let labelStatus: string = "";
-  switch (apiState.status) {
-    case "started":
-      labelStatus = "Runging";
-      labelStartButton = "Restart";
-      break;
-    case "stop":
-      labelStatus = "Stop";
-      labelStartButton = "Start";
-      break;
-    default:
-      break;
-  }
 
   const openNewAPIModal = () => {
     const modalId = "newapimodal";
@@ -185,61 +149,6 @@ const ApiIndex = () => {
           <Refresh />
         </ActionIcon>
       </Group>
-      <Group position="center">
-        <Center inline>
-          <Paper withBorder p="sm">
-            <Title order={5}>Status</Title>
-            <Group position="apart">
-              <Tooltip
-                label={`at ${(new Date(apiState.started_at)).toLocaleString()}`}
-                position="bottom"
-                disabled={!apiState.started_at}
-              >
-                <Text>{labelStatus}</Text>
-              </Tooltip>
-              <Group>
-                <Button
-                  onClick={() =>
-                    updateAPIStatus(authToken, appName, "start")
-                      .then(() => setRefreshState(true))}
-                >
-                  {labelStartButton}
-                </Button>
-                <Button
-                  onClick={() =>
-                    updateAPIStatus(authToken, appName, "stop")
-                      .then(() => setRefreshState(true))}
-                >
-                  Stop
-                </Button>
-              </Group>
-            </Group>
-          </Paper>
-        </Center>
-        <Center inline>
-          <Paper withBorder p="sm">
-            <Title order={5}>Port</Title>
-            <Group align="center">
-              <NumberInput
-                w={100}
-                label="Port"
-                placeholder="3456"
-                value={port}
-                onChange={(v) => v && setPort(v)}
-              />
-              <Button
-                onClick={() =>
-                  updatePort(authToken, appName, port)
-                    .then(() => setRefreshState(true))}
-              >
-                Save
-              </Button>
-            </Group>
-          </Paper>
-        </Center>
-      </Group>
-      <Divider />
-      <Title order={5}>API List</Title>
       {APIsComponent(apis)}
       <Affix position={{ bottom: 20, right: 20 }}>
         <Button w={50} h={50} p={0} radius="xl" onClick={openNewAPIModal}>

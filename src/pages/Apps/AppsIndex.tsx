@@ -13,32 +13,65 @@ import {
 } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
-import { Plus, Refresh } from "tabler-icons-react";
+import { Plus, Refresh, X } from "tabler-icons-react";
 import { appNameListSelector } from "../../recoil/atoms";
-import { openConfirmModal } from "@mantine/modals";
+import { closeModal, openModal } from "@mantine/modals";
 import { createApp } from "../../EbinaAPI/app/app";
 import { tokenSelector } from "../../recoil/user";
+import { showNotification } from "@mantine/notifications";
+
+const CreateAppForm = (
+  { onCreate, onCancel }: { onCreate: () => void; onCancel: () => void },
+) => {
+  const authToken = useRecoilValue(tokenSelector);
+  const [appName, setAppName] = useState("");
+  return (
+    <Stack>
+      <TextInput
+        id="appName"
+        label="App Name"
+        onChange={(e) => setAppName(e.target.value)}
+      />
+      <Group position="right">
+        <Button variant="default" onClick={onCancel}>Cancel</Button>
+        <Button
+          onClick={() =>
+            createApp(authToken, appName).then(onCreate).catch((err: Error) =>
+              showNotification({
+                title: "Create App Error",
+                message: err.toString(),
+                color: "red",
+                icon: <X />,
+              })
+            )}
+        >
+          Create
+        </Button>
+      </Group>
+    </Stack>
+  );
+};
 
 const AppList = () => {
   const navigate = useNavigate();
   const [appNameList, setAppNameList] = useRecoilState(appNameListSelector);
-  const authToken = useRecoilValue(tokenSelector);
-  const [appName, setAppName] = useState("");
-  const openCreateModal = () =>
-    openConfirmModal({
+  const openCreateModal = () => {
+    const modalId = "createapp";
+    openModal({
+      modalId,
       title: "Create App",
       centered: true,
       children: (
-        <TextInput
-          id="appName"
-          label="App Name"
-          onChange={(e) => setAppName(e.target.value)}
+        <CreateAppForm
+          onCreate={() => {
+            setAppNameList([]);
+            closeModal(modalId);
+          }}
+          onCancel={() => closeModal(modalId)}
         />
       ),
-      labels: { confirm: "Create", cancel: "Cancel" },
-      onConfirm: () =>
-        createApp(authToken, appName).then(() => setAppNameList([])),
     });
+  };
 
   return (
     <SimpleGrid

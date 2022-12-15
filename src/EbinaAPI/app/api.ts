@@ -73,17 +73,3 @@ export const deleteAPI = (token: string, appName: string, path: string) =>
     .then((res) => {
       if (!res.ok) throw new Error(res.statusText);
     });
-
-// ポート設定
-export const updatePort = (token: string, appName: string, port: number) =>
-  putEbina(`/app/${appName}/api/port`, token, JSON.stringify({ port }))
-    .then((res) => {
-      if (!res.ok) throw new Error(res.statusText);
-    });
-
-// ポート取得
-export const getPort = (token: string, appName: string) =>
-  getEbina(`/app/${appName}/api/port`, token).then((res) => {
-    if (!res.ok) throw new Error(res.statusText);
-    return res.json();
-  }).then((json) => json.port as number);

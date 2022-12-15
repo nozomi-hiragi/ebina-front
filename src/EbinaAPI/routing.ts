@@ -55,3 +55,19 @@ export const deleteRoute = (token: string, name: string): Promise<boolean> =>
     if (!res.ok) throw new Error(res.statusText);
     return true;
   });
+
+// ポート一覧
+export const getPorts = (token: string) =>
+  getEbina("/routing/port/numbers", token).then((res) => {
+    if (!res.ok) throw new Error(res.statusText);
+    return res.json();
+  }).then((json) =>
+    json as { start: number; ports: { [name: string]: number } }
+  );
+
+// ポート設定
+export const setPort = (token: string, name: string, port: number) =>
+  putEbina(`/routing/port/number/${name}`, token, JSON.stringify({ port }))
+    .then((res) => {
+      if (!res.ok) throw new Error(res.statusText);
+    });
