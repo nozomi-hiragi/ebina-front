@@ -1,7 +1,6 @@
-import { Button, Group, NumberInput, TextInput } from "@mantine/core";
+import { Button, Group, NumberInput, Switch, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useRecoilValue } from "recoil";
-import { Switch } from "tabler-icons-react";
 import { newRoute, NginxConf } from "../../EbinaAPI/routing";
 import { tokenSelector } from "../../recoil/user";
 
