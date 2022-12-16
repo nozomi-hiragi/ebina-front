@@ -1,106 +1,110 @@
 import {
-  Affix,
+  Box,
   Button,
+  Center,
+  Divider,
   Group,
-  Modal,
+  NavLink,
+  Paper,
   Stack,
   Text,
-  TextInput,
   Title,
+  Tooltip,
 } from "@mantine/core";
-import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
-import { DeviceFloppy, Trash } from "tabler-icons-react";
+import { Trash } from "tabler-icons-react";
 import { appNameListSelector } from "../../recoil/atoms";
-import { createApp, deleteApp } from "../../EbinaAPI/app/app";
+import { deleteApp } from "../../EbinaAPI/app/app";
 import { tokenSelector } from "../../recoil/user";
+import { openConfirmModal } from "@mantine/modals";
+import { getAPIStatus, updateAPIStatus } from "../../EbinaAPI/app/api";
+import { useEffect, useMemo, useState } from "react";
 
 const AppsEdit = () => {
   const authToken = useRecoilValue(tokenSelector);
   const navigate = useNavigate();
   const setAppNameList = useSetRecoilState(appNameListSelector);
-  const [appName, setAppName] = useState(useParams().appName ?? "new");
-  const [isNew] = useState(appName === "new");
-  const [isOpenDialog, setIsOpenDialog] = useState<boolean>(false);
+  const appName = useParams().appName;
 
-  const appMenuItems = [
-    { label: "API", path: `api` },
-    { label: "Edit", path: `edit` },
-    { label: "Constant Run", path: `constantrun` },
-  ];
+  const [apiState, setApiState] = useState<any>({});
+  const stateText = useMemo(() => {
+    switch (apiState.status) {
+      case "started":
+        return { status: "Runging", buttonLabel: "Restart" };
+      case "stop":
+        return { status: "Stop", buttonLabel: "Start" };
+      default:
+        return { status: "", buttonLabel: "" };
+    }
+  }, [apiState.status]);
+  const [refreshState, setRefreshState] = useState(true);
+  useEffect(() => {
+    if (!refreshState) return;
+    setRefreshState(false);
+    if (!appName) return;
+    getAPIStatus(authToken, appName).then((res) => setApiState(res));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshState, authToken]);
+
+  if (!appName) return <>404</>;
+
+  const openDeleteModal = () =>
+    openConfirmModal({
+      title: "Delete App",
+      centered: true,
+      children: <Text color="red">{`Delete "${appName}"?`}</Text>,
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: () =>
+        deleteApp(authToken, appName).then(() => {
+          setAppNameList([]);
+          navigate("/dashboard/apps");
+        }).catch((err) => console.log(err)),
+    });
 
   return (
-    <Stack>
-      <Group p={8}>
-        {isNew
-          ? (
-            <TextInput
-              id="appName"
-              label="App Name"
-              onChange={(e) => setAppName(e.target.value)}
-            />
-          )
-          : <Title order={2}>{isNew ? "New App" : appName}</Title>}
-      </Group>
-      {!isNew && (
-        <Stack>
-          {appMenuItems.map((item) => (
-            <Button
-              key={item.label}
-              sx={{ width: 200 }}
-              component={Link}
-              to={item.path}
-            >
-              {item.label}
-            </Button>
-          ))}
-          <Group p={8} onClick={() => setIsOpenDialog(true)}>
-            <Trash />
-            <Text>Delete</Text>
-          </Group>
+    <Center>
+      <Paper withBorder>
+        <Stack m={10}>
+          <Title order={2}>{appName}</Title>
+          <Box>
+            <Title order={5}>Status</Title>
+            <Group position="apart" w={250}>
+              <Tooltip
+                label={`at ${(new Date(apiState.started_at)).toLocaleString()}`}
+                position="bottom"
+                disabled={!apiState.started_at}
+              >
+                <Text>{stateText.status}</Text>
+              </Tooltip>
+              <Group>
+                <Button
+                  onClick={() =>
+                    updateAPIStatus(authToken, appName, "start")
+                      .then(() => setRefreshState(true))}
+                >
+                  {stateText.buttonLabel}
+                </Button>
+                <Button
+                  disabled={apiState.status === "stop"}
+                  onClick={() =>
+                    updateAPIStatus(authToken, appName, "stop")
+                      .then(() => setRefreshState(true))}
+                >
+                  Stop
+                </Button>
+              </Group>
+            </Group>
+          </Box>
         </Stack>
-      )}
-      {isNew && (
-        <Affix position={{ bottom: 20, right: 20 }}>
-          <Button
-            sx={{ width: 50, height: 50 }}
-            p={0}
-            radius="xl"
-            onClick={() => {
-              if (isNew) {
-                createApp(authToken, appName).then(() => {
-                  setAppNameList([]);
-                  navigate(-1);
-                });
-              }
-            }}
-          >
-            <DeviceFloppy />
-          </Button>
-        </Affix>
-      )}
-      <Modal
-        opened={isOpenDialog}
-        onClose={() => setIsOpenDialog(false)}
-        title={`Delete APP`}
-      >
-        <Text color="red">{`Delete "${appName}"?`}</Text>
-        <Group position="right">
-          <Button onClick={() => setIsOpenDialog(false)}>Cancel</Button>
-          <Button
-            onClick={() => {
-              deleteApp(authToken, appName).then(() => {
-                setAppNameList([]);
-                navigate(-1);
-              }).catch((err) => console.log(err));
-            }}
-          >
-            Delete
-          </Button>
-        </Group>
-      </Modal>
-    </Stack>
+        <Divider />
+        <NavLink label="API" component={Link} to="api" />
+        <NavLink label="Edit" component={Link} to="edit" />
+        <NavLink label="Constant Run" component={Link} to="constantrun" />
+        <NavLink label="Delete" icon={<Trash />} onClick={openDeleteModal} />
+      </Paper>
+    </Center>
   );
 };
 
