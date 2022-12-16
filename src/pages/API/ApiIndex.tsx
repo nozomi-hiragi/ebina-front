@@ -1,32 +1,195 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import {
   ActionIcon,
   Affix,
   Box,
   Button,
   Center,
+  Divider,
   Group,
   NavLink,
   Paper,
+  Select,
   SimpleGrid,
   Stack,
   Text,
+  TextInput,
   Title,
 } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { showNotification } from "@mantine/notifications";
 import { closeModal, openModal } from "@mantine/modals";
-import { Check, Plus, Refresh } from "tabler-icons-react";
+import { Check, Plus, Refresh, X } from "tabler-icons-react";
 import { useParams } from "react-router-dom";
 import { useRecoilValue } from "recoil";
 import { tokenSelector } from "../../recoil/user";
 import { getAPIs } from "../../EbinaAPI/app/api";
 import { getScriptList } from "../../EbinaAPI/app/script";
 import ApiDetailForm from "./ApiDetailForm";
+import { getFinal, getInit, putFinal, putInit } from "../../EbinaAPI/app/app";
 
 interface APIs {
   apis: { path: string; name: string }[];
   child: { [path: string]: APIs };
 }
+
+interface ProcessItem {
+  [key: string]: any;
+  initFilename: string;
+  initFunction: string;
+  finalFilename: string;
+  finalFunction: string;
+}
+
+const ProcessFunctions = (
+  { appName, filenameList }: { appName: string; filenameList: string[] },
+) => {
+  const authToken = useRecoilValue(tokenSelector);
+  const initialValues: ProcessItem = {
+    initFilename: "",
+    initFunction: "",
+    finalFilename: "",
+    finalFunction: "",
+  };
+  const [processCache, setProcessCache] = useState(initialValues);
+  const processFuncsForm = useForm({
+    initialValues,
+    validate: {
+      initFunction: (value, values) =>
+        (value && !values.initFilename) || (!value && values.initFilename)
+          ? "Input function or clear filename"
+          : null,
+      finalFunction: (value, values) =>
+        (value && !values.finalFilename) || (!value && values.finalFilename)
+          ? "Input function or clear filename"
+          : null,
+    },
+  });
+  const isEditInit = useMemo(
+    () =>
+      (processCache.initFilename !== processFuncsForm.values.initFilename) ||
+      (processCache.initFunction !== processFuncsForm.values.initFunction),
+    [processCache, processFuncsForm.values],
+  );
+  const isEditFinal = useMemo(
+    () =>
+      (processCache.finalFilename !== processFuncsForm.values.finalFilename) ||
+      (processCache.finalFunction !== processFuncsForm.values.finalFunction),
+    [processCache, processFuncsForm.values],
+  );
+  const isEditing = useMemo(
+    () => isEditInit || isEditFinal,
+    [isEditInit, isEditFinal],
+  );
+
+  useEffect(() => {
+    Promise.all([
+      getInit(authToken, appName).then((values) => ({
+        initFilename: values?.filename ?? "",
+        initFunction: values?.function ?? "",
+      })),
+      getFinal(authToken, appName).then((values) => ({
+        finalFilename: values?.filename ?? "",
+        finalFunction: values?.function ?? "",
+      })),
+    ]).then((res) => {
+      const values = { ...res[0], ...res[1] };
+      processFuncsForm.setValues(values);
+      setProcessCache(values);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authToken, appName]);
+
+  return (
+    <Paper withBorder maw={424} p={10}>
+      <form
+        onSubmit={processFuncsForm.onSubmit((values) => {
+          const promises = [];
+          if (isEditInit) {
+            promises.push(putInit(authToken, appName, {
+              filename: values.initFilename,
+              function: values.initFunction,
+            }));
+          }
+          if (isEditFinal) {
+            promises.push(putFinal(authToken, appName, {
+              filename: values.finalFilename,
+              function: values.finalFunction,
+            }));
+          }
+          Promise.all(promises).then(() => {
+            setProcessCache(values);
+            showNotification({
+              title: "Update Process Function Success",
+              message: "Saved",
+              color: "green",
+              icon: <Check />,
+            });
+          }).catch((err: Error) =>
+            showNotification({
+              title: "Update Process Function Failed",
+              message: err.toString(),
+              color: "red",
+              icon: <X />,
+            })
+          );
+        })}
+      >
+        <Stack>
+          <Title order={3}>Process Functions</Title>
+          <Box>
+            <Title order={3}>Initialize</Title>
+            <Group position="apart" grow>
+              <Select
+                label="Filename"
+                placeholder="Pick one"
+                clearable
+                data={filenameList}
+                miw={122}
+                {...processFuncsForm.getInputProps("initFilename")}
+              />
+              <TextInput
+                label={"Function"}
+                placeholder="Value"
+                miw={122}
+                {...processFuncsForm.getInputProps("initFunction")}
+              />
+            </Group>
+          </Box>
+          <Box>
+            <Title order={3}>Finalize</Title>
+            <Group position="apart" grow>
+              <Select
+                label="Filename"
+                placeholder="Pick one"
+                clearable
+                data={filenameList}
+                miw={122}
+                {...processFuncsForm.getInputProps("finalFilename")}
+              />
+              <TextInput
+                label={"Function"}
+                placeholder="Value"
+                miw={122}
+                {...processFuncsForm.getInputProps("finalFunction")}
+              />
+            </Group>
+          </Box>
+          <Group position="right">
+            <Button
+              variant="default"
+              disabled={!isEditing}
+              onClick={() => processFuncsForm.setValues(processCache)}
+            >
+              Reset
+            </Button>
+            <Button type="submit" disabled={!isEditing}>Save</Button>
+          </Group>
+        </Stack>
+      </form>
+    </Paper>
+  );
+};
 
 const ApiIndex = () => {
   const authToken = useRecoilValue(tokenSelector);
@@ -123,6 +286,7 @@ const ApiIndex = () => {
           const label = `${title}${name}/`;
           return (
             <NavLink
+              key={name}
               label={label}
               active
               color="indigo"
@@ -149,6 +313,8 @@ const ApiIndex = () => {
           <Refresh />
         </ActionIcon>
       </Group>
+      <ProcessFunctions appName={appName} filenameList={filenameList} />
+      <Divider />
       {APIsComponent(apis)}
       <Affix position={{ bottom: 20, right: 20 }}>
         <Button w={50} h={50} p={0} radius="xl" onClick={openNewAPIModal}>
