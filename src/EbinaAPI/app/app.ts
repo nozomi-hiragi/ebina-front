@@ -24,6 +24,13 @@ export const deleteApp = (token: string, name: string) =>
     if (!res.ok) throw new Error(res.statusText);
   });
 
+// 名前設定
+export const putAppName = (token: string, current: string, name: string) =>
+  putEbina(`/app/${current}/name`, token, JSON.stringify({ name }))
+    .then((res) => {
+      if (!res.ok) throw new Error(res.statusText);
+    });
+
 // init取得
 export const getInit = (token: string, name: string) =>
   getEbina(`/app/${name}/init`, token).then((res) => {

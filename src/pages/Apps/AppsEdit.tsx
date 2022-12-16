@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Box,
   Button,
   Center,
@@ -8,25 +9,29 @@ import {
   Paper,
   Stack,
   Text,
+  TextInput,
   Title,
   Tooltip,
 } from "@mantine/core";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
-import { Trash } from "tabler-icons-react";
+import { Check, DeviceFloppy, Edit, Trash, X } from "tabler-icons-react";
 import { appNameListSelector } from "../../recoil/atoms";
-import { deleteApp } from "../../EbinaAPI/app/app";
+import { deleteApp, putAppName } from "../../EbinaAPI/app/app";
 import { tokenSelector } from "../../recoil/user";
 import { openConfirmModal } from "@mantine/modals";
 import { getAPIStatus, updateAPIStatus } from "../../EbinaAPI/app/api";
 import { useEffect, useMemo, useState } from "react";
+import { useDisclosure } from "@mantine/hooks";
+import { showNotification } from "@mantine/notifications";
 
 const AppsEdit = () => {
   const authToken = useRecoilValue(tokenSelector);
   const navigate = useNavigate();
   const setAppNameList = useSetRecoilState(appNameListSelector);
-  const appName = useParams().appName;
-
+  const [isEdit, editHalder] = useDisclosure(false);
+  const [appName, setAppName] = useState(useParams().appName ?? "");
+  const [appNameCache, setAppNameCache] = useState(appName);
   const [apiState, setApiState] = useState<any>({});
   const stateText = useMemo(() => {
     switch (apiState.status) {
@@ -67,7 +72,66 @@ const AppsEdit = () => {
     <Center>
       <Paper withBorder>
         <Stack m={10}>
-          <Title order={2}>{appName}</Title>
+          <Group position="apart">
+            {isEdit
+              ? (
+                <>
+                  <TextInput
+                    w={220}
+                    size="lg"
+                    value={appName}
+                    onChange={(e) => setAppName(e.target.value)}
+                  />
+                  <Stack>
+                    <ActionIcon
+                      radius="xl"
+                      onClick={() => {
+                        setAppName(appNameCache);
+                        editHalder.close();
+                      }}
+                    >
+                      <X size={20} />
+                    </ActionIcon>{" "}
+                    <ActionIcon
+                      radius="xl"
+                      onClick={() => {
+                        putAppName(authToken, appNameCache, appName)
+                          .then(() => {
+                            showNotification({
+                              title: "App Name Change Success",
+                              message: `${appNameCache} to ${appName}`,
+                              color: "green",
+                              icon: <Check />,
+                            });
+                            navigate(`../${appName}`, { replace: true });
+                            setAppNameCache(appName);
+                            editHalder.close();
+                          }).catch((err: Error) => {
+                            showNotification({
+                              title: "App Name Change Failed",
+                              message: err.message === "Not Found"
+                                ? "Maybe your server is old version"
+                                : err.message,
+                              color: "red",
+                              icon: <X />,
+                            });
+                          });
+                      }}
+                    >
+                      <DeviceFloppy size={20} />
+                    </ActionIcon>
+                  </Stack>
+                </>
+              )
+              : (
+                <>
+                  <Title w={220} order={2}>{appName}</Title>
+                  <ActionIcon radius="xl" onClick={() => editHalder.open()}>
+                    <Edit size={20} />
+                  </ActionIcon>
+                </>
+              )}
+          </Group>
           <Box>
             <Title order={5}>Status</Title>
             <Group position="apart" w={250}>
