@@ -81,6 +81,7 @@ const ProcessFunctions = (
     () => isEditInit || isEditFinal,
     [isEditInit, isEditFinal],
   );
+  const [isSupport, setIsSupport] = useState(false); // @TODO 互換用 消す
 
   useEffect(() => {
     Promise.all([
@@ -93,12 +94,15 @@ const ProcessFunctions = (
         finalFunction: values?.function ?? "",
       })),
     ]).then((res) => {
+      setIsSupport(true);
       const values = { ...res[0], ...res[1] };
       processFuncsForm.setValues(values);
       setProcessCache(values);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authToken, appName]);
+
+  if (!isSupport) return <></>;
 
   return (
     <Paper withBorder maw={424} p={10}>
