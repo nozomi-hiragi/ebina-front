@@ -1,18 +1,28 @@
-export type TypeApiMethods = 'get' | 'head' | 'post' | 'put' | 'delete' | 'options' | 'patch'
-export type TypeApiTypes = 'static' | 'JavaScript'
+export type TypeApiMethods =
+  | "get"
+  | "head"
+  | "post"
+  | "put"
+  | "delete"
+  | "options"
+  | "patch";
+
+export type TypeApiTypes = "static" | "JavaScript";
 
 export type TypeApi = {
-  name: string,
-  method: TypeApiMethods,
-  type: TypeApiTypes,
-  value: string,
-}
+  version?: number;
+  name: string;
+  path: string;
+  method: TypeApiMethods;
+  type: TypeApiTypes; // @TODO V1
+  filename?: string;
+  value: string;
+};
 
 export const ApiMethodList: TypeApiMethods[] = [
-  'get', 'head', 'post', 'put', 'delete', 'options', 'patch',
-]
-
-export const ApiTypeList: TypeApiTypes[] = [
-  'static',
-  'JavaScript',
-]
+  "get",
+  "post",
+  "put",
+  "delete",
+  "patch",
+];

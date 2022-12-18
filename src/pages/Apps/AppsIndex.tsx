@@ -1,81 +1,123 @@
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import {
   ActionIcon,
-  Affix,
   Button,
-  Container,
-  Navbar,
+  Center,
+  Group,
+  Paper,
+  SimpleGrid,
   Stack,
   Text,
-  UnstyledButton,
+  TextInput,
+  Title,
 } from "@mantine/core";
-import { Link, useNavigate } from "react-router-dom";
-import { useRecoilValue, useSetRecoilState } from "recoil";
-import { Plus, Refresh } from "tabler-icons-react";
+import { useNavigate } from "react-router-dom";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { Plus, Refresh, X } from "tabler-icons-react";
 import { appNameListSelector } from "../../recoil/atoms";
+import { closeModal, openModal } from "@mantine/modals";
+import { createApp } from "../../EbinaAPI/app/app";
+import { tokenSelector } from "../../recoil/user";
+import { showNotification } from "@mantine/notifications";
+
+const CreateAppForm = (
+  { onCreate, onCancel }: { onCreate: () => void; onCancel: () => void },
+) => {
+  const authToken = useRecoilValue(tokenSelector);
+  const [appName, setAppName] = useState("");
+  return (
+    <Stack>
+      <TextInput
+        id="appName"
+        label="App Name"
+        onChange={(e) => setAppName(e.target.value)}
+      />
+      <Group position="right">
+        <Button variant="default" onClick={onCancel}>Cancel</Button>
+        <Button
+          onClick={() =>
+            createApp(authToken, appName).then(onCreate).catch((err: Error) =>
+              showNotification({
+                title: "Create App Error",
+                message: err.toString(),
+                color: "red",
+                icon: <X />,
+              })
+            )}
+        >
+          Create
+        </Button>
+      </Group>
+    </Stack>
+  );
+};
 
 const AppList = () => {
   const navigate = useNavigate();
-  const appNameList = useRecoilValue(appNameListSelector);
-  return (
-    <Stack>
-      {appNameList.map((appName) => (
-        <UnstyledButton
-          key={appName}
-          onClick={() => {
-            navigate(appName);
+  const [appNameList, setAppNameList] = useRecoilState(appNameListSelector);
+  const openCreateModal = () => {
+    const modalId = "createapp";
+    openModal({
+      modalId,
+      title: "Create App",
+      centered: true,
+      children: (
+        <CreateAppForm
+          onCreate={() => {
+            setAppNameList([]);
+            closeModal(modalId);
           }}
-          p={4}
-          m={4}
-        >
-          <Navbar.Section>
-            <Text>{appName}</Text>
-          </Navbar.Section>
-        </UnstyledButton>
+          onCancel={() => closeModal(modalId)}
+        />
+      ),
+    });
+  };
+
+  return (
+    <SimpleGrid
+      breakpoints={[
+        { minWidth: "xs", cols: 1 },
+        { minWidth: "sm", cols: 2 },
+        { minWidth: "lg", cols: 3 },
+        { minWidth: "xl", cols: 4 },
+      ]}
+    >
+      {appNameList.map((appName) => (
+        <Center key={appName}>
+          <Paper
+            w={300}
+            px={8}
+            py={4}
+            withBorder
+            onClick={() => navigate(appName)}
+          >
+            <Title order={2}>{appName}</Title>
+          </Paper>
+        </Center>
       ))}
-    </Stack>
+      <Center>
+        <Button w={300} onClick={openCreateModal}>
+          <Plus /> <Text fz="lg">New</Text>
+        </Button>
+      </Center>
+    </SimpleGrid>
   );
 };
 
 const AppsIndex = () => {
   const setAppNameList = useSetRecoilState(appNameListSelector);
   return (
-    <Container p={0}>
-      <Container
-        sx={{
-          height: 70,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-        fluid
-      >
-        <Text size="xl" weight={50}>Apps</Text>
-        <ActionIcon
-          size="xl"
-          radius="xl"
-          onClick={() => {
-            setAppNameList([]);
-          }}
-        >
+    <Stack>
+      <Group position="apart">
+        <Title>Apps</Title>
+        <ActionIcon size="xl" radius="xl" onClick={() => setAppNameList([])}>
           <Refresh />
         </ActionIcon>
-      </Container>
+      </Group>
       <Suspense>
         <AppList />
       </Suspense>
-      <Affix position={{ bottom: 20, right: 20 }}>
-        <Button
-          sx={{ width: 50, height: 50 }}
-          p={0}
-          radius="xl"
-          component={Link}
-          to="new"
-        >
-          <Plus />
-        </Button>
-      </Affix>
-    </Container>
+    </Stack>
   );
 };
 
