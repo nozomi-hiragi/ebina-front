@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: false;
+}
+
+@plugin "daisyui/theme" {
+  name: "ebina-light";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+  --color-primary: #3273b9;
+  --color-primary-content: #ffffff;
+  --color-secondary: #f1c142;
+  --color-secondary-content: #16181d;
+  --color-accent: #3273b9;
+  --color-accent-content: #ffffff;
+  --color-neutral: #16181d;
+  --color-neutral-content: #f5f6f8;
+  --color-base-100: #ffffff;
+  --color-base-200: #f3f5f8;
+  --color-base-300: #d5dae1;
+  --color-base-content: #16181d;
+  --color-info: #7cc4f0;
+  --color-info-content: #16181d;
+  --color-success: #4cc38a;
+  --color-success-content: #16181d;
+  --color-warning: #f59e3b;
+  --color-warning-content: #16181d;
+  --color-error: #e5484d;
+  --color-error-content: #16181d;
+  --radius-field: 10px;
+  --radius-box: 16px;
+  --ebina-muted: #5a5e66;
+  --ebina-field: #8a919c;
+  --ebina-marker: #f1c142;
+  --ebina-btn-bg: #3273b9;
+  --ebina-btn-fg: #ffffff;
+}
+
+@plugin "daisyui/theme" {
+  name: "ebina-dark";
+  prefersdark: true;
+  color-scheme: dark;
+  --color-primary: #3273b9;
+  --color-primary-content: #ffffff;
+  --color-secondary: #f1c142;
+  --color-secondary-content: #16181d;
+  --color-accent: #f1c142;
+  --color-accent-content: #16181d;
+  --color-neutral: #2e323a;
+  --color-neutral-content: #f5f6f8;
+  --color-base-100: #0b0c0e;
+  --color-base-200: #1a1c21;
+  --color-base-300: #2e323a;
+  --color-base-content: #f5f6f8;
+  --color-info: #7cc4f0;
+  --color-info-content: #16181d;
+  --color-success: #4cc38a;
+  --color-success-content: #16181d;
+  --color-warning: #f59e3b;
+  --color-warning-content: #16181d;
+  --color-error: #e5484d;
+  --color-error-content: #16181d;
+  --radius-field: 10px;
+  --radius-box: 16px;
+  --ebina-muted: #a3a9b3;
+  --ebina-field: #5b626d;
+  --ebina-marker: #3273b9;
+  --ebina-btn-bg: #f1c142;
+  --ebina-btn-fg: #16181d;
+}
+
+@theme inline {
+  --color-muted: var(--ebina-muted);
+  --color-field: var(--ebina-field);
+  --color-marker: var(--ebina-marker);
+  --color-btn: var(--ebina-btn-bg);
+  --color-btn-content: var(--ebina-btn-fg);
+  --font-sans: "IBM Plex Sans JP", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    font-family: "IBM Plex Sans JP", system-ui, sans-serif;
+    background-color: var(--color-base-100);
+    color: var(--color-base-content);
+  }
+}

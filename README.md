@@ -1,46 +1,73 @@
-# Getting Started with Create React App
+# ebina-front
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 
-## Available Scripts
+## 状態
 
-In the project directory, you can run:
+現在は画面のみ実装しています（トップ / ログイン / ダッシュボード / 設定）。サーバーとの接続やログイン処理はまだ未実装です。
 
-### `npm start`
+## 技術スタック
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- SolidJS 1.9
+- @solidjs/router 1.x
+- Vite 8
+- TypeScript 7
+- Tailwind CSS 4
+- daisyUI 5
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 開発
 
-### `npm test`
+前提: Node.js 22 以上（CI は 22.x を使用）
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```sh
+npm install
+npm run dev       # http://localhost:5173/ebina-station/
+npm run build     # 型チェック（tsc --noEmit）後、build/ に出力
+npm run preview   # build/ の内容をローカルで確認
+```
 
-### `npm run build`
+開発サーバーのパスは `/ebina-station/` 配下です。ルート（`/`）では表示されないので注意してください。
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## ルーティング
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+| パス         | ページ                 |
+| ------------ | ---------------------- |
+| `/`          | トップ（`pages/Top.tsx`） |
+| `/login`     | ログイン（`pages/Login.tsx`） |
+| `/dashboard` | ダッシュボード（`pages/Dashboard.tsx`、`AppLayout` 内） |
+| `/settings`  | 設定（`pages/Settings.tsx`、`AppLayout` 内） |
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+存在しないパスは `pages/NotFound.tsx` を表示します。
 
-### `npm run eject`
+アプリは `/ebina-station/` で配信されます。Vite の `base`（`vite.config.ts`）と Router の `base`（`src/App.tsx`）の両方で指定しています。
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## テーマ
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+`src/index.css` に daisyUI のカスタムテーマ `ebina-light`（既定）と `ebina-dark` を定義しています。
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+独自トークンとして `muted` / `field` / `marker` / `btn` があり、`text-muted`、`bg-btn` などの Tailwind クラスとして使えます。
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+テーマの選択は `src/theme.ts` で管理し、localStorage のキー `ebina-theme` に保存します。初回は OS の配色設定に従います。
 
-## Learn More
+## ディレクトリ構成
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```
+src/
+├── App.tsx          # ルーティング定義
+├── index.tsx        # エントリーポイント
+├── index.css        # Tailwind / daisyUI テーマ定義
+├── theme.ts         # テーマの状態管理
+├── components/      # 共通コンポーネント（AppLayout, PublicHeader, ThemeToggle など）
+└── pages/           # 各ページ
+public/              # 静的ファイル（favicon.svg, apple-touch-icon.png）
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## デプロイ
+
+`main` への push で GitHub Actions（`.github/workflows/node-build-pages.yml`）が `npm ci` と `npm run build` を実行し、結果を `nozomi-hiragi/ebina-station` リポジトリの GitHub Pages に公開します。
+
+ビルド後に `build/index.html` を `build/404.html` としてコピーしており、SPA のルーティングに対応しています。
+
+## ライセンス
+
+MIT License。詳細は [LICENSE](./LICENSE) を参照してください。

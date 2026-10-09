@@ -1,170 +1,65 @@
-import { useCallback, useEffect, useState } from "react";
-import { useRecoilValue, useSetRecoilState } from "recoil";
-import { Link, useNavigate } from "react-router-dom";
-import { loggedIn, tokenSelector } from "../recoil/user";
-import { lsServer } from "../EbinaAPI";
-import { useForm } from "@mantine/form";
-import {
-  Anchor,
-  Button,
-  Center,
-  DefaultProps,
-  Group,
-  Paper,
-  Select,
-  Text,
-  TextInput,
-  Title,
-  useMantineColorScheme,
-} from "@mantine/core";
-import { browserSupportsWebAuthnAutofill } from "@simplewebauthn/browser";
-import { useLocalStorage } from "@mantine/hooks";
-import { login } from "../EbinaAPI/i";
-import { showNotification } from "@mantine/notifications";
-import { X } from "tabler-icons-react";
+import { useNavigate } from "@solidjs/router";
+import PublicHeader from "../components/PublicHeader";
 
-type ServerSelectProps = {
-  error?: string;
-  onChangeServerURL?: (url: string) => void;
-};
-const ServerSelect = (
-  { error, onChangeServerURL, ...props }: ServerSelectProps & DefaultProps,
-) => {
-  const [msgError, setMsgError] = useState(error ?? "");
-  const [history, setHistory] = useLocalStorage<string[]>(
-    { key: "server-history", defaultValue: [] },
-  );
-  const [serverURL, setServerURL] = useState(lsServer.get());
-  const saveServerURL = useCallback((url: string) => {
-    setServerURL(url);
-    lsServer.set(url);
-  }, [setServerURL]);
+const inputClass =
+  "h-12 w-full rounded-[10px] border border-field bg-base-100 px-3.5 text-[15px] font-normal text-base-content outline-none focus:outline-2 focus:outline-solid focus:outline-primary";
 
-  useEffect(
-    () => onChangeServerURL && onChangeServerURL(serverURL ?? ""),
-    [serverURL, onChangeServerURL],
-  );
-
-  return (
-    <Select
-      label="Server"
-      placeholder="Choose your server"
-      nothingFound="No servers"
-      data={history}
-      value={serverURL}
-      creatable
-      clearable
-      searchable
-      getCreateLabel={(query) => `+ Add "${query}"`}
-      onCreate={(query) => {
-        setHistory((prev) => [query, ...prev.slice(0, 2)]);
-        return query;
-      }}
-      onChange={(query) => {
-        setMsgError("");
-        if (query && history.includes(query)) {
-          setHistory((prev) => [query, ...prev.filter((v) => v !== query)]);
-        }
-        saveServerURL(query ?? "");
-      }}
-      error={msgError}
-      {...props}
-    />
-  );
-};
-
-const LoginCard = () => {
-  const setAuthToken = useSetRecoilState(tokenSelector);
-  const [serverURL, setServerURL] = useState("");
-
-  const loginForm = useForm({ initialValues: { id: "" }, validate: {} });
-
-  const startLoginAuth = (id?: string) => login(id).then(setAuthToken);
-
-  const startConditionalUI = () =>
-    browserSupportsWebAuthnAutofill().then((support) => {
-      if (!support) throw new Error("Conditial UI Not Support");
-    }).then(() => startLoginAuth())
-      .catch((err: Error) => console.log(err.message));
-
-  return (
-    <Paper p={30} shadow="md" withBorder sx={{ width: 350 }}>
-      <Title order={1}>Login</Title>
-      <ServerSelect
-        mt="sm"
-        onChangeServerURL={(url) => {
-          const prevURL = serverURL;
-          setServerURL(url);
-          if (url && prevURL === "") startConditionalUI();
-        }}
-      />
-      <form
-        onSubmit={loginForm.onSubmit((values) =>
-          startLoginAuth(values.id).catch((err) =>
-            showNotification({
-              title: "Login Error",
-              message: err.message,
-              color: "red",
-              icon: <X />,
-            })
-          )
-        )}
-      >
-        <TextInput
-          mt="sm"
-          label="ID"
-          placeholder="ID"
-          autoComplete="username webauthn"
-          disabled={!serverURL}
-          {...loginForm.getInputProps("id")}
-        />
-        <Group>
-          <Anchor
-            my="xs"
-            size="sm"
-            component={Link}
-            to={`/webauthn?i=${loginForm.values.id}`}
-          >
-            Add WebAuthn device
-          </Anchor>
-        </Group>
-        <Button disabled={!serverURL} fullWidth type="submit">Login</Button>
-      </form>
-    </Paper>
-  );
-};
-
-const Login = () => {
+export default function Login() {
   const navigate = useNavigate();
-  const isLoggedIn = useRecoilValue(loggedIn);
-  const [eula] = useLocalStorage<string>({ key: "eula", defaultValue: "" });
-  const { colorScheme } = useMantineColorScheme();
 
-  useEffect(() => {
-    if (isLoggedIn) navigate("/dashboard");
-  }, [isLoggedIn, navigate]);
+  const handleSubmit = (event: SubmitEvent) => {
+    event.preventDefault();
+    navigate("/dashboard");
+  };
 
   return (
-    <Center sx={{ height: "100vh" }}>
-      {eula
-        ? <LoginCard />
-        : (
-          <Paper p={30} shadow="md" withBorder sx={{ width: 350 }}>
-            <Text>EULAに同意してください。</Text>
-            <Group mt="lg" position="right">
-              <Button
-                variant="outline"
-                color={colorScheme === "dark" ? "gray" : "dark"}
-                component={Link}
-                to="/getting-started"
-              >
-                はじめかた
-              </Button>
-            </Group>
-          </Paper>
-        )}
-    </Center>
-  );
-};
+    <div class="flex min-h-dvh flex-col">
+      <PublicHeader />
+      <main class="flex flex-1 flex-col items-center justify-center px-4 pt-6 pb-16">
+        <section class="flex w-full max-w-[420px] flex-col gap-7 rounded-[16px] border border-t-4 border-base-300 border-t-marker bg-base-200 px-[clamp(20px,5vw,36px)] py-9">
+          <div class="flex flex-col gap-3">
+            <h1 class="text-[26px] font-bold">サーバーに接続</h1>
+            <p class="text-sm leading-[1.7] text-muted">
+              接続先のサーバーとIDを入力してください。
+            </p>
+          </div>
 
-export default Login;
+          <form class="flex flex-col gap-5" onSubmit={handleSubmit}>
+            <label class="flex flex-col gap-2 text-sm font-medium">
+              サーバーURL
+              <input
+                type="url"
+                name="server"
+                placeholder="https://example.com"
+                autocomplete="url"
+                class={`${inputClass} font-mono`}
+              />
+            </label>
+
+            <label class="flex flex-col gap-2 text-sm font-medium">
+              ID
+              <input
+                type="text"
+                name="id"
+                autocomplete="username"
+                class={inputClass}
+              />
+            </label>
+
+            <label class="flex min-h-11 items-center gap-2.5 text-[13px] text-muted">
+              <input type="checkbox" name="remember" class="size-[18px] accent-accent" />
+              この端末に接続先を記憶する
+            </label>
+
+            <button
+              type="submit"
+              class="h-[50px] w-full rounded-[10px] bg-btn text-base font-medium text-btn-content hover:opacity-85"
+            >
+              ログイン
+            </button>
+          </form>
+        </section>
+      </main>
+    </div>
+  );
+}

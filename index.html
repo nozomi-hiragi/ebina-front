@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="EbinaStation" />
+    <meta name="theme-color" content="#3273B9" />
+    <script>
+      (function () {
+        var theme = null;
+        try {
+          var saved = localStorage.getItem("ebina-theme");
+          if (saved === "ebina-light" || saved === "ebina-dark") theme = saved;
+        } catch (e) {}
+        if (!theme) {
+          theme = window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "ebina-dark"
+            : "ebina-light";
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>EbinaStation</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
