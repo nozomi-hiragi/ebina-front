@@ -31,6 +31,12 @@
   --color-error-content: #16181d;
   --radius-field: 10px;
   --radius-box: 16px;
+  --radius-selector: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.3rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
   --ebina-muted: #5a5e66;
   --ebina-field: #8a919c;
   --ebina-marker: #f1c142;
@@ -64,6 +70,12 @@
   --color-error-content: #16181d;
   --radius-field: 10px;
   --radius-box: 16px;
+  --radius-selector: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.3rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
   --ebina-muted: #a3a9b3;
   --ebina-field: #5b626d;
   --ebina-marker: #3273b9;
@@ -86,5 +98,12 @@
     font-family: "IBM Plex Sans JP", system-ui, sans-serif;
     background-color: var(--color-base-100);
     color: var(--color-base-content);
+  }
+}
+
+/* 入力欄の枠線の色。フォーカス中は daisyUI の色（base-content）のまま */
+@layer utilities {
+  :is(.input, .select):not(:focus, :focus-within) {
+    --input-color: var(--ebina-field);
   }
 }

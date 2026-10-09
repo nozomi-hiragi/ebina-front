@@ -1,4 +1,5 @@
 import { createEffect, createRoot, createSignal } from "solid-js";
+import { readStorage, writeStorage } from "./storage";
 
 export type Theme = "ebina-light" | "ebina-dark";
 
@@ -9,12 +10,8 @@ function isTheme(value: unknown): value is Theme {
 }
 
 function initialTheme(): Theme {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (isTheme(saved)) return saved;
-  } catch {
-    // localStorage may be unavailable (private mode, blocked storage)
-  }
+  const saved = readStorage(STORAGE_KEY);
+  if (isTheme(saved)) return saved;
   return window.matchMedia("(prefers-color-scheme: dark)").matches
     ? "ebina-dark"
     : "ebina-light";
@@ -26,11 +23,7 @@ const [theme, setThemeSignal] = createRoot(() => {
   createEffect(() => {
     const current = value();
     document.documentElement.dataset.theme = current;
-    try {
-      localStorage.setItem(STORAGE_KEY, current);
-    } catch {
-      // ignore write failures
-    }
+    writeStorage(STORAGE_KEY, current);
   });
 
   return [value, setValue] as const;

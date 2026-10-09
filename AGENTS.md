@@ -5,7 +5,7 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 ## プロジェクト概要
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
-- 現在は画面のみ（トップ / ログイン / ダッシュボード / 設定）。API 接続や認証などの処理はまだ無い
+- 現在は画面（トップ / ログイン / 登録 / ダッシュボード / 設定）と、テスト用サーバー（`dev-server/`）に対するパスキーの登録・ログインまで。それ以外の API 接続や認証は未実装
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 
 ## 役割分担
@@ -57,13 +57,14 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 
 ```sh
 npm install
-npm run dev      # http://localhost:5173/ebina-station/
-npm run build    # tsc --noEmit + vite build（build/ に出力）
+npm run dev         # http://localhost:5173/ebina-station/
+npm run dev:server  # テスト用サーバー http://localhost:8787（dev-server/）
+npm run build       # tsc --noEmit + dev-server の tsc + vite build（build/ に出力）
 npm run preview
 ```
 
-- Node.js 22 以上
-- 作業の完了前に必ず `npm run build` を通す。確認用に作った `build/` は消してよい
+- Node.js 22.18 以上（dev-server を TS のまま実行するため）
+- 作業の完了前に必ず `npm run build` を通す。確認用に作った `build/` は消してよい。`dev-server/` の型も `npm run build` で検査される
 - テストはまだ無い
 
 ## 技術スタックと構成
@@ -71,6 +72,7 @@ npm run preview
 - SolidJS + @solidjs/router + Vite + TypeScript
 - Tailwind CSS v4 + daisyUI v5
 - アプリは `/ebina-station/` 配下で配信する（`vite.config.ts` の `base` と `src/App.tsx` の Router `base`）
+- テスト用サーバー（`dev-server/`）: Node で TS を直接実行、Hono、@simplewebauthn/server、メモリ保存。開発専用で、本番サーバーではない
 
 ```
 src/
@@ -78,10 +80,24 @@ src/
 ├── index.tsx      # エントリーポイント
 ├── index.css      # Tailwind / daisyUI テーマ
 ├── theme.ts       # テーマの状態
-├── components/    # 共通コンポーネント
+├── api.ts         # テスト用サーバーの API 呼び出し
+├── session.ts     # ログインセッションの状態（localStorage）
+├── passkey.ts     # パスキー操作のエラー文言
+├── passkeyAutofill.ts # パスキーのオートフィル待機（createPasskeyAutofill）
+├── params.ts      # クエリパラメータの補助（firstParam）
+├── components/    # 共通コンポーネント（AppLayout, PublicLayout, AuthCard など）
+│   ├── ui/        # 共通 UI 部品（Button, PageTitle, icons）
+│   └── login/     # ログイン画面専用の部品（serverSelection）
 └── pages/         # 画面（1 画面 1 ファイル）
+dev-server/        # テスト用サーバー（index.ts, app.ts, store.ts）
 public/            # favicon.svg, apple-touch-icon.png
 ```
+
+### dev-server のルール
+
+- Node が TS を直接実行するため、erasable な構文だけを使う（`enum`、`namespace`、パラメータプロパティは使わない）
+- import は相対パスで、拡張子 `.ts` を付ける
+- `src/api.ts` と `dev-server/app.ts` の API 契約（パス・リクエスト・レスポンス）は必ず両方いっしょに変える
 
 ## コーディング規約
 
@@ -90,6 +106,7 @@ public/            # favicon.svg, apple-touch-icon.png
 - React の書き方を持ち込まない。`class`（`className` ではない）、`createSignal` / `createStore`
 - props を分割代入しない（リアクティブ性が失われる）。必要なら `splitProps` / `mergeProps`
 - リストは `<For>`、条件分岐は `<Show>` / `<Switch>`。動的な値のリストに `.map` を使わない
+- 条件分岐は原則 `<Show>` / `<Switch>` で DOM ごと出し分ける。CSS で隠す（`classList={{ hidden: … }}`）のは、DOM を残す必要があるときだけ（非制御の入力状態・フォーカス・アニメーション、WebAuthn オートフィル用の入力欄のように要素自体が必要な場合）
 - リンクは `@solidjs/router` の `<A>`、画面遷移は `useNavigate`
 - 状態は使う場所の近くに置く。複数画面で共有するものだけ `src/` 直下などのモジュールに置く（例: `theme.ts`）
 
@@ -99,7 +116,15 @@ public/            # favicon.svg, apple-touch-icon.png
 - 色はテーマのトークンを使う（`bg-base-200`, `text-base-content`, `bg-primary` など）。独自トークン `text-muted` / `border-field` / `bg-marker` / `bg-btn` / `text-btn-content` もある
 - 色の値を直接書かない。新しい色が必要なら `src/index.css` の両テーマに追加する
 - 角丸: ボタン・入力 10px、カード 16px（`rounded-box`）
+- 入力欄・ボタンの高さ（`--size-field`）と入力欄の枠線の色は `src/index.css` のテーマで決める。daisyUI のクラス（`input`, `select`, `btn`, `join`, `alert`, `toggle`, `checkbox`）を直接使い、個別に高さや枠線を上書きしない
 - フォントは IBM Plex Sans JP、等幅は IBM Plex Mono（`font-mono`）
+
+### 共通部品
+
+- 共通の UI 部品は `src/components/ui/` に置く: `Button` / `LinkButton` / `buttonClass`、`PageTitle`、`icons`
+- クラス文字列やインライン SVG を画面に直接書かない。同じパターンが 2 回出たら部品に切り出す
+- 特定の画面だけで使う複合部品は `src/components/<画面名>/` に置く
+- 画面（`src/pages/`）は部品の組み立てが中心になるようにし、状態とハンドラ以外は書き込みすぎない
 
 ### 文言・その他
 

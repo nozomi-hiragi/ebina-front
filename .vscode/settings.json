@@ -4,6 +4,10 @@
     "daisyui",
     "Ebina",
     "prefersdark",
-    "solidjs"
+    "qrcode",
+    "RPID",
+    "simplewebauthn",
+    "solidjs",
+    "webauthn"
   ]
 }

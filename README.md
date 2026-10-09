@@ -4,7 +4,7 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 
 ## 状態
 
-現在は画面のみ実装しています（トップ / ログイン / ダッシュボード / 設定）。サーバーとの接続やログイン処理はまだ未実装です。
+画面（トップ / ログイン / 登録 / ダッシュボード / 設定）を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録とログインが動きます。ダッシュボード / 設定はログインが必要です。それ以外の機能はまだ未実装です。
 
 ## 技術スタック
 
@@ -17,16 +17,46 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 
 ## 開発
 
-前提: Node.js 22 以上（CI は 22.x を使用）
+前提: Node.js 22.18 以上（CI は 22.x を使用。dev-server を TS のまま実行するため 22.18 以上が必要）
 
 ```sh
 npm install
-npm run dev       # http://localhost:5173/ebina-station/
-npm run build     # 型チェック（tsc --noEmit）後、build/ に出力
-npm run preview   # build/ の内容をローカルで確認
+npm run dev         # http://localhost:5173/ebina-station/
+npm run dev:server  # テスト用サーバー http://localhost:8787
+npm run build       # 型チェック（src/ と dev-server/ の tsc）後、build/ に出力
+npm run preview     # build/ の内容をローカルで確認
 ```
 
 開発サーバーのパスは `/ebina-station/` 配下です。ルート（`/`）では表示されないので注意してください。
+
+### テスト用サーバー
+
+`dev-server/` には認証を試すための開発専用サーバーがあります。本番用のサーバーではありません。Node が TypeScript を直接実行し、Hono と @simplewebauthn/server を使っています。データはメモリ上にのみ保持します。
+
+起動するとターミナルに登録 URL（QR コード付き）を表示します。環境変数の既定値は次のとおりです。
+
+| 変数         | 既定値                                 | 説明                                                         |
+| ------------ | -------------------------------------- | ------------------------------------------------------------ |
+| `PORT`       | `8787`                                 | 待ち受けポート                                               |
+| `FRONT_URL`  | `http://localhost:5173/ebina-station`  | フロントエンドの URL（WebAuthn の origin / rpID と CORS に使う） |
+| `SERVER_URL` | `http://localhost:8787`                | フロントから見たサーバーの URL（登録 URL の `server` に入る）  |
+| `USER_ID`    | `test`                                 | 登録するユーザーの ID                                        |
+| `USER_NAME`  | `テストユーザー`                       | ユーザーの表示名                                             |
+
+注意点:
+
+- データはメモリ上にのみあるため、再起動すると消えます（登録したパスキーも消えます）。起動するたびに新しい登録 URL を発行します。
+- 登録 URL は発行から 15 分以内、かつ 1 回だけ有効です。
+- 登録には 4 桁の確認コードも必要です。登録 URL / QR に含まれていて、開くと自動で入力されます（ターミナルにも表示されます）。間違えられるのは 5 回までで、超えると URL は無効になります。
+- WebAuthn は https か localhost でしか動きません。スマートフォンで試すには HTTPS が必要ですが、これはまだ未対応です。
+
+#### パスキーでのログインを試す
+
+1. 2 つのターミナルで `npm run dev` と `npm run dev:server` を起動する
+2. `dev:server` のターミナルに表示された登録 URL を開く（QR コードを読み取ってもよい）
+3. `dev:server` のターミナルに表示された 4 桁の確認コード（URL から入力済み）を確かめ、画面の指示に従ってパスキーを登録する
+4. 「ログインへ」を押す
+5. ID 欄をクリックすると保存済みのパスキーがオートフィルの候補に出るので、選んでログインする（Chrome / Safari）。ID `test` を入力して「ログイン」を押してもよい（ID が空のときはボタンを押せない）
 
 ## ルーティング
 
@@ -34,8 +64,9 @@ npm run preview   # build/ の内容をローカルで確認
 | ------------ | ---------------------- |
 | `/`          | トップ（`pages/Top.tsx`） |
 | `/login`     | ログイン（`pages/Login.tsx`） |
-| `/dashboard` | ダッシュボード（`pages/Dashboard.tsx`、`AppLayout` 内） |
-| `/settings`  | 設定（`pages/Settings.tsx`、`AppLayout` 内） |
+| `/register`  | パスキー登録（`pages/Register.tsx`）。クエリ `server` と `token` が必要で、テスト用サーバーの登録 URL から開く |
+| `/dashboard` | ダッシュボード（`pages/Dashboard.tsx`、`AppLayout` 内、要ログイン） |
+| `/settings`  | 設定（`pages/Settings.tsx`、`AppLayout` 内、要ログイン） |
 
 存在しないパスは `pages/NotFound.tsx` を表示します。
 
@@ -49,6 +80,8 @@ npm run preview   # build/ の内容をローカルで確認
 
 テーマの選択は `src/theme.ts` で管理し、localStorage のキー `ebina-theme` に保存します。初回は OS の配色設定に従います。
 
+ログイン状態は `src/session.ts` で管理し、localStorage のキー `ebina-session` に保存します。接続先のサーバー URL の履歴（最大 5 件、新しい順）は `ebina-servers` に保存します。
+
 ## ディレクトリ構成
 
 ```
@@ -57,8 +90,16 @@ src/
 ├── index.tsx        # エントリーポイント
 ├── index.css        # Tailwind / daisyUI テーマ定義
 ├── theme.ts         # テーマの状態管理
-├── components/      # 共通コンポーネント（AppLayout, PublicHeader, ThemeToggle など）
+├── api.ts           # テスト用サーバーの API 呼び出し
+├── session.ts       # ログインセッションの状態管理
+├── passkey.ts       # パスキー操作のエラー文言
+├── passkeyAutofill.ts # パスキーのオートフィル待機
+├── params.ts        # クエリパラメータの補助
+├── components/      # 共通コンポーネント（AppLayout, PublicLayout, AuthCard, ThemeToggle など）
+│   ├── ui/          # 共通 UI 部品（Button, PageTitle, icons）
+│   └── login/       # ログイン画面専用の部品（serverSelection）
 └── pages/           # 各ページ
+dev-server/          # テスト用サーバー（index.ts: 起動と登録 URL 表示, app.ts: API, store.ts: メモリ保存）
 public/              # 静的ファイル（favicon.svg, apple-touch-icon.png）
 ```
 

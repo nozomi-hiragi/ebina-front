@@ -1,11 +1,12 @@
 import { For } from "solid-js";
+import { PageTitle } from "../components/ui";
 
 const cards = ["アプリ", "メンバー", "ステータス", "お知らせ"];
 
 export default function Dashboard() {
   return (
     <div class="flex flex-col gap-6">
-      <h1 class="text-2xl font-bold">ダッシュボード</h1>
+      <PageTitle>ダッシュボード</PageTitle>
       <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <For each={cards}>
           {(title) => (
