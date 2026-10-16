@@ -102,6 +102,7 @@ public/            # favicon.svg, apple-touch-icon.png
 - Node が TS を直接実行するため、erasable な構文だけを使う（`enum`、`namespace`、パラメータプロパティは使わない）
 - import は相対パスで、拡張子 `.ts` を付ける
 - `src/api.ts` と `dev-server/app.ts` の API 契約（パス・リクエスト・レスポンス）は必ず両方いっしょに変える
+- WAKE-ET で運ぶ URL は `wake://station/…` で表す（例: `wake://station/me`）。振り分けは `dev-server/app.ts` の `etHandler` で行い、未知の URL には 404 `{"error":{"code":"not_found"}}` を返す
 
 ## コーディング規約
 

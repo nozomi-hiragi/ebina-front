@@ -17,8 +17,8 @@ import {
   MemoryWakeStore,
 } from "@wake-protocol/server";
 import type {
-  EtRoute,
-  EtRouteResponse,
+  EtHandler,
+  EtHandlerResponse,
   WakeCredential,
   WakeServer,
 } from "@wake-protocol/server";
@@ -50,7 +50,7 @@ const P256_SPKI_PREFIX = Buffer.from("3059301306072a8648ce3d020106082a8648ce3d03
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
-function etJson(status: number, value: unknown): EtRouteResponse {
+function etJson(status: number, value: unknown): EtHandlerResponse {
   return {
     status,
     headers: [["content-type", "application/json"]],
@@ -62,19 +62,15 @@ export function createApp(config: Config, store: Store) {
   const credentials = new MemoryCredentialStore();
   const wakeStore = new MemoryWakeStore();
 
-  const routes: EtRoute[] = [
-    {
-      method: "GET",
-      path: "/ebina/me",
-      handler(_req, auth) {
-        const user = store.getUser(auth.userId);
-        if (!user) {
-          return etJson(404, { error: { code: "not_found" } });
-        }
-        return etJson(200, { id: user.id, name: user.name });
-      },
-    },
-  ];
+  // ET の中の URL は wake://station/… で表す。URL の振り分けはこちらで行う
+  const etHandler: EtHandler = (req, auth) => {
+    if (req.method === "GET" && req.url === "wake://station/me") {
+      const user = store.getUser(auth.userId);
+      if (!user) return etJson(404, { error: { code: "not_found" } });
+      return etJson(200, { id: user.id, name: user.name });
+    }
+    return etJson(404, { error: { code: "not_found" } });
+  };
 
   const server: WakeServer = createWakeServer({
     rpId: config.rpID,
@@ -82,7 +78,7 @@ export function createApp(config: Config, store: Store) {
     credentials,
     store: wakeStore,
     secret: new Uint8Array(randomBytes(32)),
-    routes,
+    etHandler,
   });
 
   const app = new Hono();
