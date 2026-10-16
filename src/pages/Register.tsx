@@ -1,11 +1,11 @@
 import { Match, Show, Switch, createResource, createSignal } from "solid-js";
 import { useSearchParams } from "@solidjs/router";
-import { startRegistration } from "@simplewebauthn/browser";
 import AuthCard, { AuthCardHeader } from "../components/AuthCard";
 import { Button, LinkButton } from "../components/ui";
 import { ApiError, getRegisterInfo, getRegisterOptions, verifyRegister, type User } from "../api";
 import { firstParam } from "../params";
 import { errorMessage } from "../passkey";
+import { parseCreationOptionsFromJSON, registrationResponseToJSON } from "../webauthn";
 
 const INVALID_URL = "登録用のURLが正しくありません";
 const INVALID_TOKEN = "登録用のURLが無効か、期限が切れています";
@@ -41,7 +41,14 @@ export default function Register() {
     setError("");
     try {
       const optionsJSON = await getRegisterOptions(server(), token(), code());
-      const response = await startRegistration({ optionsJSON });
+      const publicKey = parseCreationOptionsFromJSON(optionsJSON);
+      const credential = (await navigator.credentials.create({
+        publicKey,
+      })) as PublicKeyCredential | null;
+      if (!credential) {
+        throw new Error("パスキーの作成に失敗しました");
+      }
+      const response = registrationResponseToJSON(credential);
       await verifyRegister(server(), token(), response);
       setDone(true);
     } catch (err) {

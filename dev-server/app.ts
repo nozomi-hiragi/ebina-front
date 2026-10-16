@@ -1,16 +1,27 @@
+import { createPublicKey, randomBytes, timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
 import {
-  generateAuthenticationOptions,
   generateRegistrationOptions,
-  verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
+import { convertCOSEtoPKCS } from "@simplewebauthn/server/helpers";
 import type {
-  AuthenticationResponseJSON,
+  AuthenticatorTransport,
   RegistrationResponseJSON,
 } from "@simplewebauthn/server";
+import {
+  createWakeServer,
+  MemoryCredentialStore,
+  MemoryWakeStore,
+} from "@wake-protocol/server";
+import type {
+  EtRoute,
+  EtRouteResponse,
+  WakeCredential,
+  WakeServer,
+} from "@wake-protocol/server";
 import type { Store } from "./store.ts";
 
 export type Config = {
@@ -36,27 +47,57 @@ async function readBody(c: Context): Promise<Record<string, unknown>> {
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
-function bearer(c: Context): string {
-  const m = /^Bearer (.+)$/.exec(c.req.header("Authorization") ?? "");
-  return m?.[1] ?? "";
+function etJson(status: number, value: unknown): EtRouteResponse {
+  return {
+    status,
+    headers: [["content-type", "application/json"]],
+    body: new TextEncoder().encode(JSON.stringify(value)),
+  };
 }
 
 export function createApp(config: Config, store: Store) {
-  const app = new Hono();
+  const credentials = new MemoryCredentialStore();
+  const wakeStore = new MemoryWakeStore();
 
-  app.use(
-    "*",
-    cors({
-      origin: config.origin,
-      allowHeaders: ["Content-Type", "Authorization"],
-      allowMethods: ["GET", "POST", "OPTIONS"],
-    }),
-  );
+  const routes: EtRoute[] = [
+    {
+      method: "GET",
+      path: "/ebina/me",
+      handler(_req, auth) {
+        const user = store.getUser(auth.userId);
+        if (!user) {
+          return etJson(404, { error: { code: "not_found" } });
+        }
+        return etJson(200, { id: user.id, name: user.name });
+      },
+    },
+  ];
+
+  const server: WakeServer = createWakeServer({
+    rpId: config.rpID,
+    loginOrigins: [new URL(config.origin).origin],
+    credentials,
+    store: wakeStore,
+    secret: new Uint8Array(randomBytes(32)),
+    routes,
+  });
+
+  const app = new Hono();
 
   app.use("*", async (c, next) => {
     await next();
     console.log(`${c.req.method} ${new URL(c.req.url).pathname} ${c.res.status}`);
   });
+
+  app.use(
+    "/ebina/*",
+    cors({
+      origin: config.origin,
+      allowHeaders: ["Content-Type"],
+      allowMethods: ["GET", "POST", "OPTIONS"],
+      exposeHeaders: ["Content-Type"],
+    }),
+  );
 
   app.onError((err, c) => {
     if (err instanceof BadRequest) return c.json({ error: err.message }, 400);
@@ -65,6 +106,17 @@ export function createApp(config: Config, store: Store) {
   });
 
   app.notFound((c) => c.json({ error: "見つかりません" }, 404));
+
+  const handleWake = async (c: Context) => {
+    const url = new URL(c.req.url);
+    url.pathname = url.pathname.replace(/^\/ebina/, "");
+    const req = new Request(url.toString(), c.req.raw);
+    const res = await server.handle(req);
+    return res ?? c.notFound();
+  };
+
+  app.all("/ebina/auth/*", handleWake);
+  app.all("/ebina/wake/*", handleWake);
 
   const invalidToken = (c: Context) =>
     c.json({ error: "登録トークンが無効か、期限切れです" }, 404);
@@ -89,6 +141,7 @@ export function createApp(config: Config, store: Store) {
       );
     }
     const { user } = reg;
+    const existingCreds = await credentials.findUserCredentials(user.id);
     const options = await generateRegistrationOptions({
       rpName: config.rpName,
       rpID: config.rpID,
@@ -96,8 +149,12 @@ export function createApp(config: Config, store: Store) {
       userDisplayName: user.name,
       userID: new TextEncoder().encode(user.id),
       attestationType: "none",
-      authenticatorSelection: { residentKey: "required", userVerification: "preferred" },
-      excludeCredentials: user.passkeys.map((p) => ({ id: p.id, transports: p.transports })),
+      supportedAlgorithmIDs: [-7],
+      authenticatorSelection: { residentKey: "required", userVerification: "required" },
+      excludeCredentials: existingCreds.map((cred) => ({
+        id: Buffer.from(cred.credentialId).toString("base64url"),
+        transports: cred.transports as AuthenticatorTransport[] | undefined,
+      })),
     });
     store.setRegistrationChallenge(token, options.challenge);
     return c.json(options);
@@ -109,85 +166,69 @@ export function createApp(config: Config, store: Store) {
     const reg = store.getRegistration(token);
     if (!reg) return invalidToken(c);
     if (!reg.challenge) return c.json({ error: "先に登録を開始してください" }, 400);
+
+    const clientResponse = body.response as (RegistrationResponseJSON & {
+      response?: { publicKey?: string; transports?: AuthenticatorTransport[] };
+    }) | undefined;
+    if (!clientResponse || !clientResponse.rawId) {
+      return c.json({ error: "登録情報が不正です" }, 400);
+    }
+
+    const publicKeyBase64url = clientResponse.response?.publicKey;
+    if (typeof publicKeyBase64url !== "string" || !publicKeyBase64url) {
+      return c.json({ error: "公開鍵が見つかりません" }, 400);
+    }
+
     try {
       const result = await verifyRegistrationResponse({
-        response: body.response as RegistrationResponseJSON,
+        response: clientResponse,
         expectedChallenge: reg.challenge,
         expectedOrigin: config.origin,
         expectedRPID: config.rpID,
+        requireUserVerification: true,
+        supportedAlgorithmIDs: [-7],
       });
-      if (!result.verified) return c.json({ error: "パスキーを検証できませんでした" }, 400);
-      const { credential } = result.registrationInfo;
-      store.addPasskey(reg.user.id, {
-        id: credential.id,
-        publicKey: credential.publicKey,
-        counter: credential.counter,
-        transports: credential.transports,
-      });
+      if (!result.verified || !result.registrationInfo) {
+        return c.json({ error: "パスキーを検証できませんでした" }, 400);
+      }
+
+      const { registrationInfo } = result;
+      const publicKey = Buffer.from(publicKeyBase64url, "base64url");
+
+      const cosePoint = convertCOSEtoPKCS(registrationInfo.credential.publicKey);
+      if (publicKey.length < 65) {
+        return c.json({ error: "公開鍵の形式が不正です" }, 400);
+      }
+      const spkiPoint = publicKey.subarray(publicKey.length - 65);
+      if (cosePoint.length !== 65 || !timingSafeEqual(cosePoint, spkiPoint)) {
+        return c.json({ error: "公開鍵が一致しません" }, 400);
+      }
+
+      try {
+        createPublicKey({ key: publicKey, format: "der", type: "spki" });
+      } catch {
+        return c.json({ error: "公開鍵の解析に失敗しました" }, 400);
+      }
+
+      const cred: WakeCredential = {
+        credentialId: Buffer.from(clientResponse.rawId, "base64url"),
+        userId: reg.user.id,
+        userHandle: new TextEncoder().encode(reg.user.id),
+        publicKey,
+        algorithm: -7,
+        signCount: registrationInfo.credential.counter,
+        backupEligible: registrationInfo.credentialDeviceType === "multiDevice",
+        status: "active",
+        ...(clientResponse.response?.transports ? { transports: clientResponse.response.transports } : {}),
+      };
+
+      await credentials.setCredential(cred, reg.user.id);
       store.markRegistrationUsed(token);
       return c.json({ ok: true });
     } catch (e) {
       console.error(e);
       return c.json({ error: "パスキーを検証できませんでした" }, 400);
     }
-  });
-
-  app.post("/ebina/login/options", async (c) => {
-    const id = str((await readBody(c)).id);
-    // ID 省略時はユーザーを特定せず、端末のパスキー選択に任せる
-    const user = id ? store.getUser(id) : undefined;
-    if (id && (!user || user.passkeys.length === 0)) {
-      return c.json({ error: "ユーザーが見つからないか、パスキーが未登録です" }, 404);
-    }
-    const options = await generateAuthenticationOptions({
-      rpID: config.rpID,
-      userVerification: "preferred",
-      allowCredentials: user?.passkeys.map((p) => ({ id: p.id, transports: p.transports })),
-    });
-    const sessionId = store.createLoginChallenge(user?.id, options.challenge);
-    return c.json({ sessionId, options });
-  });
-
-  app.post("/ebina/login/verify", async (c) => {
-    const body = await readBody(c);
-    const login = store.takeLoginChallenge(str(body.sessionId));
-    if (!login) return c.json({ error: "ログインセッションが無効か、期限切れです" }, 404);
-    const response = body.response as AuthenticationResponseJSON | undefined;
-    const found = response && store.findPasskey(response.id);
-    if (!response || !found) return c.json({ error: "このパスキーは登録されていません" }, 401);
-    const { user, passkey } = found;
-    if (login.userId && login.userId !== user.id) {
-      return c.json({ error: "認証に失敗しました" }, 401);
-    }
-    try {
-      const result = await verifyAuthenticationResponse({
-        response,
-        expectedChallenge: login.challenge,
-        expectedOrigin: config.origin,
-        expectedRPID: config.rpID,
-        credential: passkey,
-      });
-      if (!result.verified) return c.json({ error: "認証に失敗しました" }, 401);
-      passkey.counter = result.authenticationInfo.newCounter;
-      const token = store.createAuthSession(user.id);
-      return c.json({ token, user: { id: user.id, name: user.name } });
-    } catch (e) {
-      console.error(e);
-      return c.json({ error: "認証に失敗しました" }, 401);
-    }
-  });
-
-  app.get("/ebina/me", (c) => {
-    const user = store.getAuthSessionUser(bearer(c));
-    if (!user) return c.json({ error: "認証が必要です" }, 401);
-    return c.json({ id: user.id, name: user.name });
-  });
-
-  app.post("/ebina/logout", (c) => {
-    const token = bearer(c);
-    if (!store.getAuthSessionUser(token)) return c.json({ error: "認証が必要です" }, 401);
-    store.deleteAuthSession(token);
-    return c.json({ ok: true });
   });
 
   return app;

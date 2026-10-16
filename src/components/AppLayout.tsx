@@ -1,10 +1,11 @@
-import { Show, createEffect, onMount, type ParentProps } from "solid-js";
+import { Show, createEffect, onCleanup, onMount, type ParentProps } from "solid-js";
 import { A, useNavigate } from "@solidjs/router";
 import { MenuIcon, buttonClass } from "./ui";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
-import { ApiError, getMe } from "../api";
+import { getMe } from "../api";
 import { clearSession, session } from "../session";
+import { isReauthError, wakeClient, wakeStore } from "../wake";
 
 const DRAWER_ID = "app-drawer";
 
@@ -26,18 +27,41 @@ export default function AppLayout(props: ParentProps) {
     if (!session()) navigate("/login", { replace: true });
   });
 
-  onMount(async () => {
+  onMount(() => {
     const s = session();
     if (!s) return;
-    try {
-      await getMe(s.server, s.token);
-    } catch (err) {
-      // 認証切れのときだけログアウト。通信エラーは画面をそのまま残す
-      if (err instanceof ApiError && err.status === 401) {
-        clearSession();
-        navigate("/login", { replace: true });
+    let disposed = false;
+    const redirectToLogin = () => {
+      if (disposed || session()?.server !== s.server) return;
+      clearSession();
+      navigate("/login", { replace: true });
+    };
+    const checkSession = async (verifyUser: boolean) => {
+      try {
+        const activeSession = await wakeClient(s.server).reload();
+        if (!activeSession) {
+          redirectToLogin();
+          return;
+        }
+        if (verifyUser && !disposed) await getMe(s.server);
+      } catch (err) {
+        if (isReauthError(err)) redirectToLogin();
+        // 通信エラーなどの場合は画面をそのまま残す
       }
-    }
+    };
+    const unsubscribeStore = wakeStore(s.server).subscribe(() => {
+      void checkSession(false);
+    });
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "ebina-session" && !event.newValue) redirectToLogin();
+    };
+    window.addEventListener("storage", onStorage);
+    onCleanup(() => {
+      disposed = true;
+      unsubscribeStore();
+      window.removeEventListener("storage", onStorage);
+    });
+    void checkSession(true);
   });
 
   return (

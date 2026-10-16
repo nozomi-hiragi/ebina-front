@@ -1,14 +1,14 @@
 import { Show, createSignal, onMount } from "solid-js";
 import { useNavigate, useSearchParams } from "@solidjs/router";
-import { startAuthentication, type AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import AuthCard, { AuthCardHeader } from "../components/AuthCard";
 import { createServerSelection } from "../components/login/serverSelection";
 import { Button } from "../components/ui";
-import { ApiError, getLoginOptions, verifyLogin } from "../api";
+import { getMe } from "../api";
 import { firstParam } from "../params";
 import { errorMessage } from "../passkey";
 import { createPasskeyAutofill } from "../passkeyAutofill";
 import { normalizeServer, saveSession, session } from "../session";
+import { wakeClient } from "../wake";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -25,26 +25,31 @@ export default function Login() {
 
   let idInput: HTMLInputElement | undefined;
 
-  // ボタンとオートフィルで共通の、認証レスポンス検証からの成功処理
-  const finishLogin = async (s: string, sessionId: string, response: AuthenticationResponseJSON) => {
-    const result = await verifyLogin(s, sessionId, response);
-    saveSession({ server: s, token: result.token, user: result.user });
+  // ボタンとオートフィルで共通のログイン完了処理
+  const finishLogin = async (s: string) => {
+    const user = await getMe(s);
+    saveSession({ server: s, user });
     servers.save();
     navigate("/dashboard", { replace: true });
   };
 
   // 接続先が決まっている間、ID 欄でパスキーのオートフィルを待つ
-  createPasskeyAutofill({
+  const autofill = createPasskeyAutofill({
     server: servers.server,
     retry,
-    onCredential: async (s, sessionId, response) => {
+    onSuccess: async (s) => {
       setBusy(true);
       try {
-        await finishLogin(s, sessionId, response);
+        await finishLogin(s);
       } catch (err) {
-        if (err instanceof ApiError) setError(err.message);
+        setError(errorMessage(err, "login"));
         setBusy(false);
+        setRetry((n) => n + 1);
       }
+    },
+    onError: (err) => {
+      setError(errorMessage(err, "login"));
+      setRetry((n) => n + 1);
     },
   });
 
@@ -65,12 +70,17 @@ export default function Login() {
       setError("サーバーURLを入力してください");
       return;
     }
+
+    // 先にオートフィルの待機を中断する
     setBusy(true);
+    await autofill.abort();
     setError("");
+
     try {
-      const { sessionId, options } = await getLoginOptions(s, u);
-      const response = await startAuthentication({ optionsJSON: options });
-      await finishLogin(s, sessionId, response);
+      const client = wakeClient(s);
+      const mode = u ? { mode: "username" as const, username: u } : { mode: "discoverable" as const };
+      await client.login(mode);
+      await finishLogin(s);
     } catch (err) {
       setError(errorMessage(err, "login"));
       setBusy(false);
