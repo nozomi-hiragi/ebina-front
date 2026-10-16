@@ -44,6 +44,11 @@ export function saveSession(next: Session) {
   setSession(next);
 }
 
+// 他タブが書き換えた localStorage の値を読み直す
+export function reloadSession() {
+  setSession(loadSession());
+}
+
 export function clearSession() {
   writeStorage(SESSION_KEY, null);
   setSession(null);

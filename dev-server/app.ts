@@ -1,4 +1,4 @@
-import { createPublicKey, randomBytes, timingSafeEqual } from "node:crypto";
+import { randomBytes, timingSafeEqual } from "node:crypto";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { cors } from "hono/cors";
@@ -44,6 +44,9 @@ async function readBody(c: Context): Promise<Record<string, unknown>> {
   }
   return body as Record<string, unknown>;
 }
+
+// P-256 公開鍵の SPKI DER のうち、点（0x04||x||y）より前の固定部分
+const P256_SPKI_PREFIX = Buffer.from("3059301306072a8648ce3d020106082a8648ce3d030107034200", "hex");
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
@@ -193,25 +196,25 @@ export function createApp(config: Config, store: Store) {
       }
 
       const { registrationInfo } = result;
-      const publicKey = Buffer.from(publicKeyBase64url, "base64url");
-
-      const cosePoint = convertCOSEtoPKCS(registrationInfo.credential.publicKey);
-      if (publicKey.length < 65) {
+      // 保存する鍵は検証済みの COSE から作る。クライアントが送った SPKI は一致するかだけを見る
+      const point = convertCOSEtoPKCS(registrationInfo.credential.publicKey);
+      if (point.length !== 65 || point[0] !== 0x04) {
         return c.json({ error: "公開鍵の形式が不正です" }, 400);
       }
-      const spkiPoint = publicKey.subarray(publicKey.length - 65);
-      if (cosePoint.length !== 65 || !timingSafeEqual(cosePoint, spkiPoint)) {
+      const publicKey = Buffer.concat([P256_SPKI_PREFIX, point]);
+      const clientKey = Buffer.from(publicKeyBase64url, "base64url");
+      if (clientKey.length !== publicKey.length || !timingSafeEqual(clientKey, publicKey)) {
         return c.json({ error: "公開鍵が一致しません" }, 400);
       }
 
-      try {
-        createPublicKey({ key: publicKey, format: "der", type: "spki" });
-      } catch {
-        return c.json({ error: "公開鍵の解析に失敗しました" }, 400);
+      // 検証済みの ID を使う。既存の ID の上書きは拒否する
+      const credentialId = Buffer.from(registrationInfo.credential.id, "base64url");
+      if (await credentials.getCredential(credentialId)) {
+        return c.json({ error: "このパスキーはすでに登録されています" }, 409);
       }
 
       const cred: WakeCredential = {
-        credentialId: Buffer.from(clientResponse.rawId, "base64url"),
+        credentialId,
         userId: reg.user.id,
         userHandle: new TextEncoder().encode(reg.user.id),
         publicKey,

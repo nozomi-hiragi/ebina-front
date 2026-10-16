@@ -4,7 +4,7 @@ import { MenuIcon, buttonClass } from "./ui";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 import { getMe } from "../api";
-import { clearSession, session } from "../session";
+import { clearSession, reloadSession, saveSession, session } from "../session";
 import { isReauthError, wakeClient, wakeStore } from "../wake";
 
 const DRAWER_ID = "app-drawer";
@@ -36,24 +36,32 @@ export default function AppLayout(props: ParentProps) {
       clearSession();
       navigate("/login", { replace: true });
     };
-    const checkSession = async (verifyUser: boolean) => {
+    const checkSession = async () => {
       try {
         const activeSession = await wakeClient(s.server).reload();
         if (!activeSession) {
           redirectToLogin();
           return;
         }
-        if (verifyUser && !disposed) await getMe(s.server);
+        if (disposed) return;
+        // 他タブで別のユーザーとしてログインし直した場合も、表示を WAKE のセッションに合わせる
+        const user = await getMe(s.server);
+        const current = session();
+        if (!disposed && current?.server === s.server && (current.user.id !== user.id || current.user.name !== user.name)) {
+          saveSession({ server: s.server, user });
+        }
       } catch (err) {
         if (isReauthError(err)) redirectToLogin();
         // 通信エラーなどの場合は画面をそのまま残す
       }
     };
     const unsubscribeStore = wakeStore(s.server).subscribe(() => {
-      void checkSession(false);
+      void checkSession();
     });
     const onStorage = (event: StorageEvent) => {
-      if (event.key === "ebina-session" && !event.newValue) redirectToLogin();
+      if (event.key !== "ebina-session") return;
+      if (!event.newValue) redirectToLogin();
+      else reloadSession();
     };
     window.addEventListener("storage", onStorage);
     onCleanup(() => {
@@ -61,7 +69,7 @@ export default function AppLayout(props: ParentProps) {
       unsubscribeStore();
       window.removeEventListener("storage", onStorage);
     });
-    void checkSession(true);
+    void checkSession();
   });
 
   return (
