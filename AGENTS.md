@@ -5,7 +5,7 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 ## プロジェクト概要
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
-- 現在は画面（トップ / ログイン / 登録 / ダッシュボード / 設定）と、テスト用サーバー（`dev-server/`）に対するパスキーの登録・ログインまで。それ以外の API 接続や認証は未実装
+- 現在は画面（トップ / ログイン / 登録 / ダッシュボード / 設定）と、テスト用サーバー（`dev-server/`）に対するパスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理まで。それ以外の API 接続や認証は未実装
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 
 ## 役割分担
@@ -72,7 +72,9 @@ npm run preview
 - SolidJS + @solidjs/router + Vite + TypeScript
 - Tailwind CSS v4 + daisyUI v5
 - アプリは `/ebina-station/` 配下で配信する（`vite.config.ts` の `base` と `src/App.tsx` の Router `base`）
-- テスト用サーバー（`dev-server/`）: Node で TS を直接実行、Hono、@simplewebauthn/server、メモリ保存。開発専用で、本番サーバーではない
+- テスト用サーバー（`dev-server/`）: Node で TS を直接実行、Hono、`@wake-protocol/server`、メモリ保存。登録は WAKE の範囲外で `@simplewebauthn/server` による検証を残す。開発専用で、本番サーバーではない
+
+- フロントのログイン・セッションは `@wake-protocol/client` を使う。セッション鍵はサーバーごとに分けた IndexedDB に保存し、localStorage は接続先と表示用ユーザー情報だけを持つ（認証トークンは保存しない）
 
 ```
 src/
@@ -81,7 +83,9 @@ src/
 ├── index.css      # Tailwind / daisyUI テーマ
 ├── theme.ts       # テーマの状態
 ├── api.ts         # テスト用サーバーの API 呼び出し
-├── session.ts     # ログインセッションの状態（localStorage）
+├── session.ts     # 接続先と表示用ユーザー情報（localStorage）
+├── wake.ts        # WAKE クライアント・IndexedDB ストア・条件付き認証
+├── webauthn.ts    # WebAuthn 登録オプションと応答の変換
 ├── passkey.ts     # パスキー操作のエラー文言
 ├── passkeyAutofill.ts # パスキーのオートフィル待機（createPasskeyAutofill）
 ├── params.ts      # クエリパラメータの補助（firstParam）

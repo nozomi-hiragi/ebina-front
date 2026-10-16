@@ -4,7 +4,7 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 
 ## 状態
 
-画面（トップ / ログイン / 登録 / ダッシュボード / 設定）を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録とログインが動きます。ダッシュボード / 設定はログインが必要です。それ以外の機能はまだ未実装です。
+画面（トップ / ログイン / 登録 / ダッシュボード / 設定）を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。ダッシュボード / 設定はログインが必要です。それ以外の機能はまだ未実装です。
 
 ## 技術スタック
 
@@ -31,7 +31,7 @@ npm run preview     # build/ の内容をローカルで確認
 
 ### テスト用サーバー
 
-`dev-server/` には認証を試すための開発専用サーバーがあります。本番用のサーバーではありません。Node が TypeScript を直接実行し、Hono と @simplewebauthn/server を使っています。データはメモリ上にのみ保持します。
+`dev-server/` には認証を試すための開発専用サーバーがあります。本番用のサーバーではありません。Node が TypeScript を直接実行し、Hono と `@wake-protocol/server` を使っています。パスキー登録は WAKE の範囲外のため、`@simplewebauthn/server` で検証します。データはメモリ上にのみ保持します。
 
 起動するとターミナルに登録 URL（QR コード付き）を表示します。環境変数の既定値は次のとおりです。
 
@@ -80,7 +80,7 @@ npm run preview     # build/ の内容をローカルで確認
 
 テーマの選択は `src/theme.ts` で管理し、localStorage のキー `ebina-theme` に保存します。初回は OS の配色設定に従います。
 
-ログイン状態は `src/session.ts` で管理し、localStorage のキー `ebina-session` に保存します。接続先のサーバー URL の履歴（最大 5 件、新しい順）は `ebina-servers` に保存します。
+ログインには `@wake-protocol/client` を使います。`src/wake.ts` がサーバーごとの WAKE クライアントとセッションストアを管理し、セッション鍵は IndexedDB に保存します。`src/session.ts` は表示用のユーザー情報と接続先だけを localStorage のキー `ebina-session` に保存し、認証トークンは保存しません。接続先のサーバー URL の履歴（最大 5 件、新しい順）は `ebina-servers` に保存します。
 
 ## ディレクトリ構成
 
@@ -91,7 +91,9 @@ src/
 ├── index.css        # Tailwind / daisyUI テーマ定義
 ├── theme.ts         # テーマの状態管理
 ├── api.ts           # テスト用サーバーの API 呼び出し
-├── session.ts       # ログインセッションの状態管理
+├── session.ts       # 接続先と表示用ユーザー情報
+├── wake.ts          # WAKE クライアント・IndexedDB ストア・条件付き認証
+├── webauthn.ts      # WebAuthn 登録オプションと応答の変換
 ├── passkey.ts       # パスキー操作のエラー文言
 ├── passkeyAutofill.ts # パスキーのオートフィル待機
 ├── params.ts        # クエリパラメータの補助

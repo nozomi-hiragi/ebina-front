@@ -1,9 +1,9 @@
 import { createSignal } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { logout } from "../api";
 import { clearSession, session } from "../session";
 import { Button, PageTitle } from "../components/ui";
 import { setTheme, theme, type Theme } from "../theme";
+import { wakeClient } from "../wake";
 
 const options: { value: Theme; label: string }[] = [
   { value: "ebina-light", label: "ライト" },
@@ -19,7 +19,7 @@ export default function Settings() {
     const s = session();
     if (s) {
       try {
-        await logout(s.server, s.token);
+        await wakeClient(s.server).logout();
       } catch {
         // サーバー側の失敗は無視してローカルのセッションを消す
       }

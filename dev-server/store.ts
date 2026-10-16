@@ -1,17 +1,9 @@
 // 開発用のインメモリストア。再起動すると消える
-import { randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
-
-export type Passkey = {
-  id: string;
-  publicKey: Uint8Array<ArrayBuffer>;
-  counter: number;
-  transports?: string[];
-};
+import { randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 export type User = {
   id: string;
   name: string;
-  passkeys: Passkey[];
 };
 
 type RegistrationToken = {
@@ -25,20 +17,7 @@ type RegistrationToken = {
 
 export type CodeCheck = { status: "ok" } | { status: "wrong"; remaining: number } | { status: "invalid" };
 
-type LoginChallenge = {
-  userId?: string;
-  challenge: string;
-  expiresAt: number;
-};
-
-type AuthSession = {
-  userId: string;
-  expiresAt: number;
-};
-
 const REGISTRATION_TTL = 15 * 60 * 1000;
-const LOGIN_TTL = 5 * 60 * 1000;
-const SESSION_TTL = 24 * 60 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 
 const newToken = () => randomBytes(32).toString("base64url");
@@ -46,12 +25,10 @@ const newToken = () => randomBytes(32).toString("base64url");
 export function createStore() {
   const users = new Map<string, User>();
   const registrationTokens = new Map<string, RegistrationToken>();
-  const loginChallenges = new Map<string, LoginChallenge>();
-  const authSessions = new Map<string, AuthSession>();
 
   return {
     createUser(id: string, name: string): User {
-      const user: User = { id, name, passkeys: [] };
+      const user: User = { id, name };
       users.set(id, user);
       return user;
     },
@@ -91,49 +68,6 @@ export function createStore() {
     markRegistrationUsed(token: string) {
       const t = registrationTokens.get(token);
       if (t) t.used = true;
-    },
-
-    addPasskey(userId: string, passkey: Passkey) {
-      users.get(userId)?.passkeys.push(passkey);
-    },
-
-    createLoginChallenge(userId: string | undefined, challenge: string): string {
-      const sessionId = randomUUID();
-      loginChallenges.set(sessionId, { userId, challenge, expiresAt: Date.now() + LOGIN_TTL });
-      return sessionId;
-    },
-    // 取り出すと同時に削除する（1 回限り）
-    takeLoginChallenge(sessionId: string): { userId?: string; challenge: string } | undefined {
-      const c = loginChallenges.get(sessionId);
-      loginChallenges.delete(sessionId);
-      if (!c || c.expiresAt <= Date.now()) return undefined;
-      return { userId: c.userId, challenge: c.challenge };
-    },
-    // 全ユーザーからクレデンシャル ID でパスキーを探す
-    findPasskey(credentialId: string): { user: User; passkey: Passkey } | undefined {
-      for (const user of users.values()) {
-        const passkey = user.passkeys.find((p) => p.id === credentialId);
-        if (passkey) return { user, passkey };
-      }
-      return undefined;
-    },
-
-    createAuthSession(userId: string): string {
-      const token = newToken();
-      authSessions.set(token, { userId, expiresAt: Date.now() + SESSION_TTL });
-      return token;
-    },
-    getAuthSessionUser(token: string): User | undefined {
-      const s = authSessions.get(token);
-      if (!s) return undefined;
-      if (s.expiresAt <= Date.now()) {
-        authSessions.delete(token);
-        return undefined;
-      }
-      return users.get(s.userId);
-    },
-    deleteAuthSession(token: string) {
-      authSessions.delete(token);
     },
   };
 }

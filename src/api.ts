@@ -1,10 +1,9 @@
-import type {
-  AuthenticationResponseJSON,
-  PublicKeyCredentialCreationOptionsJSON,
-  PublicKeyCredentialRequestOptionsJSON,
-  RegistrationResponseJSON,
-} from "@simplewebauthn/browser";
 import { normalizeServer } from "./session";
+import { wakeClient, wakeErrorCode } from "./wake";
+import type {
+  PublicKeyCredentialCreationOptionsJSON,
+  RegistrationResponseJSON,
+} from "./webauthn";
 
 export class ApiError extends Error {
   status: number;
@@ -17,21 +16,15 @@ export class ApiError extends Error {
 }
 
 export type User = { id: string; name: string };
-export type LoginOptionsResponse = {
-  sessionId: string;
-  options: PublicKeyCredentialRequestOptionsJSON;
-};
-export type LoginVerifyResponse = { token: string; user: User };
 
 async function request<T>(
   server: string,
   path: string,
-  init: { method?: string; body?: unknown; token?: string } = {},
+  init: { method?: string; body?: unknown } = {},
 ): Promise<T> {
   const base = normalizeServer(server);
   const headers: Record<string, string> = {};
   if (init.body !== undefined) headers["Content-Type"] = "application/json";
-  if (init.token) headers.Authorization = `Bearer ${init.token}`;
 
   let res: Response;
   try {
@@ -74,18 +67,45 @@ export function verifyRegister(server: string, token: string, response: Registra
   return request<{ ok: true }>(server, "/register/verify", { body: { token, response } });
 }
 
-export function getLoginOptions(server: string, id?: string) {
-  return request<LoginOptionsResponse>(server, "/login/options", { body: id ? { id } : {} });
-}
+export async function getMe(server: string): Promise<User> {
+  const client = wakeClient(server);
+  let res: Response;
+  try {
+    await client.reload();
+    res = await client.wakeFetch("/ebina/me");
+  } catch (err) {
+    if (err instanceof ApiError || wakeErrorCode(err)) throw err;
+    throw new ApiError(0, "サーバーに接続できませんでした");
+  }
 
-export function verifyLogin(server: string, sessionId: string, response: AuthenticationResponseJSON) {
-  return request<LoginVerifyResponse>(server, "/login/verify", { body: { sessionId, response } });
-}
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    // 本文が JSON でない場合は無視
+  }
 
-export function getMe(server: string, token: string) {
-  return request<User>(server, "/me", { token });
-}
+  if (res.status !== 200) {
+    let message = `サーバーがエラーを返しました (${res.status})`;
+    if (data && typeof data === "object" && "error" in data) {
+      const errVal = (data as { error: unknown }).error;
+      if (typeof errVal === "string") {
+        message = errVal;
+      } else if (errVal && typeof errVal === "object" && "code" in errVal) {
+        message = String((errVal as { code: unknown }).code);
+      }
+    }
+    throw new ApiError(res.status, message);
+  }
 
-export function logout(server: string, token: string) {
-  return request<{ ok: true }>(server, "/logout", { method: "POST", body: {}, token });
+  if (
+    !data ||
+    typeof data !== "object" ||
+    typeof (data as Record<string, unknown>).id !== "string" ||
+    typeof (data as Record<string, unknown>).name !== "string"
+  ) {
+    throw new ApiError(500, "サーバーの応答が不正です");
+  }
+
+  return data as User;
 }

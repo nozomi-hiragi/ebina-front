@@ -2,7 +2,7 @@ import { createRoot, createSignal } from "solid-js";
 import type { User } from "./api";
 import { readStorage, writeStorage } from "./storage";
 
-export type Session = { server: string; token: string; user: User };
+export type Session = { server: string; user: User };
 
 const SESSION_KEY = "ebina-session";
 const SERVERS_KEY = "ebina-servers";
@@ -16,11 +16,18 @@ function loadSession(): Session | null {
     const s = JSON.parse(raw);
     if (
       typeof s?.server === "string" &&
-      typeof s?.token === "string" &&
       typeof s?.user?.id === "string" &&
       typeof s?.user?.name === "string"
     ) {
-      return s as Session;
+      const loaded: Session = {
+        server: s.server,
+        user: {
+          id: s.user.id,
+          name: s.user.name,
+        },
+      };
+      if ("token" in s) writeStorage(SESSION_KEY, JSON.stringify(loaded));
+      return loaded;
     }
   } catch {
     // 壊れた値は無視
@@ -35,6 +42,11 @@ export { session };
 export function saveSession(next: Session) {
   writeStorage(SESSION_KEY, JSON.stringify(next));
   setSession(next);
+}
+
+// 他タブが書き換えた localStorage の値を読み直す
+export function reloadSession() {
+  setSession(loadSession());
 }
 
 export function clearSession() {
