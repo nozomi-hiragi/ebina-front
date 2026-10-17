@@ -126,7 +126,7 @@ export default function StationView() {
         setTitle(nextTitle);
         document.title = nextTitle;
         if (!binette.type) { setState("empty"); return; }
-        const sh = createShellApi(active, path => { if (!cancelled) shellNavigate(path); });
+        const sh = createShellApi(active, path => { if (!cancelled) shellNavigate(path); }, goToLogin);
         const handle = await play(target, binette, {
           sh,
           signal: controller.signal,

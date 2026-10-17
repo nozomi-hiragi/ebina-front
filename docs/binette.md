@@ -39,6 +39,8 @@ JavaScript とアセットを使う例:
 - `entry` で参照するアセットの `type` は Binette の `type` と一致させます。
 - `type` は描画方法を決め、ソースの置き場所は `content` または `entry` で決まります。`type: "html"` では `content` の文字列、または `entry` が指すアセットの文字列を Shadow DOM の HTML として挿入します。`type: "js"` では `content` の文字列、または `entry` が指すアセットの文字列を JavaScript モジュールとして読み込みます。
 - `css` 型アセットは画面に自動で適用されます。
+- `css` 型アセットは文字列として `<style>` に入れるため、CSS の中の相対 `url(...)` は殻のページを基準に解決されます。画像やフォントは絶対 URL で書くか、JavaScript から `sh.asset(name)` で取得してください。
+- `js` は Blob URL から読み込むため、モジュールの中の相対 `import`（`import "./helper.js"` など）は解決できません。エントリーの JavaScript は1つのファイルにまとめ、ほかのファイルは `sh.asset(name)` で取得してください。
 
 ## アセットの取得
 
@@ -56,7 +58,7 @@ JavaScript のソースは ES module として読み込まれ、`mount(el, sh)` 
 
 - `version`: 殻 API のバージョン文字列（現在は `"0.1"`）
 - `navigate(path)`: 殻内のパスへ移動
-- `fetch(url, init?)`: `wake://` URL は WAKE-ET、それ以外は通常の fetch で取得
+- `fetch(url, init?)`: `wake://` URL は WAKE-ET、それ以外は通常の fetch で取得。WAKE のセッションが切れていた場合、殻はログイン画面へ移ります
 - `user`: `{ id, name }` 形式のログイン中ユーザー
 - `server`: 接続先 Station の URL
 - `asset(name)`: 名前を指定したアセットの取得
