@@ -1,77 +1,208 @@
 # Binette
 
-Binette は Station（サーバー）が返す画面定義です。ファイル名の拡張子は `.bina` で、殻は WAKE-ET を通じて取得し、HTML または JavaScript で表示します。現在の形式バージョンは `0.1` です。
+Binette（ビネット）は、Station（サーバー）がクライアントに渡す画面の定義と、それを再生するプレイヤーとシェルの約束事です。ファイルの拡張子は `.bina` です。
+
+この文書は、合意した仕様（v0.1）をまとめたものです。ebina-front がこの仕様をどう使うか（パスとファイルの対応、WAKE での取得など）は [ebina-front.md](ebina-front.md) にあります。実装がまだ追いついていない部分は「実装の状況」に書きます。
+
+## 責任範囲
+
+Binette は、プレイヤーを組み込むクライアント（以下「フロント」。EbinaStation では ebina-front）がプレイヤーを始めてからの画面だけを扱います。
+
+| 層 | 担当 |
+| --- | --- |
+| 形式（`.bina` に何を書くか） | Binette |
+| 再生（html を置く、js を動かす、settings を描く、後始末） | Binette のプレイヤー |
+| シェル（`sh` の API、設定画面） | Binette |
+| ルーティングの例外（`routes`）と、始めたときの行き先 | Binette |
+| ビネットや asset の取得 | フロントが渡す `fetch`。プレイヤーは URL を解釈しない |
+| パスとビネットの対応、ログイン、セッション、通信の仕組み、テーマの保存 | フロント |
+
+プレイヤーは、フロントの通信の仕組み（EbinaStation では WAKE）に依存しません。必要なものは、プレイヤーを始めるときにフロントから受け取ります。
+
+```ts
+createPlayer({
+  fetch: (url, init) => frontFetch(url, init), // ビネットと asset を取る関数
+  binette: (path) => `/…`,                     // パスに対応するビネットの URL（フロントの決めごと）
+  settings: { /* シェルの設定項目（出す / 出さない、処理） */ },
+});
+```
 
 ## 形式
 
-HTML を直接含める例:
+中身は JSON です。
+
+### 共通の欄
+
+| 欄 | 型 | 説明 |
+| --- | --- | --- |
+| `binette` | 文字列 | 形式のバージョン。`"メジャー.マイナー"`（今は `"0.1"`）。後からパッチの桁を足すかもしれない |
+| `type` | 文字列 | `html` / `js` / `settings` |
+| `title` | 文字列（任意） | 画面のタイトル。`document.title` などに使う |
+| `app` | 文字列 | アプリ ID。`type: "settings"` では必須 |
+
+- プレイヤーはメジャーが同じものだけを読みます。マイナーが新しくても、知らない欄は無視して読みます。
+- `type`・`content`・`entry` がどれも無いビネットは「中身無し」です。
+
+### `type: "html"` と `type: "js"`
 
 ```json
 {
   "binette": "0.1",
-  "title": "ホーム",
   "type": "html",
-  "content": "<sh-header title=\"ホーム\"></sh-header><p>こんにちは</p>"
+  "title": "ホーム",
+  "content": "<p>こんにちは</p><a href=\"/notes\">ノート</a>"
 }
 ```
 
-JavaScript とアセットを使う例:
-
 ```json
 {
   "binette": "0.1",
-  "title": "Hello",
   "type": "js",
+  "title": "ノート",
   "entry": "main",
   "assets": {
-    "main": { "type": "js", "src": "wake://station/files/hello/main.js" },
-    "style": { "type": "css", "content": ".card { color: var(--color-primary); }" },
-    "logo": { "type": "svg", "src": "/files/logo.svg" }
+    "main":  { "type": "js",  "src": "/files/notes/main.js" },
+    "style": { "type": "css", "content": ".note { color: var(--color-primary); }" },
+    "logo":  { "type": "svg", "src": "https://cdn.example.com/notes/logo.svg" }
   }
 }
 ```
 
-- `binette` は「メジャー.マイナー」形式の文字列です。殻はメジャーが `0` の形式を読みます。マイナーが新しくても未知の欄は無視し、メジャーが異なる場合は対応していない形式として表示します。
-- `title` は文字列で、`document.title` に使います。本文の見出しが必要な場合は、Binette 自身が `<sh-header>` などを使って描画します。
-- `type` は `html` または `js` です。
-- `content` は画面本体の文字列、`entry` は `assets` 内のエントリー名です。両方を同時に指定すると形式エラーになります。`type`、`content`、`entry` がすべて無い場合は「中身無し」として扱い、殻の基本画面を表示します。
-- `assets` は拡張子を含まない名前からアセット定義への対応です。各アセットは文字列の `type` と、文字列の `content` または `src` の片方を持ちます。
-- `entry` で参照するアセットの `type` は Binette の `type` と一致させます。
-- `type` は描画方法を決め、ソースの置き場所は `content` または `entry` で決まります。`type: "html"` では `content` の文字列、または `entry` が指すアセットの文字列を Shadow DOM の HTML として挿入します。`type: "js"` では `content` の文字列、または `entry` が指すアセットの文字列を JavaScript モジュールとして読み込みます。
-- `css` 型アセットは画面に自動で適用されます。
-- `css` 型アセットは文字列として `<style>` に入れるため、CSS の中の相対 `url(...)` は殻のページを基準に解決されます。画像やフォントは絶対 URL で書くか、JavaScript から `sh.asset(name)` で取得してください。
-- `js` は Blob URL から読み込むため、モジュールの中の相対 `import`（`import "./helper.js"` など）は解決できません。エントリーの JavaScript は1つのファイルにまとめ、ほかのファイルは `sh.asset(name)` で取得してください。
+- `content`（文字列）と `entry`（`assets` のキー）は、どちらか一方だけを書きます。
+- `entry` が指す asset の `type` は、ビネットの `type` と同じにします。
+- `assets` のキーは拡張子の無いただの名前です。種類は各 asset の `type` だけで判断します。
+- asset は `type` と、`content`（文字列）か `src`（URL）のどちらか一方を持ちます。
 
-## アセットの取得
+### `type: "settings"`
 
-`content` のアセットはその文字列からレスポンスを作ります。`src` は次の規則で取得します。
+設定の画面です。UI は Binette の仕様で決め打ちで、プレイヤーが決まった見た目で描きます。Station は中身だけを書きます。`content` と `entry` は持ちません。
 
-- `wake://…` は WAKE-ET の `wakeFetch(src)` で取得します。
-- `https://…` と `http://…` は通常の `fetch` で取得します。
-- スキームのないパスは接続先 Station の URL を基準に `new URL(src, server + "/")` で解決して、通常の `fetch` で取得します。
+```json
+{
+  "binette": "0.1",
+  "type": "settings",
+  "app": "station",
+  "title": "設定",
+  "routes": {
+    "/": { "redirect": "/home" }
+  },
+  "settings": [
+    { "app": "notes", "title": "ノート", "path": "/notes/settings" },
+    { "app": "photos", "title": "写真", "path": "/photos/settings" }
+  ]
+}
+```
 
-## JavaScript のエントリーと殻の API
+- `settings`: 設定画面に並べるアプリの項目。`path` を開くと、そのアプリの設定のビネット（これも `type: "settings"` でよい）を出します。
+- `routes`: 例外の動きをさせたいパスだけを書きます（「ルーティング」を参照）。`routes` を書けるのは入口の設定のビネットだけです。
 
-JavaScript のソースは ES module として読み込まれ、`mount(el, sh)` が呼ばれます。`el` は Binette の Shadow DOM 内の本文要素です。`mount` は画面を組み立て、必要なら後始末用の関数を返します。殻は画面遷移や破棄の際にその関数を呼びます。
+## 取得
 
-`sh` には次の API があります。`asset(name)` はアセットを `Promise<Response>` として取得する関数で、プレイヤーが追加します。
+プレイヤーは、ビネットも asset も、フロントが渡した `fetch` で取ります。URL は解釈せず、書かれた文字列をそのまま `fetch` に渡します（相対 URL をどう解決するか、どのスキームをどう取るかは `fetch` の実装次第）。`content` の asset は、その文字列から取り出します。
 
-- `version`: 殻 API のバージョン文字列（現在は `"0.1"`）
-- `navigate(path)`: 殻内のパスへ移動
-- `fetch(url, init?)`: `wake://` URL は WAKE-ET、それ以外は通常の fetch で取得。WAKE のセッションが切れていた場合、殻はログイン画面へ移ります
-- `user`: `{ id, name }` 形式のログイン中ユーザー
-- `server`: 接続先 Station の URL
-- `asset(name)`: 名前を指定したアセットの取得
+制約:
 
-## 固定 URL と基本画面
+- `css` の asset は文字列として `<style>` に入れるため、CSS の中の相対 `url(...)` はページを基準に解決されます。画像やフォントは絶対 URL で書くか、`sh.asset(name)` で取ります。
+- `js` は Blob URL から読み込むため、相対 `import` は使えません。エントリーの JavaScript は1つのファイルにまとめ、ほかのファイルは `sh.asset(name)` で取ります。
 
-- `/` と `/home` は `wake://station/home.bina` を表示します。
-- `/settings` は `wake://station/settings.bina` を取得します。Station が 404 を返した場合は、テーマ、接続先、ユーザーを表示し、ログアウトへ移動できる殻の設定画面を表示します。
-- `/logout` は殻のログアウト画面です。Station の Binette は使いません。
-- その他のパスは同じパスの `.bina` を取得します。例えば `/a/b` は `wake://station/a/b.bina` です。
-- 404 のホームは「中身無し」として基本画面を表示します。その他の 404 では「見つかりません」を表示します。基本画面には `<sh-header>` とタイトルがあり、本文は空または状態を示す文言です。
-- 取得に再認証が必要な場合はログイン画面へ移動します。それ以外の取得失敗では再試行できるエラー画面を表示します。
+## 再生
 
-## `<sh-header>`
+- `html`: 中身を Shadow DOM の中に置きます。中の `<script>` は実行しません。
+- `js`: ES モジュールとして読み込み、`mount(el, sh)` を呼びます。`el` は Shadow DOM の中の本文の要素です。`mount` は後始末の関数を返してよく、プレイヤーは画面を離れるときにそれを呼びます。
+- `settings`: 決め打ちの UI で描きます（「設定画面」を参照）。
+- `css` の asset は、自動で Shadow DOM に適用します。
+- Shadow DOM の中の、同じオリジンへの相対リンクを押すと、プレイヤーがページの再読み込みをせずに画面を移します。
+- 「中身無し」のビネットでは、ベースの UI（タイトルと、設定画面への入口だけの画面）を出します。
 
-殻は `<sh-header title="…"></sh-header>` カスタム要素を提供します。左側にタイトル、右側に `/settings` へ移動する設定ボタンを表示します。カスタム要素は殻へバブリングする `sh-navigate` イベントを送り、殻が画面遷移を処理します。スタイルは Shadow DOM 内にあり、テーマの CSS 変数を使います。
+アプリはフロントと同じページで動きます。信頼できる Station のアプリだけを動かす前提です。
+
+## シェル（`sh`）
+
+`mount` の第2引数で、アプリがプレイヤー（とフロント）に頼むための API です。
+
+- `version`: シェルの API のバージョン（`"0.1"`）
+- `asset(name)`: そのビネットの asset を `Promise<Response>` で取る
+- `navigate(path)`: プレイヤーの中のパスへ移る
+- `fetch(url, init?)`: フロントが渡した `fetch` で取る
+- `user`: ログイン中のユーザー `{ id, name }`（フロントが渡す）
+- `storage`（予定）: アプリごとに区切ったクライアント側の保存場所（「ストレージ」を参照）
+
+## ルーティング
+
+### パスとビネットの対応
+
+どのパスでどのビネットを取るかは、フロントが決めます（`createPlayer` の `binette`）。プレイヤーは、`routes` に書かれていないパスについて、その対応でビネットを取ります。ビネットが無いとき（`fetch` が 404 を返したとき）は「見つかりません」を出します。
+
+### 入口
+
+プレイヤーを始めると、まず入口の設定のビネット（`type: "settings"`。どの URL かはフロントが決める）を取り、プレイヤーが動いているあいだ覚えておきます。これが Station 全体の設定（`routes` と、設定画面に並べるアプリの項目）です。
+
+### `routes`（例外）
+
+既定と違う動きをさせたいパスだけを、入口の設定のビネットの `routes` に書きます。値は、後から欄を足せるようにオブジェクトです。
+
+```json
+"routes": {
+  "/":     { "redirect": "/home" },
+  "/old":  { "redirect": "/new" },
+  "/top":  { "binette": "/home.bina" }
+}
+```
+
+- `redirect`: そのパスへ転送する
+- `binette`: 既定とは別のビネットを出す（値はそのまま `fetch` に渡す）
+- 1つのルートには、どちらか一方だけを書きます。知らない欄は無視します。
+- キーは完全一致だけです。ワイルドカードなどは、必要になったら欄を足して対応します（例: `"match": "prefix"`）。
+- `/login` のようなパスも、プレイヤーは特別扱いしません。
+
+### 始めたときの行き先
+
+- `routes` に `/` があれば、それに従います（例: `{ "redirect": "/home" }` なら `/home` へ）。
+- `routes` に `/` が無ければ、`/settings` へ移ります。
+- 始めたときではなく、自分で `/` を開いたときに `routes` に `/` が無ければ、ほかのパスと同じく、フロントが決めた対応でビネットを取ります。
+
+### 固定の URL
+
+`/settings` だけです。Station の `routes` やビネットでは上書きできません。
+
+プレイヤーが始まる前（EbinaStation では未ログインのとき）は、Binette は動きません。ログイン画面や、URL を直接開いたときの扱いはフロントの実装次第で、この仕様の範囲外です。
+
+## 設定画面（`/settings`）
+
+スマホの設定アプリのような画面です。UI は Binette の仕様で決め打ちです。
+
+```
+設定（/settings）
+├── シェルの項目（アプリ ID は shell）: テーマ、接続先・ユーザー、バージョン、ストレージ、ログアウト
+└── アプリ: 入口の設定のビネットの settings に書かれた項目
+    ├── ノート → /notes/settings
+    └── 写真   → /photos/settings
+```
+
+- シェルの項目は、プレイヤーが用意しておき、フロントがそれぞれを「出す / 出さない」で選びます。テーマやログアウトのようにフロントの実装に依るものは、出すときに処理も一緒に渡します。
+- アプリの項目は Station が入口の設定のビネットの `settings` で足します。押したときに何をするか（サーバー側のデータの管理など）は Station の実装者が決めます。
+- 入口の設定のビネットが無いときは、シェルの項目だけを出します。
+
+## ストレージ
+
+- クライアント側: シェルはアプリに `sh.storage` を渡し、保存場所をアプリごとに分けます。設定画面はアプリごとの使用量を出し、削除できます。アプリはフロントと同じページで動くので、`sh.storage` を使わずに直接保存することもできてしまいます。その分は設定画面から見えません。
+- サーバー側: 仕様では決めません。Station がアプリの設定項目として用意します。
+
+## 未決のこと
+
+- `type: "settings"` の画面に並べられる項目の種類（表示、ボタン、切り替え、選択など）と、その書き方
+- `html` / `js` のビネットがどのアプリのものかを、パス（`/notes/…`）で決めるか、`app` の欄で決めるか
+- `sh.storage` の API
+- アプリがシェルの部品（ヘッダーなど）を使えるようにするか。`<sh-header>` は一旦やめた
+- 中身を YAML で書けるようにするか（先頭を見て判断する余地は残すが、仕様には入れない）
+
+## 実装の状況
+
+今の実装（`src/binette/`、`src/shell/`）は、この文書の前の版に沿っています。次の点がまだ違います。
+
+- `type: "settings"`、`app`、`routes`、入口の設定のビネットは未実装
+- `/settings` は、Station の `settings.bina` があればそれを html / js として出し、無ければ殻の設定画面を出す作り。`/logout` の画面がまだある
+- ホームが `/` と `/home` の固定 URL（`home.bina`）になっている。ログイン後は常に `/` へ移る
+- `<sh-header>` がある
+- `sh.storage` は未実装
+- プレイヤーは `createPlayer({ fetch, binette, … })` の形になっておらず、`wake://` 用の関数と接続先の URL を別々に受け取っている。パスとビネットの対応も殻（`StationView`）の側にある

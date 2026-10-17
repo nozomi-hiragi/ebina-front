@@ -6,7 +6,7 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
 - 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後の画面は殻の基本画面または Binette で表示し、ダッシュボード・設定の専用ページは持たない（設定 Binette が 404 の場合は殻の基本設定画面）
-- Binette の仕様は `docs/binette.md` を参照。`src/binette/` は将来の切り出しに備え、Solid、`src/auth/wake.ts`、`src/auth/session.ts` など殻のコードに依存させない。必要な機能は引数で受け取る
+- Binette の仕様は `docs/binette.md`、ebina-front での使い方（パスとビネットの対応、WAKE での取得など）は `docs/ebina-front.md` を参照。`src/binette/` は将来の切り出しに備え、Solid、`src/auth/wake.ts`、`src/auth/session.ts` など殻のコードに依存させない。必要な機能は引数で受け取る
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 
 ## 役割分担
@@ -95,7 +95,8 @@ src/
 │   └── login/     # ログイン画面専用の部品（serverSelection）
 └── pages/         # 画面（1 画面 1 ファイル）
 dev-server/        # テスト用サーバー（index.ts, app.ts, store.ts）
-docs/binette.md    # Binette 形式と殻 API の説明
+docs/binette.md    # Binette の仕様（形式、再生、シェル、ルーティング、設定画面）
+docs/ebina-front.md # ebina-front での Binette の使い方
 public/            # favicon.svg, apple-touch-icon.png
 ```
 
