@@ -1,9 +1,9 @@
-import { normalizeServer } from "./session";
-import { wakeClient, wakeErrorCode } from "./wake";
+import { normalizeServer } from "../auth/session";
+import { wakeClient, wakeErrorCode } from "../auth/wake";
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   RegistrationResponseJSON,
-} from "./webauthn";
+} from "../auth/webauthn";
 
 export class ApiError extends Error {
   status: number;
@@ -72,7 +72,7 @@ export async function getMe(server: string): Promise<User> {
   let res: Response;
   try {
     await client.reload();
-    res = await client.wakeFetch("/ebina/me");
+    res = await client.wakeFetch("wake://station/me");
   } catch (err) {
     if (err instanceof ApiError || wakeErrorCode(err)) throw err;
     throw new ApiError(0, "サーバーに接続できませんでした");

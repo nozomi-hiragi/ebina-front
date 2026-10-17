@@ -1,6 +1,6 @@
 import { render } from "solid-js/web";
 import "./index.css";
-import "./theme";
+import "./shell/theme";
 import App from "./App";
 
 const root = document.getElementById("root");

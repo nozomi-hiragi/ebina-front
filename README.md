@@ -4,7 +4,7 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 
 ## 状態
 
-画面（トップ / ログイン / 登録 / ダッシュボード / 設定）を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。ダッシュボード / 設定はログインが必要です。それ以外の機能はまだ未実装です。
+トップ / ログイン / 登録と、ログイン後の画面を Station から受け取る Binette 形式で表示する殻を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。Binette の仕様は [docs/binette.md](docs/binette.md)、ebina-front での使い方は [docs/ebina-front.md](docs/ebina-front.md) を参照してください。
 
 ## 技術スタック
 
@@ -62,13 +62,15 @@ npm run preview     # build/ の内容をローカルで確認
 
 | パス         | ページ                 |
 | ------------ | ---------------------- |
-| `/`          | トップ（`pages/Top.tsx`） |
+| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン直後は入口の設定 Binette に従って移動（無ければ `/settings`） |
 | `/login`     | ログイン（`pages/Login.tsx`） |
 | `/register`  | パスキー登録（`pages/Register.tsx`）。クエリ `server` と `token` が必要で、テスト用サーバーの登録 URL から開く |
-| `/dashboard` | ダッシュボード（`pages/Dashboard.tsx`、`AppLayout` 内、要ログイン） |
-| `/settings`  | 設定（`pages/Settings.tsx`、`AppLayout` 内、要ログイン） |
+| `/settings`  | プレイヤーの固定の設定画面（テーマ・接続先・ユーザー・バージョン・ログアウト） |
+| その他       | パスに対応する Station の Binette（例: `/a/b` → `wake://station/a/b.bina`） |
 
-存在しないパスは `pages/NotFound.tsx` を表示します。
+プレイヤーは入口 `/settings.bina` を読み込みます。テスト用サーバーはビネットを1つも返さない（`/settings.bina` も 404）ので、ログイン後は基本の設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持します。その後に `/` へ移動した場合は `/index.bina` を取得します。
+
+ログイン後の画面は Binette を Shadow DOM 内で再生します。`src/binette/` は将来パッケージとして切り出せるよう、殻の Solid コンポーネント、WAKE、セッション管理に依存させません。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 
 アプリは `/ebina-station/` で配信されます。Vite の `base`（`vite.config.ts`）と Router の `base`（`src/App.tsx`）の両方で指定しています。
 
@@ -78,9 +80,9 @@ npm run preview     # build/ の内容をローカルで確認
 
 独自トークンとして `muted` / `field` / `marker` / `btn` があり、`text-muted`、`bg-btn` などの Tailwind クラスとして使えます。
 
-テーマの選択は `src/theme.ts` で管理し、localStorage のキー `ebina-theme` に保存します。初回は OS の配色設定に従います。
+テーマの選択は `src/shell/theme.ts` で管理し、localStorage のキー `ebina-theme` に保存します。初回は OS の配色設定に従います。
 
-ログインには `@wake-protocol/client` を使います。`src/wake.ts` がサーバーごとの WAKE クライアントとセッションストアを管理し、セッション鍵は IndexedDB に保存します。`src/session.ts` は表示用のユーザー情報と接続先だけを localStorage のキー `ebina-session` に保存し、認証トークンは保存しません。接続先のサーバー URL の履歴（最大 5 件、新しい順）は `ebina-servers` に保存します。
+ログインには `@wake-protocol/client` を使います。`src/auth/wake.ts` がサーバーごとの WAKE クライアントとセッションストアを管理し、セッション鍵は IndexedDB に保存します。`src/auth/session.ts` は表示用のユーザー情報と接続先だけを localStorage のキー `ebina-session` に保存し、認証トークンは保存しません。接続先のサーバー URL の履歴（最大 5 件、新しい順）は `ebina-servers` に保存します。
 
 ## ディレクトリ構成
 
@@ -89,19 +91,27 @@ src/
 ├── App.tsx          # ルーティング定義
 ├── index.tsx        # エントリーポイント
 ├── index.css        # Tailwind / daisyUI テーマ定義
-├── theme.ts         # テーマの状態管理
-├── api.ts           # テスト用サーバーの API 呼び出し
-├── session.ts       # 接続先と表示用ユーザー情報
-├── wake.ts          # WAKE クライアント・IndexedDB ストア・条件付き認証
-├── webauthn.ts      # WebAuthn 登録オプションと応答の変換
-├── passkey.ts       # パスキー操作のエラー文言
-├── passkeyAutofill.ts # パスキーのオートフィル待機
-├── params.ts        # クエリパラメータの補助
-├── components/      # 共通コンポーネント（AppLayout, PublicLayout, AuthCard, ThemeToggle など）
+├── api/
+│   └── station.ts   # テスト用サーバーの API 呼び出し
+├── auth/            # 認証・セッション（WAKE、WebAuthn、パスキー）
+│   ├── session.ts   # 接続先と表示用ユーザー情報
+│   ├── wake.ts      # WAKE クライアント・IndexedDB ストア・条件付き認証
+│   ├── webauthn.ts  # WebAuthn 登録オプションと応答の変換
+│   ├── passkey.ts   # パスキー操作のエラー文言
+│   └── passkeyAutofill.ts # パスキーのオートフィル待機
+├── binette/         # Binette の型・検証・アセット解決・再生（殻に依存しない）
+├── shell/           # ログイン後の殻と Station 画面
+│   ├── storage.ts   # localStorage の読み書き補助
+│   └── theme.ts     # テーマの状態管理
+├── utils/           # クエリパラメータ補助
+├── components/
+│   ├── layout/      # AppLayout, PublicLayout
 │   ├── ui/          # 共通 UI 部品（Button, PageTitle, icons）
 │   └── login/       # ログイン画面専用の部品（serverSelection）
-└── pages/           # 各ページ
+└── pages/            # 各ページ
 dev-server/          # テスト用サーバー（index.ts: 起動と登録 URL 表示, app.ts: API, store.ts: メモリ保存）
+docs/binette.md      # Binette の仕様（形式、再生、シェル、ルーティング、設定画面）
+docs/ebina-front.md  # ebina-front での Binette の使い方
 public/              # 静的ファイル（favicon.svg, apple-touch-icon.png）
 ```
 

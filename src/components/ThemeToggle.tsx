@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import { theme, toggleTheme } from "../theme";
+import { theme, toggleTheme } from "../shell/theme";
 import { Button, MoonIcon, SunIcon } from "./ui";
 
 export default function ThemeToggle() {

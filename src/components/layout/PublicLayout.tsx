@@ -1,8 +1,8 @@
 import type { ParentProps } from "solid-js";
 import { A } from "@solidjs/router";
-import Logo from "./Logo";
-import GitHubLink from "./GitHubLink";
-import ThemeToggle from "./ThemeToggle";
+import Logo from "../Logo";
+import GitHubLink from "../GitHubLink";
+import ThemeToggle from "../ThemeToggle";
 
 export default function PublicLayout(props: ParentProps) {
   return (
