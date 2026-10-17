@@ -3,9 +3,9 @@ import { Dynamic } from "solid-js/web";
 import { useLocation, useNavigate } from "@solidjs/router";
 import { BinetteError, createResolver, parseBinette, play } from "../binette";
 import { Button, LinkButton } from "../components/ui";
-import { clearSession, session } from "../session";
-import { setTheme, theme, type Theme } from "../theme";
-import { isReauthError, wakeClient } from "../wake";
+import { clearSession, session } from "../auth/session";
+import { setTheme, theme, type Theme } from "../shell/theme";
+import { isReauthError, wakeClient } from "../auth/wake";
 import { registerShellElements } from "./elements";
 import { createShellApi } from "./sh";
 

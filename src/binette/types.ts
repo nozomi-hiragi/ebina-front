@@ -1,16 +1,5 @@
-export type BinetteAsset = { type: string } & (
-  | { content: string; src?: never }
-  | { src: string; content?: never }
-);
+import type { InferOutput } from "valibot";
+import type { binetteAssetSchema, binetteSchema } from "./schema";
 
-export type Binette = {
-  binette: string;
-  title?: string;
-  assets?: Record<string, BinetteAsset>;
-} & (
-  | { type?: never; content?: never; entry?: never }
-  | ({ type: "html" | "js" } & (
-      | { content: string; entry?: never }
-      | { entry: string; content?: never }
-    ))
-);
+export type BinetteAsset = InferOutput<typeof binetteAssetSchema>;
+export type Binette = InferOutput<typeof binetteSchema>;

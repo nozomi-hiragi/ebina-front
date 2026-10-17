@@ -2,10 +2,10 @@ import { Match, Show, Switch, createResource, createSignal } from "solid-js";
 import { useSearchParams } from "@solidjs/router";
 import AuthCard, { AuthCardHeader } from "../components/AuthCard";
 import { Button, LinkButton } from "../components/ui";
-import { ApiError, getRegisterInfo, getRegisterOptions, verifyRegister, type User } from "../api";
-import { firstParam } from "../params";
-import { errorMessage } from "../passkey";
-import { parseCreationOptionsFromJSON, registrationResponseToJSON } from "../webauthn";
+import { ApiError, getRegisterInfo, getRegisterOptions, verifyRegister, type User } from "../api/station";
+import { firstParam } from "../utils/params";
+import { errorMessage } from "../auth/passkey";
+import { parseCreationOptionsFromJSON, registrationResponseToJSON } from "../auth/webauthn";
 
 const INVALID_URL = "登録用のURLが正しくありません";
 const INVALID_TOKEN = "登録用のURLが無効か、期限が切れています";

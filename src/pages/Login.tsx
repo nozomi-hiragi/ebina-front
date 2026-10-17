@@ -3,12 +3,12 @@ import { useNavigate, useSearchParams } from "@solidjs/router";
 import AuthCard, { AuthCardHeader } from "../components/AuthCard";
 import { createServerSelection } from "../components/login/serverSelection";
 import { Button } from "../components/ui";
-import { getMe } from "../api";
-import { firstParam } from "../params";
-import { errorMessage } from "../passkey";
-import { createPasskeyAutofill } from "../passkeyAutofill";
-import { normalizeServer, saveSession, session } from "../session";
-import { wakeClient } from "../wake";
+import { getMe } from "../api/station";
+import { firstParam } from "../utils/params";
+import { errorMessage } from "../auth/passkey";
+import { createPasskeyAutofill } from "../auth/passkeyAutofill";
+import { normalizeServer, saveSession, session } from "../auth/session";
+import { wakeClient } from "../auth/wake";
 
 export default function Login() {
   const navigate = useNavigate();

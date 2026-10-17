@@ -1,6 +1,6 @@
 import { createRoot, createSignal } from "solid-js";
-import type { User } from "./api";
-import { readStorage, writeStorage } from "./storage";
+import type { User } from "../api/station";
+import { readStorage, writeStorage } from "../shell/storage";
 
 export type Session = { server: string; user: User };
 

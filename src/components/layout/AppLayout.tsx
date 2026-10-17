@@ -1,8 +1,8 @@
 import { Show, createEffect, on, onCleanup, type ParentProps } from "solid-js";
 import { useNavigate } from "@solidjs/router";
-import { getMe } from "../api";
-import { clearSession, reloadSession, saveSession, session } from "../session";
-import { isReauthError, wakeClient, wakeStore } from "../wake";
+import { getMe } from "../../api/station";
+import { clearSession, reloadSession, saveSession, session } from "../../auth/session";
+import { isReauthError, wakeClient, wakeStore } from "../../auth/wake";
 
 export default function AppLayout(props: ParentProps) {
   const navigate = useNavigate();

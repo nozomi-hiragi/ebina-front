@@ -1,5 +1,5 @@
-import type { Session } from "../session";
-import { isReauthError, wakeClient } from "../wake";
+import type { Session } from "../auth/session";
+import { isReauthError, wakeClient } from "../auth/wake";
 
 // onReauth: セッション切れのとき。殻はログイン画面へ戻す
 export function createShellApi(active: Session, navigate: (path: string) => void, onReauth: () => void) {

@@ -1,9 +1,9 @@
-import { normalizeServer } from "./session";
-import { wakeClient, wakeErrorCode } from "./wake";
+import { normalizeServer } from "../auth/session";
+import { wakeClient, wakeErrorCode } from "../auth/wake";
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   RegistrationResponseJSON,
-} from "./webauthn";
+} from "../auth/webauthn";
 
 export class ApiError extends Error {
   status: number;

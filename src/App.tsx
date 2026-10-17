@@ -1,12 +1,12 @@
 import { Navigate, Route, Router, useLocation } from "@solidjs/router";
 import { Show } from "solid-js";
-import PublicLayout from "./components/PublicLayout";
-import AppLayout from "./components/AppLayout";
+import PublicLayout from "./components/layout/PublicLayout";
+import AppLayout from "./components/layout/AppLayout";
 import Top from "./pages/Top";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import StationView from "./shell/StationView";
-import { session } from "./session";
+import { session } from "./auth/session";
 
 // ログイン後はどのパスも Station の画面。未ログインならトップ以外はログイン画面へ
 function StationRoute() {

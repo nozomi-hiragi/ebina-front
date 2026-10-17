@@ -6,7 +6,7 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
 - 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後の画面は殻の基本画面または Binette で表示し、ダッシュボード・設定の専用ページは持たない（設定 Binette が 404 の場合は殻の基本設定画面）
-- Binette の仕様は `docs/binette.md` を参照。`src/binette/` は将来の切り出しに備え、Solid、`src/wake.ts`、`src/session.ts` など殻のコードに依存させない。必要な機能は引数で受け取る
+- Binette の仕様は `docs/binette.md` を参照。`src/binette/` は将来の切り出しに備え、Solid、`src/auth/wake.ts`、`src/auth/session.ts` など殻のコードに依存させない。必要な機能は引数で受け取る
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 
 ## 役割分担
@@ -82,17 +82,15 @@ src/
 ├── App.tsx        # ルーティング
 ├── index.tsx      # エントリーポイント
 ├── index.css      # Tailwind / daisyUI テーマ
-├── theme.ts       # テーマの状態
-├── api.ts         # テスト用サーバーの API 呼び出し
-├── session.ts     # 接続先と表示用ユーザー情報（localStorage）
-├── wake.ts        # WAKE クライアント・IndexedDB ストア・条件付き認証
-├── webauthn.ts    # WebAuthn 登録オプションと応答の変換
-├── passkey.ts     # パスキー操作のエラー文言
-├── passkeyAutofill.ts # パスキーのオートフィル待機（createPasskeyAutofill）
-├── params.ts      # クエリパラメータの補助（firstParam）
+├── api/station.ts # テスト用サーバーの API 呼び出し
+├── auth/          # 認証・セッション（session, wake, webauthn, passkey, passkeyAutofill）
 ├── binette/       # Binette の型・検証・アセット解決・再生（殻に依存させない）
 ├── shell/         # ログイン後の殻と Station 画面
-├── components/    # 共通コンポーネント（AppLayout, PublicLayout, AuthCard など）
+│   ├── storage.ts # localStorage の読み書き補助
+│   └── theme.ts   # テーマの状態
+├── utils/         # クエリパラメータ補助
+├── components/
+│   ├── layout/    # AppLayout, PublicLayout
 │   ├── ui/        # 共通 UI 部品（Button, PageTitle, icons）
 │   └── login/     # ログイン画面専用の部品（serverSelection）
 └── pages/         # 画面（1 画面 1 ファイル）
@@ -105,7 +103,7 @@ public/            # favicon.svg, apple-touch-icon.png
 
 - Node が TS を直接実行するため、erasable な構文だけを使う（`enum`、`namespace`、パラメータプロパティは使わない）
 - import は相対パスで、拡張子 `.ts` を付ける
-- `src/api.ts` と `dev-server/app.ts` の API 契約（パス・リクエスト・レスポンス）は必ず両方いっしょに変える
+- `src/api/station.ts` と `dev-server/app.ts` の API 契約（パス・リクエスト・レスポンス）は必ず両方いっしょに変える
 - WAKE-ET で運ぶ URL は `wake://station/…` で表す（例: `wake://station/me`）。振り分けは `dev-server/app.ts` の `etHandler` で行い、未知の URL には 404 `{"error":{"code":"not_found"}}` を返す
 
 ## コーディング規約
@@ -117,7 +115,7 @@ public/            # favicon.svg, apple-touch-icon.png
 - リストは `<For>`、条件分岐は `<Show>` / `<Switch>`。動的な値のリストに `.map` を使わない
 - 条件分岐は原則 `<Show>` / `<Switch>` で DOM ごと出し分ける。CSS で隠す（`classList={{ hidden: … }}`）のは、DOM を残す必要があるときだけ（非制御の入力状態・フォーカス・アニメーション、WebAuthn オートフィル用の入力欄のように要素自体が必要な場合）
 - リンクは `@solidjs/router` の `<A>`、画面遷移は `useNavigate`
-- 状態は使う場所の近くに置く。複数画面で共有するものだけ `src/` 直下などのモジュールに置く（例: `theme.ts`）
+- 状態は使う場所の近くに置く。複数画面で共有するものだけ適切な役割別ディレクトリのモジュールに置く（例: `src/shell/theme.ts`）
 
 ### スタイル
 
