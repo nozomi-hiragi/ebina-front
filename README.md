@@ -4,7 +4,7 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 
 ## 状態
 
-画面（トップ / ログイン / 登録 / ダッシュボード / 設定）を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。ダッシュボード / 設定はログインが必要です。それ以外の機能はまだ未実装です。
+トップ / ログイン / 登録と、ログイン後の画面を Station から受け取る Binette 形式で表示する殻を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。Binette の仕様は [docs/binette.md](docs/binette.md) を参照してください。
 
 ## 技術スタック
 
@@ -62,13 +62,15 @@ npm run preview     # build/ の内容をローカルで確認
 
 | パス         | ページ                 |
 | ------------ | ---------------------- |
-| `/`          | トップ（`pages/Top.tsx`） |
+| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン後は Station のホーム Binette |
 | `/login`     | ログイン（`pages/Login.tsx`） |
 | `/register`  | パスキー登録（`pages/Register.tsx`）。クエリ `server` と `token` が必要で、テスト用サーバーの登録 URL から開く |
-| `/dashboard` | ダッシュボード（`pages/Dashboard.tsx`、`AppLayout` 内、要ログイン） |
-| `/settings`  | 設定（`pages/Settings.tsx`、`AppLayout` 内、要ログイン） |
+| `/home`      | ログイン後、`wake://station/home.bina` |
+| `/settings`  | Station の設定 Binette。404 の場合は殻の基本設定画面 |
+| `/logout`    | 殻のログアウト画面 |
+| その他       | パスに対応する Station の Binette（例: `/a/b` → `wake://station/a/b.bina`） |
 
-存在しないパスは `pages/NotFound.tsx` を表示します。
+ログイン後の画面は Binette を Shadow DOM 内で再生します。`src/binette/` は将来パッケージとして切り出せるよう、殻の Solid コンポーネント、WAKE、セッション管理に依存させません。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 
 アプリは `/ebina-station/` で配信されます。Vite の `base`（`vite.config.ts`）と Router の `base`（`src/App.tsx`）の両方で指定しています。
 
@@ -97,11 +99,14 @@ src/
 ├── passkey.ts       # パスキー操作のエラー文言
 ├── passkeyAutofill.ts # パスキーのオートフィル待機
 ├── params.ts        # クエリパラメータの補助
+├── binette/         # Binette の型・検証・アセット解決・再生（殻に依存しない）
+├── shell/           # ログイン後の殻と Station 画面
 ├── components/      # 共通コンポーネント（AppLayout, PublicLayout, AuthCard, ThemeToggle など）
 │   ├── ui/          # 共通 UI 部品（Button, PageTitle, icons）
 │   └── login/       # ログイン画面専用の部品（serverSelection）
 └── pages/           # 各ページ
 dev-server/          # テスト用サーバー（index.ts: 起動と登録 URL 表示, app.ts: API, store.ts: メモリ保存）
+docs/binette.md      # Binette 形式と殻 API の説明
 public/              # 静的ファイル（favicon.svg, apple-touch-icon.png）
 ```
 

@@ -54,14 +54,6 @@ export function MoonIcon(props: IconProps) {
   );
 }
 
-export function MenuIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" class={props.class ?? "size-5"} {...stroke} aria-hidden="true">
-      <path d="M3 6h18M3 12h18M3 18h18" />
-    </svg>
-  );
-}
-
 export function TrashIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" class={props.class ?? "size-5"} {...stroke} aria-hidden="true">

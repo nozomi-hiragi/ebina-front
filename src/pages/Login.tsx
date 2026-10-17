@@ -30,7 +30,7 @@ export default function Login() {
     const user = await getMe(s);
     saveSession({ server: s, user });
     servers.save();
-    navigate("/dashboard", { replace: true });
+    navigate("/", { replace: true });
   };
 
   // 接続先が決まっている間、ID 欄でパスキーのオートフィルを待つ
@@ -54,9 +54,9 @@ export default function Login() {
   });
 
   onMount(() => {
-    // ログイン済みでクエリ無しならダッシュボードへ
+    // ログイン済みでクエリ無しならホームへ
     if (session() && !params.server && !params.id) {
-      navigate("/dashboard", { replace: true });
+      navigate("/", { replace: true });
       return;
     }
     if (queryId) idInput?.focus();

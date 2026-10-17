@@ -5,7 +5,8 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 ## プロジェクト概要
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
-- 現在は画面（トップ / ログイン / 登録 / ダッシュボード / 設定）と、テスト用サーバー（`dev-server/`）に対するパスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理まで。それ以外の API 接続や認証は未実装
+- 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後の画面は殻の基本画面または Binette で表示し、ダッシュボード・設定の専用ページは持たない（設定 Binette が 404 の場合は殻の基本設定画面）
+- Binette の仕様は `docs/binette.md` を参照。`src/binette/` は将来の切り出しに備え、Solid、`src/wake.ts`、`src/session.ts` など殻のコードに依存させない。必要な機能は引数で受け取る
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 
 ## 役割分担
@@ -89,11 +90,14 @@ src/
 ├── passkey.ts     # パスキー操作のエラー文言
 ├── passkeyAutofill.ts # パスキーのオートフィル待機（createPasskeyAutofill）
 ├── params.ts      # クエリパラメータの補助（firstParam）
+├── binette/       # Binette の型・検証・アセット解決・再生（殻に依存させない）
+├── shell/         # ログイン後の殻と Station 画面
 ├── components/    # 共通コンポーネント（AppLayout, PublicLayout, AuthCard など）
 │   ├── ui/        # 共通 UI 部品（Button, PageTitle, icons）
 │   └── login/     # ログイン画面専用の部品（serverSelection）
 └── pages/         # 画面（1 画面 1 ファイル）
 dev-server/        # テスト用サーバー（index.ts, app.ts, store.ts）
+docs/binette.md    # Binette 形式と殻 API の説明
 public/            # favicon.svg, apple-touch-icon.png
 ```
 
