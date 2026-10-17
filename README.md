@@ -62,13 +62,13 @@ npm run preview     # build/ の内容をローカルで確認
 
 | パス         | ページ                 |
 | ------------ | ---------------------- |
-| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン後は Station のホーム Binette |
+| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン直後は入口の設定 Binette に従って移動（無ければ `/settings`） |
 | `/login`     | ログイン（`pages/Login.tsx`） |
 | `/register`  | パスキー登録（`pages/Register.tsx`）。クエリ `server` と `token` が必要で、テスト用サーバーの登録 URL から開く |
-| `/home`      | ログイン後、`wake://station/home.bina` |
-| `/settings`  | Station の設定 Binette。404 の場合は殻の基本設定画面 |
-| `/logout`    | 殻のログアウト画面 |
+| `/settings`  | プレイヤーの固定の設定画面（テーマ・接続先・ユーザー・バージョン・ログアウト） |
 | その他       | パスに対応する Station の Binette（例: `/a/b` → `wake://station/a/b.bina`） |
+
+プレイヤーは入口 `/settings.bina` を読み込みます。テスト用サーバーはこれを意図的に 404 にし、基本設定画面を表示します。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持します。その後に `/` へ移動した場合は `/index.bina` を取得します。
 
 ログイン後の画面は Binette を Shadow DOM 内で再生します。`src/binette/` は将来パッケージとして切り出せるよう、殻の Solid コンポーネント、WAKE、セッション管理に依存させません。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 

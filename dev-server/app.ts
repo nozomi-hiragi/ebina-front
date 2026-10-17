@@ -69,12 +69,13 @@ export function createApp(config: Config, store: Store) {
       if (!user) return etJson(404, { error: { code: "not_found" } });
       return etJson(200, { id: user.id, name: user.name });
     }
-    if (req.method === "GET" && req.url === "wake://station/home.bina") {
+    // settings.bina はわざと返さない。プレイヤーの基本設定画面を使う。
+    if (req.method === "GET" && req.url === "wake://station/index.bina") {
       return etJson(200, {
         binette: "0.1",
         title: "ホーム",
         type: "html",
-        content: '<sh-header title="ホーム"></sh-header><main><p>EbinaStation へようこそ。</p><a href="/hello">サンプルを開く</a></main>',
+        content: '<main><p>EbinaStation へようこそ。</p><a href="/hello">サンプルを開く</a></main>',
       });
     }
     if (req.method === "GET" && req.url === "wake://station/hello.bina") {

@@ -3,8 +3,7 @@ import type { BinetteAsset } from "./types";
 export type AssetResolver = (asset: BinetteAsset) => Promise<Response>;
 
 export interface ResolverOptions {
-  fetchWake: (url: string) => Promise<Response>;
-  baseUrl: string;
+  fetch: (url: string, init?: RequestInit) => Promise<Response>;
 }
 
 const contentTypes: Record<string, string> = {
@@ -17,9 +16,6 @@ export function createResolver(options: ResolverOptions): AssetResolver {
     if (asset.content !== undefined) {
       return new Response(asset.content, { headers: { "content-type": contentTypes[asset.type] ?? "text/plain" } });
     }
-    if (/^wake:\/\//i.test(asset.src)) return options.fetchWake(asset.src);
-    const url = new URL(asset.src, `${options.baseUrl.replace(/\/+$/, "")}/`);
-    if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("asset の URL に対応していません。");
-    return fetch(url);
+    return options.fetch(asset.src);
   };
 }

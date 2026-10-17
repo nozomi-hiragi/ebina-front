@@ -25,7 +25,6 @@ export default function App() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
       </Route>
-      <Route path="/" component={StationRoute} />
       <Route path="*" component={StationRoute} />
     </Router>
   );

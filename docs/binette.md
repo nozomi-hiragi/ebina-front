@@ -198,11 +198,16 @@ createPlayer({
 
 ## 実装の状況
 
-今の実装（`src/binette/`、`src/shell/`）は、この文書の前の版に沿っています。次の点がまだ違います。
+実装済み:
 
-- `type: "settings"`、`app`、`routes`、入口の設定のビネットは未実装
-- `/settings` は、Station の `settings.bina` があればそれを html / js として出し、無ければ殻の設定画面を出す作り。`/logout` の画面がまだある
-- ホームが `/` と `/home` の固定 URL（`home.bina`）になっている。ログイン後は常に `/` へ移る
-- `<sh-header>` がある
-- `sh.storage` は未実装
-- プレイヤーは `createPlayer({ fetch, binette, … })` の形になっておらず、`wake://` 用の関数と接続先の URL を別々に受け取っている。パスとビネットの対応も殻（`StationView`）の側にある
+- `html` / `js` / `settings` と中身無しの形式検査、`app`、入口の `routes` とアプリの設定一覧
+- `createPlayer({ fetch, binette, entry, navigate, sh, settings, … })` による入口の取得、始めたときの遷移、画面切り替えと後始末
+- 固定の `/settings` にテーマ、接続先・ユーザー、バージョン、ログアウトとアプリの入口を Shadow DOM で表示（渡された項目だけ）
+- 中身無し・404 の基本画面、読み込みエラーと再試行
+- ビネットと asset は同じフロント提供の `fetch` で取得。プレイヤーは Solid・WAKE・殻に依存しない
+- ebina-front は `/settings.bina` を入口にし、`/` は `/index.bina` に対応。専用のログアウト画面とシェルのカスタム要素は廃止
+
+まだのこと:
+
+- アプリの `settings` 型の画面はタイトルと未対応の案内だけ。設定項目の種類・描画は未実装
+- `sh.storage` とストレージの設定項目
