@@ -29,23 +29,21 @@ export default function StationView() {
       navigate("/login", { replace: true });
     };
     const frontFetch = async (url: string, init?: RequestInit): Promise<Response> => {
+      // 外部の HTTP(S) はそのまま。401 などでも Station のセッションには触れない
+      if (/^https?:\/\//i.test(url)) return fetch(url, init);
+      if (!/^wake:\/\//i.test(url)) {
+        if (/^[a-z][a-z\d+.-]*:/i.test(url)) throw new Error("対応していない URL です。");
+        url = `wake://station${url.startsWith("/") ? "" : "/"}${url}`;
+      }
       try {
-        let response: Response;
-        if (/^https?:\/\//i.test(url)) response = await fetch(url, init);
-        else {
-          if (!/^wake:\/\//i.test(url)) {
-            if (/^[a-z][a-z\d+.-]*:/i.test(url)) throw new Error("対応していない URL です。");
-            url = `wake://station${url.startsWith("/") ? "" : "/"}${url}`;
-          }
-          const client = wakeClient(active.server);
-          if (!client.loggedIn) await client.reload();
-          const body = init?.body == null ? undefined : new Uint8Array(await new Response(init.body).arrayBuffer());
-          response = await client.wakeFetch(url, {
-            method: init?.method,
-            headers: init?.headers ? Array.from(new Headers(init.headers).entries()) : undefined,
-            body,
-          });
-        }
+        const client = wakeClient(active.server);
+        if (!client.loggedIn) await client.reload();
+        const body = init?.body == null ? undefined : new Uint8Array(await new Response(init.body).arrayBuffer());
+        const response = await client.wakeFetch(url, {
+          method: init?.method,
+          headers: init?.headers ? Array.from(new Headers(init.headers).entries()) : undefined,
+          body,
+        });
         if (response.status === 401) { goToLogin(); throw response; }
         return response;
       } catch (error) {
@@ -61,7 +59,8 @@ export default function StationView() {
       navigate: target => {
         if (disposed) return;
         // 直接開いたパスは、入口を読み込んだあとも維持する。
-        if (initializing && initialPath !== "/") return;
+        // 入口の取得中に別のパスへ移っていたら、始めたときの遷移はしない
+        if (initializing && (initialPath !== "/" || untrack(path) !== "/")) return;
         shellNavigate(target);
       },
       sh: { user: { ...active.user } },
@@ -79,7 +78,6 @@ export default function StationView() {
           goToLogin();
         },
       },
-      onError: error => { if (isReauthError(error)) goToLogin(); },
     });
     setReady(undefined);
     onCleanup(() => {

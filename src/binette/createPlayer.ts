@@ -76,10 +76,14 @@ export function createPlayer(options: PlayerOptions): BinettePlayer {
     },
     async show(path) {
       lastPath = path;
-      if (disposed || startupFailed) return;
+      // 入口の取得中（再試行を含む）は、取り終わるまで待つ
+      if (starting) await starting;
+      if (disposed || startupFailed || path !== lastPath) return;
       clear();
       const current = generation;
       const valid = () => !disposed && current === generation;
+      // 離れた画面の非同期処理から遷移させない
+      const navigate = (target: string) => { if (valid()) options.navigate(target); };
       if (path === "/settings") {
         renderSettings(root, options.settings, entry?.settings ?? [], options.navigate, report);
         return;
@@ -101,8 +105,8 @@ export function createPlayer(options: PlayerOptions): BinettePlayer {
           const handle = await play(options.container, value, {
             signal: abort.signal,
             resolver: createResolver({ fetch: options.fetch }),
-            onNavigate: options.navigate,
-            sh: { ...options.sh, version: "0.1", navigate: options.navigate, fetch: options.fetch },
+            onNavigate: navigate,
+            sh: { ...options.sh, version: "0.1", navigate, fetch: options.fetch },
           });
           if (!valid()) handle.dispose();
           else playback = handle;
