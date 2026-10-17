@@ -69,46 +69,7 @@ export function createApp(config: Config, store: Store) {
       if (!user) return etJson(404, { error: { code: "not_found" } });
       return etJson(200, { id: user.id, name: user.name });
     }
-    // settings.bina はわざと返さない。プレイヤーの基本設定画面を使う。
-    if (req.method === "GET" && req.url === "wake://station/index.bina") {
-      return etJson(200, {
-        binette: "0.1",
-        title: "ホーム",
-        type: "html",
-        content: '<main><p>EbinaStation へようこそ。</p><a href="/hello">サンプルを開く</a></main>',
-      });
-    }
-    if (req.method === "GET" && req.url === "wake://station/hello.bina") {
-      return etJson(200, {
-        binette: "0.1",
-        title: "サンプル",
-        type: "js",
-        entry: "main",
-        assets: {
-          main: { type: "js", src: "wake://station/files/hello/main.js" },
-          style: { type: "css", content: ".hello { padding: 1rem; } .hello button { min-height: 44px; }" },
-        },
-      });
-    }
-    if (req.method === "GET" && req.url === "wake://station/files/hello/main.js") {
-      return {
-        status: 200,
-        headers: [["content-type", "text/javascript; charset=utf-8"]],
-        body: new TextEncoder().encode(`export function mount(el, sh) {
-  const section = document.createElement("section");
-  section.className = "hello";
-  const message = document.createElement("p");
-  message.textContent = "こんにちは、" + sh.user.name + "さん。";
-  const button = document.createElement("button");
-  button.type = "button";
-  button.textContent = "ホームへ戻る";
-  button.addEventListener("click", () => sh.navigate("/"));
-  section.append(message, button);
-  el.append(section);
-  return () => section.remove();
-}`),
-      };
-    }
+    // ビネット（settings.bina など）はわざと返さない。ログイン後はプレイヤーの基本の設定画面になる
     return etJson(404, { error: { code: "not_found" } });
   };
 
