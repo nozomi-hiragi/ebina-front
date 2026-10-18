@@ -6,7 +6,7 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
 - 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後は Scene が入口 `/settings.bina` を読み、入口のルート指定が無ければ固定の `/settings` を表示する。設定画面とログアウト処理は Scene の設定項目として提供し、それ以外はパスに対応する Binette を表示する（`/` は `/index.bina`）。シェルのカスタム要素は登録しない
-- Binette の仕様は `docs/binette.md`、ebina-front での使い方（パスとビネットの対応、WAKE での取得など）は `docs/ebina-front.md` を参照。`packages/binette/` は独立した npm ワークスペースのパッケージとして、Solid、`src/auth/wake.ts`、`src/auth/session.ts` など殻のコードに依存させない。必要な機能は引数で受け取る
+- Binette の仕様は `docs/binette.md`、ebina-front での使い方（パスとビネットの対応、WAKE での取得など）は `docs/ebina-front.md` を参照。`packages/core/`・`packages/scene/`・`packages/coulisses/` は独立した npm ワークスペースのパッケージとして、ebina-front（Solid や `src/` のコード）に依存させない。core の依存は valibot だけ、scene と coulisses の依存は core だけとし、必要な機能は引数で受け取る
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 
 ## 役割分担
@@ -60,8 +60,9 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 npm install
 npm run dev         # http://localhost:5173/ebina-station/
 npm run dev:server  # テスト用サーバー http://localhost:8787（dev-server/）
-npm run build       # binette の型検査 + tsc --noEmit + dev-server の tsc + vite build（build/ に出力）
-npm run demo -w binette # Binette 単体デモ（http://localhost:5173/）
+npm run build       # 3つのパッケージの型検査 + tsc --noEmit + dev-server の tsc + vite build（build/ に出力）
+npm run demo -w @binette/coulisses # 配信デモ（http://localhost:8790）
+npm run demo -w @binette/scene # 再生デモ（http://localhost:5175/）
 npm run preview
 ```
 
@@ -95,7 +96,9 @@ src/
 │   └── login/     # ログイン画面専用の部品（serverSelection）
 └── pages/         # 画面（1 画面 1 ファイル）
 dev-server/        # テスト用サーバー（index.ts, app.ts, store.ts）
-packages/binette/   # ebina-front に依存しない Binette パッケージ（src/ と単体デモ demo/）
+packages/core/      # @binette/core: Binette の型と形式検証
+packages/scene/     # @binette/scene: ブラウザでの再生とデモ
+packages/coulisses/ # @binette/coulisses: ファイル配信とデモ
 docs/binette.md    # Binette の仕様（形式、再生、シェル、ルーティング、設定画面）
 docs/ebina-front.md # ebina-front での Binette の使い方
 public/            # favicon.svg, apple-touch-icon.png

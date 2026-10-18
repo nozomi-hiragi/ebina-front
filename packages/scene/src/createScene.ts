@@ -1,8 +1,8 @@
-import { parseBinette } from "./parse";
+import { parseBinette } from "@binette/core";
 import { play, type BinettePlayback } from "./playback";
 import { createResolver } from "./resolve";
 import { baseView, button, element, renderSettings, type SceneSettings } from "./settings";
-import type { Binette } from "./types";
+import type { Binette } from "@binette/core";
 
 export interface SceneOptions {
   container: HTMLElement;

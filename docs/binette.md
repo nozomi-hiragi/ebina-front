@@ -6,10 +6,11 @@ Binette（ビネット）は、サーバーがクライアントに渡す画面�
 
 ## 呼び名
 
-| 名前 | 役割 | EbinaStation では |
+| 名前 | 役割 | パッケージ / EbinaStation では |
 | --- | --- | --- |
-| Coulisses（クーリス、舞台裏） | `.bina` と asset を用意して返すサーバー側 | Station |
-| Scene（シーン、舞台） | `.bina` を受け取って再生するクライアント側の部品（`createScene`） | `packages/binette` |
+| Binette | Scene と Coulisses が使う形式、型と形式検証 | `@binette/core`（`packages/core`） |
+| Coulisses（クーリス、舞台裏） | `.bina` と asset を用意して返すサーバー側 | `@binette/coulisses`（`packages/coulisses`） / Station |
+| Scene（シーン、舞台） | `.bina` を受け取って再生するクライアント側の部品（`createScene`） | `@binette/scene`（`packages/scene`） |
 | フロント | Scene を組み込むアプリ | ebina-front |
 
 ## 責任範囲
@@ -206,9 +207,11 @@ Scene が始まる前（EbinaStation では未ログインのとき）は、Bine
 
 ## 実装の状況
 
-実装は独立した npm ワークスペースの `packages/binette/` にあります。ebina-front、Solid、WAKE に依存しません。
+実装は独立した npm ワークスペースの `packages/core/`（型と形式検証）、`packages/scene/`（再生）、`packages/coulisses/`（ファイル配信）にあります。ebina-front、Solid、WAKE に依存せず、scene と coulisses は core だけに依存します。
 
 実装済み:
+
+- Coulisses の `defineBinette` による形式検証と `createCoulisses` による `.bina`・asset 配信（GET / HEAD、任意の CORS）
 
 - `html` / `js` / `settings` と中身無しの形式検査、`app`、入口の `routes` とアプリの設定一覧
 - `createScene({ fetch, binette, entry, navigate, sh, settings, … })` による入口の取得、始めたときの遷移、画面切り替えと後始末

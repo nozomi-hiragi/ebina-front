@@ -1,5 +1,5 @@
-export type { Binette, BinetteAsset } from "./types";
-export { BinetteError, parseBinette } from "./parse";
+export type { Binette, BinetteAsset } from "@binette/core";
+export { BinetteError, parseBinette } from "@binette/core";
 export { createResolver } from "./resolve";
 export type { AssetResolver, ResolverOptions } from "./resolve";
 export { play } from "./playback";

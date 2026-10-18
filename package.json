@@ -6,14 +6,14 @@
   "scripts": {
     "dev": "vite",
     "dev:server": "node dev-server/index.ts",
-    "build": "npm run typecheck -w binette && tsc --noEmit && tsc -p dev-server && vite build",
+    "build": "npm run typecheck -w @binette/core -w @binette/scene -w @binette/coulisses && tsc --noEmit && tsc -p dev-server && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@solidjs/router": "^1.0.0",
     "@wake-protocol/client": "0.6.1",
     "solid-js": "^1.9.17",
-    "binette": "*"
+    "@binette/scene": "*"
   },
   "devDependencies": {
     "@hono/node-server": "^2.1.4",

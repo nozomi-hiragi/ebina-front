@@ -1,6 +1,6 @@
 import { createEffect, createSignal, onCleanup, untrack } from "solid-js";
 import { useLocation, useNavigate } from "@solidjs/router";
-import { createScene, type BinetteScene } from "binette";
+import { createScene, type BinetteScene } from "@binette/scene";
 import { clearSession, session } from "../auth/session";
 import { isReauthError, wakeClient } from "../auth/wake";
 import { setTheme, theme } from "./theme";

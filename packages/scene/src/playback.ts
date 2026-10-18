@@ -1,5 +1,5 @@
 import type { AssetResolver } from "./resolve";
-import type { Binette } from "./types";
+import type { Binette } from "@binette/core";
 
 export interface PlaybackOptions {
   sh: object;

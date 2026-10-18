@@ -1,4 +1,4 @@
-import type { BinetteAsset } from "./types";
+import type { BinetteAsset } from "@binette/core";
 
 export type AssetResolver = (asset: BinetteAsset) => Promise<Response>;
 

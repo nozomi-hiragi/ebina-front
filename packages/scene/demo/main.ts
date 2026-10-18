@@ -1,8 +1,9 @@
-import { createScene } from "binette";
+import { createScene } from "@binette/scene";
 
 const container = document.querySelector<HTMLElement>("#app");
 if (!container) throw new Error("表示先がありません。");
 const user = { id: "demo", name: "デモユーザー" };
+const coulisses = (import.meta.env.VITE_COULISSES || "http://localhost:8790").replace(/\/$/, "");
 const themeKey = "binette-demo-theme";
 let savedTheme: string | null = null;
 try { savedTheme = localStorage.getItem(themeKey); } catch { /* 保存できなくてもデモは使える */ }
@@ -15,7 +16,7 @@ const scene = createScene({
   fetch: (url, init) => {
     if (/^https?:\/\//i.test(url)) return fetch(url, init);
     if (/^[a-z][a-z\d+.-]*:/i.test(url)) throw new Error("対応していない URL です。");
-    return fetch(`/station${url.startsWith("/") ? "" : "/"}${url}`, init);
+    return fetch(`${coulisses}${url.startsWith("/") ? "" : "/"}${url}`, init);
   },
   binette: path => path === "/" ? "/index.bina" : `${path}.bina`,
   entry: "/settings.bina",
@@ -36,7 +37,7 @@ const scene = createScene({
         try { localStorage.setItem(themeKey, value); } catch { /* 保存できなくてもテーマは切り替える */ }
       },
     },
-    connection: { server: location.origin, user },
+    connection: { server: coulisses, user },
     versions: { Binette: "0.1" },
     logout: () => { alert("デモなのでログアウトはありません"); },
   },

@@ -1,5 +1,5 @@
 {
-  "name": "binette",
+  "name": "@binette/scene",
   "private": true,
   "type": "module",
   "version": "0.1.0",
@@ -8,9 +8,9 @@
   },
   "scripts": {
     "typecheck": "tsc -p .",
-    "demo": "vite demo"
+    "demo": "vite demo --port 5175"
   },
   "dependencies": {
-    "valibot": "^1.5.0"
+    "@binette/core": "*"
   }
 }

@@ -1,10 +1,13 @@
 import * as v from "valibot";
-import { binetteSchema, binetteVersionSchema } from "./schema";
-import type { Binette } from "./types";
+import { binetteSchema, binetteVersionSchema } from "./schema.ts";
+import type { Binette } from "./types.ts";
 
 export class BinetteError extends Error {
-  constructor(public readonly code: "unsupported_version" | "invalid_format", message: string) {
+  readonly code: "unsupported_version" | "invalid_format";
+
+  constructor(code: "unsupported_version" | "invalid_format", message: string) {
     super(message);
+    this.code = code;
     this.name = "BinetteError";
   }
 }
