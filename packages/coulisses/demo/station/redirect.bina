@@ -1,0 +1,5 @@
+{
+  "binette": "0.1",
+  "type": "redirect",
+  "content": "/hello"
+}

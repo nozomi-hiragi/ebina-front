@@ -1,5 +1,5 @@
 import { For, Show, createSignal } from "solid-js";
-import { addSavedServer, normalizeServer, removeSavedServer, savedServers } from "../../session";
+import { addSavedServer, normalizeServer, removeSavedServer, savedServers } from "../../auth/session";
 import { BookmarkIcon, TrashIcon } from "../ui";
 
 // 接続先の入力方法。"select" は保存済みサーバーから選ぶ、"input" は URL を直接入力する

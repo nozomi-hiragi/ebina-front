@@ -4,7 +4,7 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 
 ## 状態
 
-画面（トップ / ログイン / 登録 / ダッシュボード / 設定）を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。ダッシュボード / 設定はログインが必要です。それ以外の機能はまだ未実装です。
+トップ / ログイン / 登録と、ログイン後の画面を Station から受け取る Binette 形式で表示する殻を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。Binette の仕様は [docs/binette.md](docs/binette.md)、ebina-front での使い方は [docs/ebina-front.md](docs/ebina-front.md) を参照してください。
 
 ## 技術スタック
 
@@ -23,7 +23,9 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 npm install
 npm run dev         # http://localhost:5173/ebina-station/
 npm run dev:server  # テスト用サーバー http://localhost:8787
-npm run build       # 型チェック（src/ と dev-server/ の tsc）後、build/ に出力
+npm run build       # 型チェック（core、scene、coulisses、src/、dev-server/）後、build/ に出力
+npm run demo -w @binette/coulisses # 配信デモ（http://localhost:8790）
+npm run demo -w @binette/scene # 再生デモ（http://localhost:5175/）
 npm run preview     # build/ の内容をローカルで確認
 ```
 
@@ -62,13 +64,15 @@ npm run preview     # build/ の内容をローカルで確認
 
 | パス         | ページ                 |
 | ------------ | ---------------------- |
-| `/`          | トップ（`pages/Top.tsx`） |
+| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン後は入口 `/index.bina` を表示（`type: "redirect"` なら転送） |
 | `/login`     | ログイン（`pages/Login.tsx`） |
 | `/register`  | パスキー登録（`pages/Register.tsx`）。クエリ `server` と `token` が必要で、テスト用サーバーの登録 URL から開く |
-| `/dashboard` | ダッシュボード（`pages/Dashboard.tsx`、`AppLayout` 内、要ログイン） |
-| `/settings`  | 設定（`pages/Settings.tsx`、`AppLayout` 内、要ログイン） |
+| `/settings`  | Scene の固定の設定画面（General と `/settings.bina` のセクション） |
+| その他       | パスに `.bina` を付けた Station の Binette（例: `/a/b` → `/a/b.bina`）。取得先が 404 なら「見つかりません」 |
 
-存在しないパスは `pages/NotFound.tsx` を表示します。
+Scene は入口 `/index.bina` を読み込みます。`type: "redirect"` のビネットは `content` に書いた Scene 内パスへ転送します。固定 `/settings` には `/settings.bina`（`type: "settings"`）のセクションを差し込みます。`routes` の形は検討中で、以下は現状の実装です。テスト用サーバーは `/index.bina`（`/settings` への転送）と `/settings.bina`（ログアウトのセクションだけ）だけを返すので、ログイン後は設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持し、既定の対応でビネットを取得します。
+
+ログイン後の画面は Binette を Shadow DOM 内で再生します。`packages/core/`（型と形式検証）、`packages/scene/`（再生）、`packages/coulisses/`（配信）は独立した npm ワークスペースです。ebina-front の Solid コンポーネント、WAKE、セッション管理に依存せず、scene と coulisses は core だけに依存します。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 
 アプリは `/ebina-station/` で配信されます。Vite の `base`（`vite.config.ts`）と Router の `base`（`src/App.tsx`）の両方で指定しています。
 
@@ -78,9 +82,9 @@ npm run preview     # build/ の内容をローカルで確認
 
 独自トークンとして `muted` / `field` / `marker` / `btn` があり、`text-muted`、`bg-btn` などの Tailwind クラスとして使えます。
 
-テーマの選択は `src/theme.ts` で管理し、localStorage のキー `ebina-theme` に保存します。初回は OS の配色設定に従います。
+テーマの選択は `src/shell/theme.ts` で管理し、localStorage のキー `ebina-theme` に保存します。初回は OS の配色設定に従います。
 
-ログインには `@wake-protocol/client` を使います。`src/wake.ts` がサーバーごとの WAKE クライアントとセッションストアを管理し、セッション鍵は IndexedDB に保存します。`src/session.ts` は表示用のユーザー情報と接続先だけを localStorage のキー `ebina-session` に保存し、認証トークンは保存しません。接続先のサーバー URL の履歴（最大 5 件、新しい順）は `ebina-servers` に保存します。
+ログインには `@wake-protocol/client` を使います。`src/auth/wake.ts` がサーバーごとの WAKE クライアントとセッションストアを管理し、セッション鍵は IndexedDB に保存します。`src/auth/session.ts` は表示用のユーザー情報と接続先だけを localStorage のキー `ebina-session` に保存し、認証トークンは保存しません。接続先のサーバー URL の履歴（最大 5 件、新しい順）は `ebina-servers` に保存します。
 
 ## ディレクトリ構成
 
@@ -89,19 +93,29 @@ src/
 ├── App.tsx          # ルーティング定義
 ├── index.tsx        # エントリーポイント
 ├── index.css        # Tailwind / daisyUI テーマ定義
-├── theme.ts         # テーマの状態管理
-├── api.ts           # テスト用サーバーの API 呼び出し
-├── session.ts       # 接続先と表示用ユーザー情報
-├── wake.ts          # WAKE クライアント・IndexedDB ストア・条件付き認証
-├── webauthn.ts      # WebAuthn 登録オプションと応答の変換
-├── passkey.ts       # パスキー操作のエラー文言
-├── passkeyAutofill.ts # パスキーのオートフィル待機
-├── params.ts        # クエリパラメータの補助
-├── components/      # 共通コンポーネント（AppLayout, PublicLayout, AuthCard, ThemeToggle など）
+├── api/
+│   └── station.ts   # テスト用サーバーの API 呼び出し
+├── auth/            # 認証・セッション（WAKE、WebAuthn、パスキー）
+│   ├── session.ts   # 接続先と表示用ユーザー情報
+│   ├── wake.ts      # WAKE クライアント・IndexedDB ストア・条件付き認証
+│   ├── webauthn.ts  # WebAuthn 登録オプションと応答の変換
+│   ├── passkey.ts   # パスキー操作のエラー文言
+│   └── passkeyAutofill.ts # パスキーのオートフィル待機
+├── shell/           # ログイン後の殻と Station 画面
+│   ├── storage.ts   # localStorage の読み書き補助
+│   └── theme.ts     # テーマの状態管理
+├── utils/           # クエリパラメータ補助
+├── components/
+│   ├── layout/      # AppLayout, PublicLayout
 │   ├── ui/          # 共通 UI 部品（Button, PageTitle, icons）
 │   └── login/       # ログイン画面専用の部品（serverSelection）
-└── pages/           # 各ページ
+└── pages/            # 各ページ
 dev-server/          # テスト用サーバー（index.ts: 起動と登録 URL 表示, app.ts: API, store.ts: メモリ保存）
+packages/core/      # @binette/core: Binette の型と形式検証
+packages/scene/     # @binette/scene: ブラウザでの再生とデモ
+packages/coulisses/ # @binette/coulisses: ファイル配信とデモ
+docs/binette.md      # Binette の仕様（形式、再生、シェル、ルーティング、設定画面）
+docs/ebina-front.md  # ebina-front での Binette の使い方
 public/              # 静的ファイル（favicon.svg, apple-touch-icon.png）
 ```
 

@@ -1,4 +1,4 @@
-import { ApiError } from "./api";
+import { ApiError } from "../api/station";
 import { wakeErrorCode } from "./wake";
 
 // WAKE や WebAuthn のエラーを日本語の文言にする

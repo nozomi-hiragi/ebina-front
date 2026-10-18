@@ -5,7 +5,8 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 ## プロジェクト概要
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
-- 現在は画面（トップ / ログイン / 登録 / ダッシュボード / 設定）と、テスト用サーバー（`dev-server/`）に対するパスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理まで。それ以外の API 接続や認証は未実装
+- 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後は Scene が固定の入口 `/index.bina` を読み、`/` では入口の中身を表示する。入口が `type: "redirect"` なら `content` のパスへ移る。入口の転送を `routes["/"].redirect` には書かない。入口が 404 なら他のビネットと同じく「見つかりません」で、`/settings` へ自動では移らない。通常の画面パスには `.bina` を付けて取得し（`/` は `/index.bina`）、`routes` に `binette` は書かない。取得先が 404 なら「見つかりません」を表示する。`routes` の形と適用範囲は検討中。設定画面は General と、Coulisses の `/settings.bina`（`type: "settings"`）の `sections` を優先度順に並べる（General は 0、小さいほど上）。ログアウトなどフロントの操作は、フロントが `components` で登録した部品を `/settings.bina` の element セクションから指定して出す。シェルのカスタム要素は登録しない
+- Binette の仕様は `docs/binette.md`、ebina-front での使い方（パスとビネットの対応、WAKE での取得など）は `docs/ebina-front.md` を参照。`packages/core/`・`packages/scene/`・`packages/coulisses/` は独立した npm ワークスペースのパッケージとして、ebina-front（Solid や `src/` のコード）に依存させない。core の依存は valibot だけ、scene と coulisses の依存は core だけとし、必要な機能は引数で受け取る
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 
 ## 役割分担
@@ -59,7 +60,9 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 npm install
 npm run dev         # http://localhost:5173/ebina-station/
 npm run dev:server  # テスト用サーバー http://localhost:8787（dev-server/）
-npm run build       # tsc --noEmit + dev-server の tsc + vite build（build/ に出力）
+npm run build       # 3つのパッケージの型検査 + tsc --noEmit + dev-server の tsc + vite build（build/ に出力）
+npm run demo -w @binette/coulisses # 配信デモ（http://localhost:8790）
+npm run demo -w @binette/scene # 再生デモ（http://localhost:5175/）
 npm run preview
 ```
 
@@ -81,19 +84,23 @@ src/
 ├── App.tsx        # ルーティング
 ├── index.tsx      # エントリーポイント
 ├── index.css      # Tailwind / daisyUI テーマ
-├── theme.ts       # テーマの状態
-├── api.ts         # テスト用サーバーの API 呼び出し
-├── session.ts     # 接続先と表示用ユーザー情報（localStorage）
-├── wake.ts        # WAKE クライアント・IndexedDB ストア・条件付き認証
-├── webauthn.ts    # WebAuthn 登録オプションと応答の変換
-├── passkey.ts     # パスキー操作のエラー文言
-├── passkeyAutofill.ts # パスキーのオートフィル待機（createPasskeyAutofill）
-├── params.ts      # クエリパラメータの補助（firstParam）
-├── components/    # 共通コンポーネント（AppLayout, PublicLayout, AuthCard など）
+├── api/station.ts # テスト用サーバーの API 呼び出し
+├── auth/          # 認証・セッション（session, wake, webauthn, passkey, passkeyAutofill）
+├── shell/         # ログイン後の殻と Station 画面
+│   ├── storage.ts # localStorage の読み書き補助
+│   └── theme.ts   # テーマの状態
+├── utils/         # クエリパラメータ補助
+├── components/
+│   ├── layout/    # AppLayout, PublicLayout
 │   ├── ui/        # 共通 UI 部品（Button, PageTitle, icons）
 │   └── login/     # ログイン画面専用の部品（serverSelection）
 └── pages/         # 画面（1 画面 1 ファイル）
 dev-server/        # テスト用サーバー（index.ts, app.ts, store.ts）
+packages/core/      # @binette/core: Binette の型と形式検証
+packages/scene/     # @binette/scene: ブラウザでの再生とデモ
+packages/coulisses/ # @binette/coulisses: ファイル配信とデモ
+docs/binette.md    # Binette の仕様（形式、再生、シェル、ルーティング、設定画面）
+docs/ebina-front.md # ebina-front での Binette の使い方
 public/            # favicon.svg, apple-touch-icon.png
 ```
 
@@ -101,7 +108,8 @@ public/            # favicon.svg, apple-touch-icon.png
 
 - Node が TS を直接実行するため、erasable な構文だけを使う（`enum`、`namespace`、パラメータプロパティは使わない）
 - import は相対パスで、拡張子 `.ts` を付ける
-- `src/api.ts` と `dev-server/app.ts` の API 契約（パス・リクエスト・レスポンス）は必ず両方いっしょに変える
+- `src/api/station.ts` と `dev-server/app.ts` の API 契約（パス・リクエスト・レスポンス）は必ず両方いっしょに変える
+- WAKE-ET で運ぶ URL は `wake://station/…` で表す（例: `wake://station/me`）。振り分けは `dev-server/app.ts` の `etHandler` で行い、未知の URL には 404 `{"error":{"code":"not_found"}}` を返す
 
 ## コーディング規約
 
@@ -112,7 +120,7 @@ public/            # favicon.svg, apple-touch-icon.png
 - リストは `<For>`、条件分岐は `<Show>` / `<Switch>`。動的な値のリストに `.map` を使わない
 - 条件分岐は原則 `<Show>` / `<Switch>` で DOM ごと出し分ける。CSS で隠す（`classList={{ hidden: … }}`）のは、DOM を残す必要があるときだけ（非制御の入力状態・フォーカス・アニメーション、WebAuthn オートフィル用の入力欄のように要素自体が必要な場合）
 - リンクは `@solidjs/router` の `<A>`、画面遷移は `useNavigate`
-- 状態は使う場所の近くに置く。複数画面で共有するものだけ `src/` 直下などのモジュールに置く（例: `theme.ts`）
+- 状態は使う場所の近くに置く。複数画面で共有するものだけ適切な役割別ディレクトリのモジュールに置く（例: `src/shell/theme.ts`）
 
 ### スタイル
 

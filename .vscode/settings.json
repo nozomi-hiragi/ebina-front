@@ -1,8 +1,10 @@
 {
   "deno.enable": false,
   "cSpell.words": [
+    "binette",
     "daisyui",
     "Ebina",
+    "Joueur",
     "prefersdark",
     "qrcode",
     "RPID",

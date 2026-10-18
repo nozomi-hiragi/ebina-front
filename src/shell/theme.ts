@@ -1,5 +1,5 @@
 import { createEffect, createRoot, createSignal } from "solid-js";
-import { readStorage, writeStorage } from "./storage";
+import { readStorage, writeStorage } from "../shell/storage";
 
 export type Theme = "ebina-light" | "ebina-dark";
 
