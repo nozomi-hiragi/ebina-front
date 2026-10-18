@@ -103,21 +103,22 @@ Coulisses の `/settings.bina` にだけ置き、固定の `/settings` に差し
 
 ### 入口のメタデータ（暫定）
 
-`routes` の形は検討中です。対象ページからの遷移で転送が必要な場所などをどう記述するか、今後整理します。現時点では既存の動作を維持するため、`routes` と `settings` を `type` に依存しない任意の項目として保持します。Scene が利用するのは入口 `/index.bina` のものです。
+`routes` の形は検討中です。対象ページからの遷移で転送が必要な場所などをどう記述するか、今後整理します。現時点では既存の動作を維持するため、`routes` を `type` に依存しない任意の項目として保持します。Scene が利用するのは入口 `/index.bina` のものです。
 
 ```json
 {
   "binette": "0.1",
   "type": "redirect",
   "content": "/home",
-  "settings": [
-    { "app": "notes", "title": "ノート", "path": "/notes/settings" }
-  ]
+  "routes": {
+    "/old": { "redirect": "/new" }
+  }
 }
 ```
 
-- `settings`: 固定 `/settings` に並べるアプリの項目。リンク先は通常の HTML・JavaScript などのビネットです。
 - `routes`: 遷移時の転送などを書くための項目です。通常のビネットの取得先は書きません。形と適用範囲は検討中です。
+
+設定画面に並べる項目は入口ではなく `/settings.bina`（`type: "settings"`）に書きます。
 
 ## 取得
 
@@ -171,7 +172,7 @@ Scene は `start()` で入口を取得し、初期画面まで表示します。
 
 ### 入口
 
-Scene を始めると、まず固定の `/index.bina` から入口のビネットを取り、Scene が動いているあいだ覚えておきます。これが Coulisses 全体の設定（`routes` と、設定画面に並べるアプリの項目）です。
+Scene を始めると、まず固定の `/index.bina` から入口のビネットを取り、Scene が動いているあいだ覚えておきます。これが Coulisses 全体の設定（`routes`）です。入口は `/` の画面そのものでもあります。
 
 ### `routes`（検討中）
 
@@ -181,12 +182,10 @@ Scene を始めると、まず固定の `/index.bina` から入口のビネッ�
 
 ### 始めたときの行き先
 
-直接開いたパスを維持します。起動時に Scene 内の `/` を開いていて、入口の取得中も URL が変わらなかった場合だけ、次の規則で行き先を決めます。
+直接開いたパスを維持し、そのパスの画面を出します。始めたときも、起動後に移動したときも、`/` の扱いは同じです。
 
-- 入口自身が `type: "redirect"` なら、その `content` へ移ります。入口の転送を `routes["/"].redirect` には書きません。
-- 入口が転送でない場合、現在の暫定実装では `routes` に `/` があればその指定に従います。
-- 入口が転送でなく、`routes` に `/` も無ければ、`/settings` へ移ります。
-- 起動後に `/` へ移動したときも、入口が転送ならその `content` へ移ります。入口が転送でなく `routes` に `/` も無ければ、既定の `/index.bina` を取得します。
+- `/` は入口 `/index.bina` の中身を表示します。入口が `type: "redirect"` なら、その `content` へ移ります。入口の転送を `routes["/"].redirect` には書きません。
+- `/index.bina` が無い（404）場合は、ほかのビネットと同じく「見つかりません」を表示します。`/settings` へ自動で移ることはありません。
 
 ### 固定の URL
 
@@ -241,8 +240,8 @@ Scene が始まる前（EbinaStation では未ログインのとき）は、Bine
 
 - Coulisses の `defineBinette` による形式検証と `createCoulisses` による `.bina`・asset 配信（GET / HEAD、任意の CORS）
 
-- `html` / `js` / `redirect` / `settings` と中身無しの形式検査、`app`、入口の `routes` とアプリの設定一覧
-- `new Scene({ element, serverURL, fetch?, base?, … })` による入口の取得、始めたときの遷移、画面切り替えと後始末
+- `html` / `js` / `redirect` / `settings` と中身無しの形式検査、`app`、入口の `routes`
+- `new Scene({ element, serverURL, fetch?, base?, … })` による入口の取得、`/` での入口の表示、画面切り替えと後始末
 - 固定の `/settings` に General と、`/settings.bina`（`type: "settings"`）の `sections` を優先度順に Shadow DOM で表示。element セクションは js の asset か、フロントが `components` で登録した部品
 - 中身無し・404 の基本画面、読み込みエラーと再試行
 - ビネットと asset は同じ `fetch`（標準、またはフロント提供）で取得。Scene は Solid・WAKE・殻に依存しない

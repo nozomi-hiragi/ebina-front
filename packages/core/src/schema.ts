@@ -85,7 +85,6 @@ const common = {
   app: v.optional(v.string("app は文字列で指定してください。")),
   title: v.optional(v.string("title は文字列で指定してください。")),
   routes: v.optional(routesSchema),
-  settings: v.optional(v.array(v.object({ app: v.string(), title: v.string(), path: v.string() }))),
   assets: v.optional(assetsSchema, () => Object.create(null) as v.InferOutput<typeof assetsSchema>),
 };
 const type = v.picklist(["html", "js"], "type は html、js、redirect、settings のいずれかで指定してください。");
@@ -95,7 +94,7 @@ const binetteBodySchema = v.pipe(
   v.check((value) => value.type === "html" || value.type === "js" || value.type === "redirect" || value.type === "settings" || value.type === undefined && !Object.hasOwn(value, "content") && !Object.hasOwn(value, "entry"), "type は html、js、redirect、settings のいずれかで指定してください。"),
   v.check((value) => value.type === undefined || value.type === "settings" && !Object.hasOwn(value, "content") && !Object.hasOwn(value, "entry") || Object.hasOwn(value, "content") !== Object.hasOwn(value, "entry"), "content と entry のどちらか一方を指定してください。"),
   v.transform((value) => ({
-    binette: value.binette, app: value.app, title: value.title, assets: value.assets, type: value.type, routes: value.routes, settings: value.settings,
+    binette: value.binette, app: value.app, title: value.title, assets: value.assets, type: value.type, routes: value.routes,
     ...(Object.hasOwn(value, "content") ? { content: value.content } : {}),
     ...(Object.hasOwn(value, "entry") ? { entry: value.entry } : {}),
     ...(value.type === "settings" ? { sections: value.sections } : {}),

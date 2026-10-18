@@ -69,7 +69,11 @@ export function createApp(config: Config, store: Store) {
       if (!user) return etJson(404, { error: { code: "not_found" } });
       return etJson(200, { id: user.id, name: user.name });
     }
-    // 設定画面にフロントのログアウト部品を差し込む。ほかのビネット（index.bina など）はわざと返さない
+    // 入口は設定画面への転送だけにする
+    if (req.method === "GET" && req.url === "wake://station/index.bina") {
+      return etJson(200, { binette: "0.1", type: "redirect", content: "/settings" });
+    }
+    // 設定画面にフロントのログアウト部品を差し込む。ほかのビネットはわざと返さない
     if (req.method === "GET" && req.url === "wake://station/settings.bina") {
       return etJson(200, {
         binette: "0.1",

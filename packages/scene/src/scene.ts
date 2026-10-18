@@ -110,19 +110,12 @@ export class Scene {
       this.#listening = true;
     }
     this.#startupFailed = false;
-    const initialURL = location.href;
     this.#starting = (async () => {
       try {
         const value = await this.#fetchBinette("/index.bina");
         if (this.#disposed) return;
         this.#started = true;
         this.#entry = value;
-        if (location.href === initialURL && this.#path(new URL(location.href)) === "/") {
-          const url = this.#url(value?.type === "redirect" ? value.content : this.#entry?.routes?.["/"] ? "/" : "/settings");
-          if (!url.search) url.search = location.search;
-          if (!url.hash) url.hash = location.hash;
-          history.replaceState(history.state, "", url);
-        }
       } catch (error) {
         if (this.#disposed) return;
         this.#startupFailed = true;
