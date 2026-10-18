@@ -5,7 +5,7 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 ## プロジェクト概要
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
-- 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後は Scene が固定の入口 `/index.bina` を読み、起動時に `/` を開いた場合、入口が `type: "redirect"` なら `content` のパスへ移る。入口の転送を `routes["/"].redirect` には書かない。入口の転送も `/` のルート指定も無ければ固定の `/settings` を表示する。通常の画面パスには `.bina` を付けて取得し（`/` は `/index.bina`）、`routes` に `binette` は書かない。取得先が 404 なら「見つかりません」を表示する。`routes` の形と適用範囲は検討中。設定画面には入口 Binette のアプリ一覧を表示し、シェルのカスタム要素は登録しない
+- 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後は Scene が固定の入口 `/index.bina` を読み、起動時に `/` を開いた場合、入口が `type: "redirect"` なら `content` のパスへ移る。入口の転送を `routes["/"].redirect` には書かない。入口の転送も `/` のルート指定も無ければ固定の `/settings` を表示する。通常の画面パスには `.bina` を付けて取得し（`/` は `/index.bina`）、`routes` に `binette` は書かない。取得先が 404 なら「見つかりません」を表示する。`routes` の形と適用範囲は検討中。設定画面は General と、Coulisses の `/settings.bina`（`type: "settings"`）の `sections` を優先度順に並べる（General は 0、小さいほど上）。ログアウトなどフロントの操作は、フロントが `components` で登録した部品を `/settings.bina` の element セクションから指定して出す。シェルのカスタム要素は登録しない
 - Binette の仕様は `docs/binette.md`、ebina-front での使い方（パスとビネットの対応、WAKE での取得など）は `docs/ebina-front.md` を参照。`packages/core/`・`packages/scene/`・`packages/coulisses/` は独立した npm ワークスペースのパッケージとして、ebina-front（Solid や `src/` のコード）に依存させない。core の依存は valibot だけ、scene と coulisses の依存は core だけとし、必要な機能は引数で受け取る
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 

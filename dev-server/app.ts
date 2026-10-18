@@ -69,7 +69,14 @@ export function createApp(config: Config, store: Store) {
       if (!user) return etJson(404, { error: { code: "not_found" } });
       return etJson(200, { id: user.id, name: user.name });
     }
-    // ビネット（index.bina など）はわざと返さない。ログイン後は Scene の基本の設定画面になる
+    // 設定画面にフロントのログアウト部品を差し込む。ほかのビネット（index.bina など）はわざと返さない
+    if (req.method === "GET" && req.url === "wake://station/settings.bina") {
+      return etJson(200, {
+        binette: "0.1",
+        type: "settings",
+        sections: [{ priority: 10, label: "アカウント", type: "element", component: "logout" }],
+      });
+    }
     return etJson(404, { error: { code: "not_found" } });
   };
 

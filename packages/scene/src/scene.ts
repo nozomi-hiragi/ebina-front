@@ -1,15 +1,27 @@
 import { parseBinette } from "@binette/core";
 import { joueur as createJoueur, type BinetteJoueur } from "./joueur";
+import { importModule } from "./module";
 import { createResolver } from "./resolve";
 import { SettingsPage, type SettingsSection } from "./settings";
 import { button, element, renderView } from "./view";
-import type { Binette } from "@binette/core";
+import type { Binette, BinetteSettingsSection } from "@binette/core";
+
+export interface SceneShell {
+  version: string;
+  navigate: (path: string) => void;
+  fetch: (url: string, init?: RequestInit) => Promise<Response>;
+}
+
+/** 設定画面の element セクションに表示する、フロントが用意する部品。アプリの mount と同じ形。 */
+export type SceneComponent = (element: HTMLElement, sh: SceneShell) => void | (() => void) | Promise<void | (() => void)>;
 
 export interface SceneOptions {
   element: HTMLElement;
   serverURL: string;
   fetch?: (url: string, init?: RequestInit) => Promise<Response>;
   base?: string;
+  /** /settings.bina の element セクションから component の名前で指定できる部品 */
+  components?: Record<string, SceneComponent>;
   onError?: (error: unknown) => void;
 }
 export class Scene {
@@ -27,6 +39,7 @@ export class Scene {
   #base: string;
   #listening = false;
   #settings: HTMLElement | undefined;
+  #cleanups: (() => void)[] = [];
 
   constructor(options: SceneOptions) {
     this.#options = options;
@@ -49,6 +62,9 @@ export class Scene {
     this.#joueur?.dispose();
     this.#joueur = undefined;
     this.#settings = undefined;
+    for (const cleanup of this.#cleanups.splice(0)) {
+      try { cleanup(); } catch (error) { this.#report(error); }
+    }
     this.#root.replaceChildren();
   };
   #errorView = (retry: () => void) => {
@@ -173,9 +189,16 @@ export class Scene {
               },
             ],
           };
-          const sections: SettingsSection[] = [
-            sectionGeneral,
-          ];
+          const settings = await this.#fetchBinette("/settings.bina");
+          if (!valid()) return;
+          if (settings && settings.type !== "settings") throw new Error("/settings.bina の type は settings で指定してください。");
+          const sh: SceneShell = { version: "0.1", navigate, fetch: this.#fetch };
+          // General の優先度は 0。小さいほど上に並べ、同じ優先度なら General、続いて書いた順にする
+          const inserted = settings?.type === "settings" ? settings.sections : [];
+          const sections = [{ priority: 0, section: sectionGeneral }, ...inserted.map(section => ({
+            priority: section.priority ?? 0,
+            section: this.#settingsSection(section, settings!, sh, valid),
+          }))].sort((a, b) => a.priority - b.priority).map(item => item.section);
           this.#settings = SettingsPage({
             title: "Settings", sections,
             basePath: this.#url("/settings").pathname,
@@ -219,7 +242,7 @@ export class Scene {
               if (targetPath !== undefined) this.#navigate(`${targetPath}${targetURL.search}${targetURL.hash}`);
             },
             base: this.#base,
-            sh: { version: "0.1", navigate, fetch: this.#fetch },
+            sh: { version: "0.1", navigate, fetch: this.#fetch } satisfies SceneShell,
           });
           if (!valid()) handle.dispose();
           else this.#joueur = handle;
@@ -230,6 +253,48 @@ export class Scene {
       if (valid()) this.#report(error);
       if (valid()) this.#errorView(() => { void this.#showCurrent(); });
     }
+  };
+  #settingsSection = (section: BinetteSettingsSection, binette: Binette, sh: SceneShell, valid: () => boolean): SettingsSection => {
+    if (section.type === "list") {
+      return {
+        type: "list", label: section.label,
+        contents: section.contents.map(row => ({
+          id: row.id, start: row.start, label: row.label, end: row.end,
+          sections: row.sections?.map(child => this.#settingsSection(child, binette, sh, valid)),
+        })),
+      };
+    }
+    const host = element("div");
+    void this.#mountElement(host, section, binette, sh, valid).catch(error => {
+      if (valid()) this.#report(error);
+    });
+    return { type: "element", label: section.label, element: host };
+  };
+  #mountElement = async (host: HTMLElement, section: BinetteSettingsSection & { type: "element" }, binette: Binette, sh: SceneShell, valid: () => boolean) => {
+    let mount: unknown;
+    let shell: object = sh;
+    if (section.component !== undefined) {
+      mount = this.#options.components && Object.hasOwn(this.#options.components, section.component) ? this.#options.components[section.component] : undefined;
+      if (typeof mount !== "function") throw new Error(`部品が登録されていません: ${section.component}`);
+    } else {
+      const resolver = createResolver({ fetch: this.#fetch });
+      const asset = (name: string) => {
+        if (!Object.hasOwn(binette.assets, name)) return Promise.reject(new Error(`asset が見つかりません: ${name}`));
+        return resolver(binette.assets[name]);
+      };
+      const response = await asset(section.entry!);
+      if (!response.ok) throw new Error(`asset を読み込めませんでした: ${section.entry} (${response.status})`);
+      const code = await response.text();
+      if (!valid()) return;
+      mount = (await importModule(code)).mount;
+      if (typeof mount !== "function") throw new Error(`mount 関数がありません: ${section.entry}`);
+      shell = { ...sh, asset };
+    }
+    if (!valid()) return;
+    const result: unknown = await (mount as (element: HTMLElement, sh: object) => unknown)(host, shell);
+    if (typeof result !== "function") return;
+    if (valid()) this.#cleanups.push(result as () => void);
+    else (result as () => void)();
   };
   dispose = (): void => {
     if (this.#disposed) return;

@@ -1,4 +1,5 @@
 import { createEffect, onCleanup } from "solid-js";
+import { render } from "solid-js/web";
 import { useNavigate } from "@solidjs/router";
 import { Scene } from "@binette/scene";
 import { clearSession, session } from "../auth/session";
@@ -45,6 +46,16 @@ export default function StationView() {
       serverURL: "wake://station/",
       base: "/ebina-station/",
       fetch: frontFetch,
+      // Station の /settings.bina が element セクションの component で指定する部品
+      components: {
+        logout: (element) => render(() => (
+          <button type="button" onClick={async () => {
+            try { await wakeClient(active.server).logout(); }
+            catch { /* サーバー側で失敗してもローカルのセッションは消す */ }
+            goToLogin();
+          }}>ログアウト</button>
+        ), element),
+      },
     });
     onCleanup(() => {
       disposed = true;
