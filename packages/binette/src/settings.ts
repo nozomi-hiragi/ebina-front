@@ -1,4 +1,4 @@
-export interface PlayerSettings {
+export interface SceneSettings {
   theme?: { options: { value: string; label: string }[]; get(): string; set(value: string): void };
   connection?: { server: string; user: { id: string; name: string } };
   versions?: Record<string, string>;
@@ -39,7 +39,7 @@ export function baseView(root: ShadowRoot, title: string) {
   return main;
 }
 
-export function renderSettings(root: ShadowRoot, settings: PlayerSettings, apps: { title: string; path: string }[], navigate: (path: string) => void, onError: (error: unknown) => void) {
+export function renderSettings(root: ShadowRoot, settings: SceneSettings, apps: { title: string; path: string }[], navigate: (path: string) => void, onError: (error: unknown) => void) {
   const main = baseView(root, "設定");
   const section = (title: string) => {
     const node = element("section");

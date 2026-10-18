@@ -1,26 +1,26 @@
 import { parseBinette } from "./parse";
-import { play, type BinettePlayback } from "./player";
+import { play, type BinettePlayback } from "./playback";
 import { createResolver } from "./resolve";
-import { baseView, button, element, renderSettings, type PlayerSettings } from "./settings";
+import { baseView, button, element, renderSettings, type SceneSettings } from "./settings";
 import type { Binette } from "./types";
 
-export interface PlayerOptions {
+export interface SceneOptions {
   container: HTMLElement;
   fetch: (url: string, init?: RequestInit) => Promise<Response>;
   binette: (path: string) => string;
   entry: string;
   navigate: (path: string) => void;
   sh: object;
-  settings: PlayerSettings;
+  settings: SceneSettings;
   onError?: (error: unknown) => void;
 }
-export interface BinettePlayer {
+export interface BinetteScene {
   start(): Promise<void>;
   show(path: string): Promise<void>;
   dispose(): void;
 }
 
-export function createPlayer(options: PlayerOptions): BinettePlayer {
+export function createScene(options: SceneOptions): BinetteScene {
   const root = options.container.shadowRoot ?? options.container.attachShadow({ mode: "open" });
   let entry: Extract<Binette, { type: "settings" }> | undefined;
   let disposed = false;
@@ -50,7 +50,7 @@ export function createPlayer(options: PlayerOptions): BinettePlayer {
     if (!response.ok) throw response;
     return parseBinette(await response.json());
   };
-  const player: BinettePlayer = {
+  const scene: BinetteScene = {
     start() {
       if (disposed) return Promise.resolve();
       if (starting) return starting;
@@ -68,7 +68,7 @@ export function createPlayer(options: PlayerOptions): BinettePlayer {
           report(error);
           if (!disposed && current === generation) errorView(() => {
             starting = undefined;
-            void player.start().then(() => { if (!startupFailed) void player.show(lastPath); });
+            void scene.start().then(() => { if (!startupFailed) void scene.show(lastPath); });
           });
         }
       })();
@@ -113,7 +113,7 @@ export function createPlayer(options: PlayerOptions): BinettePlayer {
         }
       } catch (error) {
         report(error);
-        if (valid()) errorView(() => { void player.show(path); });
+        if (valid()) errorView(() => { void scene.show(path); });
       }
     },
     dispose() {
@@ -122,5 +122,5 @@ export function createPlayer(options: PlayerOptions): BinettePlayer {
       clear();
     },
   };
-  return player;
+  return scene;
 }

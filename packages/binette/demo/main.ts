@@ -1,4 +1,4 @@
-import { createPlayer } from "binette";
+import { createScene } from "binette";
 
 const container = document.querySelector<HTMLElement>("#app");
 if (!container) throw new Error("表示先がありません。");
@@ -10,7 +10,7 @@ document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light
 let initializing = true;
 const initialPath = location.pathname;
 
-const player = createPlayer({
+const scene = createScene({
   container,
   fetch: (url, init) => {
     if (/^https?:\/\//i.test(url)) return fetch(url, init);
@@ -23,7 +23,7 @@ const player = createPlayer({
     // 入口の取得中も、直接開いたパスと戻る・進むで移動したパスを維持する。
     if (initializing && (initialPath !== "/" || location.pathname !== "/")) return;
     history.pushState(null, "", path);
-    void player.show(location.pathname);
+    void scene.show(location.pathname);
   },
   sh: { user },
   settings: {
@@ -43,7 +43,7 @@ const player = createPlayer({
   onError: error => console.error(error),
 });
 
-window.addEventListener("popstate", () => { void player.show(location.pathname); });
-await player.start();
+window.addEventListener("popstate", () => { void scene.show(location.pathname); });
+await scene.start();
 initializing = false;
-await player.show(location.pathname);
+await scene.show(location.pathname);

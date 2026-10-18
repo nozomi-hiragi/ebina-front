@@ -1,6 +1,6 @@
 import { createEffect, createSignal, onCleanup, untrack } from "solid-js";
 import { useLocation, useNavigate } from "@solidjs/router";
-import { createPlayer, type BinettePlayer } from "binette";
+import { createScene, type BinetteScene } from "binette";
 import { clearSession, session } from "../auth/session";
 import { isReauthError, wakeClient } from "../auth/wake";
 import { setTheme, theme } from "./theme";
@@ -9,7 +9,7 @@ import { version } from "../../package.json";
 export default function StationView() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [ready, setReady] = createSignal<BinettePlayer>();
+  const [ready, setReady] = createSignal<BinetteScene>();
   let container!: HTMLDivElement;
   const path = () => location.pathname.replace(/^\/ebina-station(?=\/|$)/, "") || "/";
   const shellNavigate = (target: string) => {
@@ -51,7 +51,7 @@ export default function StationView() {
         throw error;
       }
     };
-    const player = createPlayer({
+    const scene = createScene({
       container,
       fetch: frontFetch,
       binette: path => path === "/" ? "/index.bina" : `${path}.bina`,
@@ -82,18 +82,18 @@ export default function StationView() {
     setReady(undefined);
     onCleanup(() => {
       disposed = true;
-      player.dispose();
+      scene.dispose();
     });
-    void player.start().then(() => {
+    void scene.start().then(() => {
       initializing = false;
-      if (!disposed) setReady(player);
+      if (!disposed) setReady(scene);
     });
   });
 
   createEffect(() => {
-    const player = ready();
+    const scene = ready();
     const current = path();
-    if (player) void player.show(current);
+    if (scene) void scene.show(current);
   });
   return <div ref={container} />;
 }
