@@ -67,10 +67,10 @@ npm run preview     # build/ の内容をローカルで確認
 | `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン直後は入口 Binette に従って移動（無ければ `/settings`） |
 | `/login`     | ログイン（`pages/Login.tsx`） |
 | `/register`  | パスキー登録（`pages/Register.tsx`）。クエリ `server` と `token` が必要で、テスト用サーバーの登録 URL から開く |
-| `/settings`  | Scene の固定の設定画面（入口 Binette のアプリ一覧） |
+| `/settings`  | Scene の固定の設定画面（General と `/settings.bina` のセクション） |
 | その他       | パスに `.bina` を付けた Station の Binette（例: `/a/b` → `/a/b.bina`）。取得先が 404 なら「見つかりません」 |
 
-Scene は入口 `/index.bina` を読み込みます。`type: "redirect"` のビネットは `content` に書いた Scene 内パスへ転送します。`type: "settings"` は廃止していますが、固定 `/settings` は維持します。`routes` の形は検討中で、以下は現状の実装です。テスト用サーバーはビネットを1つも返さない（`/index.bina` も 404）ので、起動時に `/` を開いている場合は基本の設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持し、既定の対応でビネットを取得します。
+Scene は入口 `/index.bina` を読み込みます。`type: "redirect"` のビネットは `content` に書いた Scene 内パスへ転送します。固定 `/settings` には `/settings.bina`（`type: "settings"`）のセクションを差し込みます。`routes` の形は検討中で、以下は現状の実装です。テスト用サーバーは `/settings.bina`（ログアウトのセクションだけ）以外のビネットを返さない（`/index.bina` も 404）ので、起動時に `/` を開いている場合は基本の設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持し、既定の対応でビネットを取得します。
 
 ログイン後の画面は Binette を Shadow DOM 内で再生します。`packages/core/`（型と形式検証）、`packages/scene/`（再生）、`packages/coulisses/`（配信）は独立した npm ワークスペースです。ebina-front の Solid コンポーネント、WAKE、セッション管理に依存せず、scene と coulisses は core だけに依存します。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 

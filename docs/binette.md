@@ -97,7 +97,9 @@ new Scene({
 
 転送先は `/` 始まりのパスです。外部 URL や `//` 始まりは指定しません。Scene は `base` を付けた画面 URL へ、履歴を置き換えて移動します。転送先で指定されていないクエリとハッシュは引き継ぎ、転送が循環するとエラーを表示します。CSS や JavaScript の asset は再生しません。
 
-`type: "settings"` は廃止しました。固定の `/settings` は Scene の画面として残します。
+### `type: "settings"`
+
+Coulisses の `/settings.bina` にだけ置き、固定の `/settings` に差し込むセクションを `sections` に書きます。`content` と `entry` は使いません。書き方は「設定画面（`/settings`）」を参照してください。
 
 ### 入口のメタデータ（暫定）
 
@@ -194,18 +196,29 @@ Scene が始まる前（EbinaStation では未ログインのとき）は、Bine
 
 ## 設定画面（`/settings`）
 
-スマホの設定アプリのような画面です。UI は Binette の仕様で決め打ちです。
+スマホの設定アプリのような画面です。UI は Binette の仕様で決め打ちです。Scene は `/settings` を開くたびに Coulisses の `/settings.bina` を取り、その `sections` を Scene 自身の General セクションと一緒に並べます。
 
-```
-設定（/settings）
-└── アプリ: 入口のビネットの settings に書かれた項目
-    ├── ノート → /notes/settings
-    └── 写真   → /photos/settings
+```json
+{
+  "binette": "0.1",
+  "type": "settings",
+  "sections": [
+    { "priority": 10, "label": "アカウント", "type": "element", "component": "logout" },
+    { "priority": -1, "label": "アプリ", "type": "list", "contents": [
+      { "id": "notes", "start": "📝", "label": "ノート", "sections": [
+        { "type": "element", "entry": "notes" }
+      ] }
+    ] }
+  ],
+  "assets": { "notes": { "type": "js", "src": "/files/notes/settings.js" } }
+}
 ```
 
-- Scene の固定画面は入口のビネットの `settings` に書かれたアプリへのリンクを表示します。テーマ、接続先、ユーザーなどフロント固有の情報は表示しません。
-- アプリの項目は Coulisses が入口のビネットの `settings` で指定します。リンク先で何を表示・操作するかはアプリの実装者が決めます。
-- 入口のビネットに `settings` が無い、または空の場合、固定画面には見出しだけを表示します。
+- `priority`: 並び順。General は `0` で、小さいほど上に並びます。負の数も書けます。省略すると `0` です。同じ優先度なら General が先、続いて書いた順です。`priority` が効くのは一番上の階層だけです。
+- `type: "list"`: 行（`contents`）の一覧です。行は `id`・`label` と、任意の `start`・`end`（文字列）を持ちます。行に `sections` を書くと、押したときにその中身を `/settings/<id>` で開きます。入れ子にできます。
+- `type: "element"`: 任意の表示です。`entry`（`assets` の js）か `component`（フロントが登録した部品の名前）のどちらか一方を書きます。どちらも `mount(element, sh)` の形で呼ばれ、後始末の関数を返せます。`entry` の `sh` には `asset(name)` も付きます。
+- `/settings.bina` が 404 なら General だけを表示します。`type` が `settings` でなければエラーを表示します。
+- 部品はフロントが `new Scene({ components: { logout: (element, sh) => … } })` で登録します。テーマやログアウトなど、フロントにしかできない操作をここで出します。登録されていない名前を指定すると、そのセクションは空のまま `onError` に知らせます。
 
 ## ストレージ
 
@@ -228,9 +241,9 @@ Scene が始まる前（EbinaStation では未ログインのとき）は、Bine
 
 - Coulisses の `defineBinette` による形式検証と `createCoulisses` による `.bina`・asset 配信（GET / HEAD、任意の CORS）
 
-- `html` / `js` / `redirect` と中身無しの形式検査、`app`、入口の `routes` とアプリの設定一覧
+- `html` / `js` / `redirect` / `settings` と中身無しの形式検査、`app`、入口の `routes` とアプリの設定一覧
 - `new Scene({ element, serverURL, fetch?, base?, … })` による入口の取得、始めたときの遷移、画面切り替えと後始末
-- 固定の `/settings` に入口 Binette のアプリ一覧を Shadow DOM で表示
+- 固定の `/settings` に General と、`/settings.bina`（`type: "settings"`）の `sections` を優先度順に Shadow DOM で表示。element セクションは js の asset か、フロントが `components` で登録した部品
 - 中身無し・404 の基本画面、読み込みエラーと再試行
 - ビネットと asset は同じ `fetch`（標準、またはフロント提供）で取得。Scene は Solid・WAKE・殻に依存しない
 - Scene の入口は固定の `/index.bina`。通常の画面パスには `.bina` を付けて取得し、`routes` に取得先は書かない。専用のログアウト画面とシェルのカスタム要素は廃止

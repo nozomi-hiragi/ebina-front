@@ -17,7 +17,7 @@ WAKE のセッションが切れていたら（`reauth` など）、ログイン
 
 ## パスとビネットの対応
 
-Scene の既定動作で `/a/b` は `/a/b.bina`、`/` は `/index.bina` を取得します。`routes` に取得先は書きません。取得方法は上記の URL スキームに従い、取得先が 404 の場合は「見つかりません」を表示します。固定 `/settings` はビネットを取得しません。
+Scene の既定動作で `/a/b` は `/a/b.bina`、`/` は `/index.bina` を取得します。`routes` に取得先は書きません。取得方法は上記の URL スキームに従い、取得先が 404 の場合は「見つかりません」を表示します。固定 `/settings` は画面のビネットを取得せず、差し込むセクションを `/settings.bina` から取得します。
 
 `routes` の形と適用範囲は検討中です。入口自身の転送は `/index.bina` の `type: "redirect"` と `content` で指定します。
 
@@ -29,4 +29,4 @@ Scene の既定動作で `/a/b` は `/a/b.bina`、`/` は `/index.bina` を取�
 
 ## テーマとログイン情報
 
-テーマの選択は ebina-front の画面側で管理し、`ebina-theme`（localStorage）に保存します。接続先とユーザー情報もログイン用のフロント UI で扱います。これらの情報は Scene の固定 `/settings` には渡しません。
+テーマの選択は ebina-front の画面側で管理し、`ebina-theme`（localStorage）に保存します。接続先とユーザー情報もログイン用のフロント UI で扱います。これらの情報は Scene の固定 `/settings` には渡しません。ログアウトは ebina-front が `components` に `logout` の部品として登録し、Station の `/settings.bina` が element セクションの `component: "logout"` で表示場所を決めます。
