@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Binette デモ</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --color-base-100: #ffffff;
+      --color-base-200: #f3f5f8;
+      --color-base-300: #d5dae1;
+      --color-base-content: #16181d;
+      --color-primary: #3273b9;
+      --color-primary-content: #ffffff;
+      --radius-box: 16px;
+      --radius-field: 10px;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --color-base-100: #0b0c0e;
+      --color-base-200: #1a1c21;
+      --color-base-300: #2e323a;
+      --color-base-content: #f5f6f8;
+      --color-primary: #3273b9;
+      --color-primary-content: #ffffff;
+      --radius-box: 16px;
+      --radius-field: 10px;
+    }
+    html, body { margin: 0; min-height: 100%; }
+    body { font-family: "IBM Plex Sans JP", system-ui, sans-serif; background: var(--color-base-100); color: var(--color-base-content); }
+    #app { min-height: 100dvh; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/main.ts"></script>
+</body>
+</html>

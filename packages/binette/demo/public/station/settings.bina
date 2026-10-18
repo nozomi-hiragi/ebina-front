@@ -1,0 +1,17 @@
+{
+  "binette": "0.1",
+  "type": "settings",
+  "app": "demo",
+  "routes": {
+    "/": {
+      "redirect": "/home"
+    }
+  },
+  "settings": [
+    {
+      "app": "hello",
+      "title": "サンプル",
+      "path": "/hello/settings"
+    }
+  ]
+}

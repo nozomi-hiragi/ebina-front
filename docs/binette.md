@@ -198,6 +198,8 @@ createPlayer({
 
 ## 実装の状況
 
+実装は独立した npm ワークスペースの `packages/binette/` にあります。ebina-front、Solid、WAKE に依存しません。
+
 実装済み:
 
 - `html` / `js` / `settings` と中身無しの形式検査、`app`、入口の `routes` とアプリの設定一覧

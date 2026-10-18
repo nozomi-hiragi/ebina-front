@@ -23,7 +23,8 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 npm install
 npm run dev         # http://localhost:5173/ebina-station/
 npm run dev:server  # テスト用サーバー http://localhost:8787
-npm run build       # 型チェック（src/ と dev-server/ の tsc）後、build/ に出力
+npm run build       # 型チェック（binette、src/、dev-server/）後、build/ に出力
+npm run demo -w binette # Binette 単体デモ（http://localhost:5173/）
 npm run preview     # build/ の内容をローカルで確認
 ```
 
@@ -70,7 +71,7 @@ npm run preview     # build/ の内容をローカルで確認
 
 プレイヤーは入口 `/settings.bina` を読み込みます。テスト用サーバーはビネットを1つも返さない（`/settings.bina` も 404）ので、ログイン後は基本の設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持します。その後に `/` へ移動した場合は `/index.bina` を取得します。
 
-ログイン後の画面は Binette を Shadow DOM 内で再生します。`src/binette/` は将来パッケージとして切り出せるよう、殻の Solid コンポーネント、WAKE、セッション管理に依存させません。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
+ログイン後の画面は Binette を Shadow DOM 内で再生します。`packages/binette/` は独立した npm ワークスペースのパッケージとして、殻の Solid コンポーネント、WAKE、セッション管理に依存させません。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 
 アプリは `/ebina-station/` で配信されます。Vite の `base`（`vite.config.ts`）と Router の `base`（`src/App.tsx`）の両方で指定しています。
 
@@ -99,7 +100,6 @@ src/
 │   ├── webauthn.ts  # WebAuthn 登録オプションと応答の変換
 │   ├── passkey.ts   # パスキー操作のエラー文言
 │   └── passkeyAutofill.ts # パスキーのオートフィル待機
-├── binette/         # Binette の型・検証・アセット解決・再生（殻に依存しない）
 ├── shell/           # ログイン後の殻と Station 画面
 │   ├── storage.ts   # localStorage の読み書き補助
 │   └── theme.ts     # テーマの状態管理
@@ -110,6 +110,7 @@ src/
 │   └── login/       # ログイン画面専用の部品（serverSelection）
 └── pages/            # 各ページ
 dev-server/          # テスト用サーバー（index.ts: 起動と登録 URL 表示, app.ts: API, store.ts: メモリ保存）
+packages/binette/   # ebina-front に依存しない Binette パッケージ（src/ と単体デモ demo/）
 docs/binette.md      # Binette の仕様（形式、再生、シェル、ルーティング、設定画面）
 docs/ebina-front.md  # ebina-front での Binette の使い方
 public/              # 静的ファイル（favicon.svg, apple-touch-icon.png）
