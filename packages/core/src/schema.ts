@@ -32,18 +32,9 @@ const assetsSchema = v.pipe(
   ])),
   v.transform((entries) => Object.assign(Object.create(null) as Record<string, v.InferOutput<typeof binetteAssetSchema>>, Object.fromEntries(entries))),
 );
-const common = {
-  binette: versionString,
-  app: v.optional(v.string("app は文字列で指定してください。")),
-  title: v.optional(v.string("title は文字列で指定してください。")),
-  assets: v.optional(assetsSchema, () => Object.create(null) as v.InferOutput<typeof assetsSchema>),
-};
-const type = v.picklist(["html", "js"], "type は html または js で指定してください。");
-
 const routeSchema = v.pipe(
   objectValue("route はオブジェクトで指定してください。"),
-  v.check(value => Object.hasOwn(value, "redirect") !== Object.hasOwn(value, "binette"), "redirect と binette はどちらか一方を指定してください。"),
-  v.union([v.object({ redirect: v.string(), binette: absent }), v.object({ binette: v.string(), redirect: absent })]),
+  v.object({ redirect: v.string() }),
 );
 const routesSchema = v.pipe(
   objectValue("routes はオブジェクトで指定してください。"),
@@ -51,30 +42,36 @@ const routesSchema = v.pipe(
   v.array(v.tuple([v.pipe(v.string(), v.startsWith("/")), routeSchema])),
   v.transform(entries => Object.assign(Object.create(null), Object.fromEntries(entries)) as Record<string, v.InferOutput<typeof routeSchema>>),
 );
-const settingsSchema = v.object({
-  ...common, type: v.literal("settings"), app: v.string(), content: absent, entry: absent,
+const common = {
+  binette: versionString,
+  app: v.optional(v.string("app は文字列で指定してください。")),
+  title: v.optional(v.string("title は文字列で指定してください。")),
   routes: v.optional(routesSchema),
   settings: v.optional(v.array(v.object({ app: v.string(), title: v.string(), path: v.string() }))),
-});
+  assets: v.optional(assetsSchema, () => Object.create(null) as v.InferOutput<typeof assetsSchema>),
+};
+const type = v.picklist(["html", "js"], "type は html、js、redirect のいずれかで指定してください。");
 
 const binetteBodySchema = v.pipe(
   objectValue("Binette はオブジェクトで指定してください。"),
-  v.check((value) => value.type === "html" || value.type === "js" || value.type === undefined && !Object.hasOwn(value, "content") && !Object.hasOwn(value, "entry"), "type は html または js で指定してください。"),
+  v.check((value) => value.type === "html" || value.type === "js" || value.type === "redirect" || value.type === undefined && !Object.hasOwn(value, "content") && !Object.hasOwn(value, "entry"), "type は html、js、redirect のいずれかで指定してください。"),
   v.check((value) => value.type === undefined && !Object.hasOwn(value, "content") && !Object.hasOwn(value, "entry") || Object.hasOwn(value, "content") !== Object.hasOwn(value, "entry"), "content と entry のどちらか一方を指定してください。"),
   v.transform((value) => ({
-    binette: value.binette, app: value.app, title: value.title, assets: value.assets, type: value.type,
+    binette: value.binette, app: value.app, title: value.title, assets: value.assets, type: value.type, routes: value.routes, settings: value.settings,
     ...(Object.hasOwn(value, "content") ? { content: value.content } : {}),
     ...(Object.hasOwn(value, "entry") ? { entry: value.entry } : {}),
   })),
   v.lazy((value) => (value as Record<string, unknown>).type === undefined
     ? v.object({ ...common, type: absent, content: absent, entry: absent })
+    : (value as Record<string, unknown>).type === "redirect"
+      ? v.object({ ...common, type: v.literal("redirect"), content: v.pipe(nonempty("redirect の content は Scene 内のパスで指定してください。"), v.check(path => path.startsWith("/") && !path.startsWith("//") && !path.includes("\\") && !/[\u0000-\u0020]/.test(path), "redirect の content は Scene 内のパスで指定してください。")), entry: absent })
     : Object.hasOwn(value as object, "content")
       ? v.object({ ...common, type, content: v.string("content は文字列で指定してください。"), entry: absent })
       : v.object({ ...common, type, entry: v.string("entry の asset がありません。"), content: absent })),
 );
 
 export const binetteSchema = v.pipe(
-  v.union([settingsSchema, binetteBodySchema]),
+  binetteBodySchema,
   v.check((value) => value.entry === undefined || Object.hasOwn(value.assets, value.entry), "entry の asset がありません。"),
   v.check((value) => value.entry === undefined || !Object.hasOwn(value.assets, value.entry) || value.assets[value.entry].type === value.type, "entry と Binette の type が一致しません。"),
   // 空の Binette から明示的な type: undefined も取り除く。

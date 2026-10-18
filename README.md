@@ -64,13 +64,13 @@ npm run preview     # build/ の内容をローカルで確認
 
 | パス         | ページ                 |
 | ------------ | ---------------------- |
-| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン直後は入口の設定 Binette に従って移動（無ければ `/settings`） |
+| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン直後は入口 Binette に従って移動（無ければ `/settings`） |
 | `/login`     | ログイン（`pages/Login.tsx`） |
 | `/register`  | パスキー登録（`pages/Register.tsx`）。クエリ `server` と `token` が必要で、テスト用サーバーの登録 URL から開く |
-| `/settings`  | Scene の固定の設定画面（テーマ・接続先・ユーザー・バージョン・ログアウト） |
-| その他       | パスに対応する Station の Binette（例: `/a/b` → `wake://station/a/b.bina`） |
+| `/settings`  | Scene の固定の設定画面（入口 Binette のアプリ一覧） |
+| その他       | パスに `.bina` を付けた Station の Binette（例: `/a/b` → `/a/b.bina`）。取得先が 404 なら「見つかりません」 |
 
-Scene は入口 `/settings.bina` を読み込みます。テスト用サーバーはビネットを1つも返さない（`/settings.bina` も 404）ので、ログイン後は基本の設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持します。その後に `/` へ移動した場合は `/index.bina` を取得します。
+Scene は入口 `/index.bina` を読み込みます。`type: "redirect"` のビネットは `content` に書いた Scene 内パスへ転送します。`type: "settings"` は廃止していますが、固定 `/settings` は維持します。`routes` の形は検討中で、以下は現状の実装です。テスト用サーバーはビネットを1つも返さない（`/index.bina` も 404）ので、起動時に `/` を開いている場合は基本の設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持し、既定の対応でビネットを取得します。
 
 ログイン後の画面は Binette を Shadow DOM 内で再生します。`packages/core/`（型と形式検証）、`packages/scene/`（再生）、`packages/coulisses/`（配信）は独立した npm ワークスペースです。ebina-front の Solid コンポーネント、WAKE、セッション管理に依存せず、scene と coulisses は core だけに依存します。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 

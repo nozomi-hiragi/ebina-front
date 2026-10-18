@@ -69,7 +69,7 @@ export function createApp(config: Config, store: Store) {
       if (!user) return etJson(404, { error: { code: "not_found" } });
       return etJson(200, { id: user.id, name: user.name });
     }
-    // ビネット（settings.bina など）はわざと返さない。ログイン後はプレイヤーの基本の設定画面になる
+    // ビネット（index.bina など）はわざと返さない。ログイン後は Scene の基本の設定画面になる
     return etJson(404, { error: { code: "not_found" } });
   };
 

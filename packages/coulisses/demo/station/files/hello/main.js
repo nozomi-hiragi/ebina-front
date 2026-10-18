@@ -3,7 +3,7 @@ export function mount(el, sh) {
   const title = document.createElement("h1");
   title.textContent = "サンプル";
   const message = document.createElement("p");
-  message.textContent = `${sh.user.name}さん、こんにちは。`;
+  message.textContent = "こんにちは。";
   const button = document.createElement("button");
   button.type = "button";
   button.textContent = "ホームへ戻る";

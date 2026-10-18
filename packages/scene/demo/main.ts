@@ -1,50 +1,39 @@
-import { createScene } from "@binette/scene";
+import { Scene } from "@binette/scene";
 
 const container = document.querySelector<HTMLElement>("#app");
 if (!container) throw new Error("表示先がありません。");
-const user = { id: "demo", name: "デモユーザー" };
 const coulisses = (import.meta.env.VITE_COULISSES || "http://localhost:8790").replace(/\/$/, "");
+const modeKey = "binette-demo-fetch";
+const requestedMode = new URL(location.href).searchParams.get("fetch");
+let savedMode: string | null = null;
+try { savedMode = sessionStorage.getItem(modeKey); } catch { /* 保存できなくてもデモは使える */ }
+const mode = requestedMode === "default" || requestedMode === "custom"
+  ? requestedMode : savedMode === "custom" ? "custom" : "default";
+try { sessionStorage.setItem(modeKey, mode); } catch { /* 保存できなくてもデモは使える */ }
+const modeStatus = document.querySelector<HTMLElement>("#fetch-status");
+if (modeStatus) modeStatus.textContent = mode === "custom"
+  ? `現在: カスタム fetch（${coulisses}）`
+  : `現在: 標準 fetch（${coulisses}）`;
+for (const control of document.querySelectorAll<HTMLButtonElement>("[data-fetch-mode]")) {
+  control.setAttribute("aria-pressed", String(control.dataset.fetchMode === mode));
+  control.addEventListener("click", () => {
+    const url = new URL(location.href);
+    url.searchParams.set("fetch", control.dataset.fetchMode!);
+    location.assign(url);
+  });
+}
 const themeKey = "binette-demo-theme";
 let savedTheme: string | null = null;
 try { savedTheme = localStorage.getItem(themeKey); } catch { /* 保存できなくてもデモは使える */ }
 document.documentElement.dataset.theme = savedTheme === "dark" ? "dark" : "light";
-let initializing = true;
-const initialPath = location.pathname;
-
-const scene = createScene({
-  container,
-  fetch: (url, init) => {
-    if (/^https?:\/\//i.test(url)) return fetch(url, init);
-    if (/^[a-z][a-z\d+.-]*:/i.test(url)) throw new Error("対応していない URL です。");
-    return fetch(`${coulisses}${url.startsWith("/") ? "" : "/"}${url}`, init);
-  },
-  binette: path => path === "/" ? "/index.bina" : `${path}.bina`,
-  entry: "/settings.bina",
-  navigate: path => {
-    // 入口の取得中も、直接開いたパスと戻る・進むで移動したパスを維持する。
-    if (initializing && (initialPath !== "/" || location.pathname !== "/")) return;
-    history.pushState(null, "", path);
-    void scene.show(location.pathname);
-  },
-  sh: { user },
-  settings: {
-    theme: {
-      options: [{ value: "light", label: "ライト" }, { value: "dark", label: "ダーク" }],
-      get: () => document.documentElement.dataset.theme ?? "light",
-      set: value => {
-        if (value !== "light" && value !== "dark") return;
-        document.documentElement.dataset.theme = value;
-        try { localStorage.setItem(themeKey, value); } catch { /* 保存できなくてもテーマは切り替える */ }
-      },
-    },
-    connection: { server: coulisses, user },
-    versions: { Binette: "0.1" },
-    logout: () => { alert("デモなのでログアウトはありません"); },
-  },
+const scene = new Scene({
+  element: container,
+  serverURL: `${coulisses}/`,
+  ...(mode === "custom" ? { fetch: (url: string, init?: RequestInit) => {
+    console.info("カスタム fetch:", url);
+    return fetch(url, init);
+  } } : {}),
   onError: error => console.error(error),
 });
 
-window.addEventListener("popstate", () => { void scene.show(location.pathname); });
 await scene.start();
-initializing = false;
-await scene.show(location.pathname);

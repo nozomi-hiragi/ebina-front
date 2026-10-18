@@ -1,5 +1,5 @@
 {
   "binette": "0.1",
-  "type": "settings",
-  "app": "hello"
+  "app": "hello",
+  "title": "サンプルの設定"
 }

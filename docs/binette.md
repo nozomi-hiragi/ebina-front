@@ -10,7 +10,7 @@ Binette（ビネット）は、サーバーがクライアントに渡す画面�
 | --- | --- | --- |
 | Binette | Scene と Coulisses が使う形式、型と形式検証 | `@binette/core`（`packages/core`） |
 | Coulisses（クーリス、舞台裏） | `.bina` と asset を用意して返すサーバー側 | `@binette/coulisses`（`packages/coulisses`） / Station |
-| Scene（シーン、舞台） | `.bina` を受け取って再生するクライアント側の部品（`createScene`） | `@binette/scene`（`packages/scene`） |
+| Scene（シーン、舞台） | `.bina` を受け取って再生するクライアント側の部品（`Scene`） | `@binette/scene`（`packages/scene`） |
 | フロント | Scene を組み込むアプリ | ebina-front |
 
 ## 責任範囲
@@ -20,19 +20,20 @@ Binette は、Scene を組み込むクライアント（以下「フロント」
 | 層 | 担当 |
 | --- | --- |
 | 形式（`.bina` に何を書くか） | Binette |
-| 再生（html を置く、js を動かす、settings を描く、後始末） | Binette の Scene |
+| 再生（html を置く、js を動かす、転送、後始末） | Binette の Scene |
 | シェル（`sh` の API、設定画面） | Binette |
-| ルーティングの例外（`routes`）と、始めたときの行き先 | Binette |
-| ビネットや asset の取得 | フロントが渡す `fetch`。Scene は URL を解釈しない |
-| パスとビネットの対応、ログイン、セッション、通信の仕組み、テーマの保存 | フロント |
+| URL の更新、戻る・進む、既定の画面取得と転送（`routes`）、起動時の行き先 | Binette の Scene |
+| ビネットや asset の取得 | 標準 `fetch`、またはフロントが渡す `fetch`。Scene が `serverURL` を基準に URL を解決する |
+| ログイン、セッション、通信の仕組み、テーマの保存 | フロント |
 
 Scene は、フロントの通信の仕組み（EbinaStation では WAKE）に依存しません。必要なものは、Scene を始めるときにフロントから受け取ります。
 
 ```ts
-createScene({
+new Scene({
+  element: document.querySelector<HTMLElement>("#app")!,
+  serverURL: "https://example.com/",          // ビネットや asset の取得元（必須）
+  base: "/",                                 // 画面の URL の範囲。省略時は /
   fetch: (url, init) => frontFetch(url, init), // ビネットと asset を取る関数
-  binette: (path) => `/…`,                     // パスに対応するビネットの URL（フロントの決めごと）
-  settings: { /* シェルの設定項目（出す / 出さない、処理） */ },
 });
 ```
 
@@ -45,9 +46,9 @@ createScene({
 | 欄 | 型 | 説明 |
 | --- | --- | --- |
 | `binette` | 文字列 | 形式のバージョン。`"メジャー.マイナー"`（今は `"0.1"`）。後からパッチの桁を足すかもしれない |
-| `type` | 文字列 | `html` / `js` / `settings` |
+| `type` | 文字列 | `html` / `js` / `redirect` |
 | `title` | 文字列（任意） | 画面のタイトル。`document.title` などに使う |
-| `app` | 文字列 | アプリ ID。`type: "settings"` では必須 |
+| `app` | 文字列（任意） | アプリ ID |
 
 - Scene はメジャーが同じものだけを読みます。マイナーが新しくても、知らない欄は無視して読みます。
 - `type`・`content`・`entry` がどれも無いビネットは「中身無し」です。
@@ -82,32 +83,43 @@ createScene({
 - `assets` のキーは拡張子の無いただの名前です。種類は各 asset の `type` だけで判断します。
 - asset は `type` と、`content`（文字列）か `src`（URL）のどちらか一方を持ちます。
 
-### `type: "settings"`
+### `type: "redirect"`
 
-設定の画面です。UI は Binette の仕様で決め打ちで、Scene が決まった見た目で描きます。Coulisses は中身だけを書きます。`content` と `entry` は持ちません。
+`content` に Scene 内の転送先パスを書きます。`entry` は使いません。
 
 ```json
 {
   "binette": "0.1",
-  "type": "settings",
-  "app": "station",
-  "title": "設定",
-  "routes": {
-    "/": { "redirect": "/home" }
-  },
+  "type": "redirect",
+  "content": "/home"
+}
+```
+
+転送先は `/` 始まりのパスです。外部 URL や `//` 始まりは指定しません。Scene は `base` を付けた画面 URL へ、履歴を置き換えて移動します。転送先で指定されていないクエリとハッシュは引き継ぎ、転送が循環するとエラーを表示します。CSS や JavaScript の asset は再生しません。
+
+`type: "settings"` は廃止しました。固定の `/settings` は Scene の画面として残します。
+
+### 入口のメタデータ（暫定）
+
+`routes` の形は検討中です。対象ページからの遷移で転送が必要な場所などをどう記述するか、今後整理します。現時点では既存の動作を維持するため、`routes` と `settings` を `type` に依存しない任意の項目として保持します。Scene が利用するのは入口 `/index.bina` のものです。
+
+```json
+{
+  "binette": "0.1",
+  "type": "redirect",
+  "content": "/home",
   "settings": [
-    { "app": "notes", "title": "ノート", "path": "/notes/settings" },
-    { "app": "photos", "title": "写真", "path": "/photos/settings" }
+    { "app": "notes", "title": "ノート", "path": "/notes/settings" }
   ]
 }
 ```
 
-- `settings`: 設定画面に並べるアプリの項目。`path` を開くと、そのアプリの設定のビネット（これも `type: "settings"` でよい）を出します。
-- `routes`: 例外の動きをさせたいパスだけを書きます（「ルーティング」を参照）。`routes` を書けるのは入口の設定のビネットだけです。
+- `settings`: 固定 `/settings` に並べるアプリの項目。リンク先は通常の HTML・JavaScript などのビネットです。
+- `routes`: 遷移時の転送などを書くための項目です。通常のビネットの取得先は書きません。形と適用範囲は検討中です。
 
 ## 取得
 
-Scene は、ビネットも asset も、フロントが渡した `fetch` で取ります。URL は解釈せず、書かれた文字列をそのまま `fetch` に渡します（相対 URL をどう解決するか、どのスキームをどう取るかは `fetch` の実装次第）。`content` の asset は、その文字列から取り出します。
+Scene は、ビネットも asset も、ブラウザ標準の `fetch` で取ります。フロントが `fetch` を渡した場合は、そちらで取ります。固定入口 `/index.bina`、画面パスから決めたビネット、asset の `src`、`sh.fetch` の URL は、必須の `serverURL` を基準に `new URL(url, serverURL).href` で解決してから `fetch` に渡します。絶対 URL は維持し、`/` 始まりは取得元のオリジン、相対 URL は取得元のディレクトリを基準にします。スキームごとの通信方法は `fetch` の実装が決めます。`content` の asset は、その文字列から取り出します。
 
 制約:
 
@@ -118,9 +130,9 @@ Scene は、ビネットも asset も、フロントが渡した `fetch` で取�
 
 - `html`: 中身を Shadow DOM の中に置きます。中の `<script>` は実行しません。
 - `js`: ES モジュールとして読み込み、`mount(el, sh)` を呼びます。`el` は Shadow DOM の中の本文の要素です。`mount` は後始末の関数を返してよく、Scene は画面を離れるときにそれを呼びます。
-- `settings`: 決め打ちの UI で描きます（「設定画面」を参照）。
+- `redirect`: `content` のパスへ移動します。画面内容は描きません。
 - `css` の asset は、自動で Shadow DOM に適用します。
-- Shadow DOM の中の、同じオリジンへの相対リンクを押すと、Scene がページの再読み込みをせずに画面を移します。
+- Shadow DOM の中の、同じオリジンかつ `base` 配下へのリンクを押すと、Scene がページの再読み込みをせずに画面を移します。リンクの URL はブラウザのページを基準に解決し、`base` 外や外部オリジンへのリンクは通常のページ移動になります。
 - 「中身無し」のビネットでは、ベースの UI（タイトルと、設定画面への入口だけの画面）を出します。
 
 アプリはフロントと同じページで動きます。信頼できる Coulisses のアプリだけを動かす前提です。
@@ -132,49 +144,53 @@ Scene は、ビネットも asset も、フロントが渡した `fetch` で取�
 - `version`: シェルの API のバージョン（`"0.1"`）
 - `asset(name)`: そのビネットの asset を `Promise<Response>` で取る
 - `navigate(path)`: Scene の中のパスへ移る
-- `fetch(url, init?)`: フロントが渡した `fetch` で取る
-- `user`: ログイン中のユーザー `{ id, name }`（フロントが渡す）
+- `fetch(url, init?)`: Scene と同じ `fetch` で取る
 - `storage`（予定）: アプリごとに区切ったクライアント側の保存場所（「ストレージ」を参照）
 
 ## ルーティング
 
+### URL の管理
+
+Scene は `start()` で入口を取得し、初期画面まで表示します。以後の画面遷移ではブラウザの URL を更新し、戻る・進むにも追従します。フロントからの遷移処理や、URL を監視して表示を指示する処理は不要です。`dispose()` で URL の監視も終了します。
+
+`base` は Scene が管理する画面 URL の範囲で、省略時は `/` です。たとえば `base: "/ebina-station/"` の場合、Scene 内の `/notes` はブラウザでは `/ebina-station/notes` になります。`sh.navigate` と `routes` のパスは Scene 内のパスです。`base` は取得先 URL には付けません。クエリとハッシュは画面 URL に保持し、`routes` の照合にはパス部分だけを使います。
+
 ### パスとビネットの対応
 
-どのパスでどのビネットを取るかは、フロントが決めます（`createScene` の `binette`）。Scene は、`routes` に書かれていないパスについて、その対応でビネットを取ります。ビネットが無いとき（`fetch` が 404 を返したとき）は「見つかりません」を出します。
+通常の取得先は Scene の既定動作で決めます。`routes` に `binette` を書く必要はありません。
+
+| 画面パス | 取得するビネット |
+| --- | --- |
+| `/` | `/index.bina` |
+| `/notes` | `/notes.bina` |
+| `/notes/123` | `/notes/123.bina` |
+
+クエリとハッシュは取得先に含めません。取得先は `serverURL` を基準に解決します。取得先が 404 の場合は「見つかりません」を表示します。固定の `/settings` はビネットを取得しません。
 
 ### 入口
 
-Scene を始めると、まず入口の設定のビネット（`type: "settings"`。どの URL かはフロントが決める）を取り、Scene が動いているあいだ覚えておきます。これが Coulisses 全体の設定（`routes` と、設定画面に並べるアプリの項目）です。
+Scene を始めると、まず固定の `/index.bina` から入口のビネットを取り、Scene が動いているあいだ覚えておきます。これが Coulisses 全体の設定（`routes` と、設定画面に並べるアプリの項目）です。
 
-### `routes`（例外）
+### `routes`（検討中）
 
-既定と違う動きをさせたいパスだけを、入口の設定のビネットの `routes` に書きます。値は、後から欄を足せるようにオブジェクトです。
+対象ページからの遷移で、転送が必要な場所などをどう書くかは検討中です。通常の画面とビネットの対応表にはしません。
 
-```json
-"routes": {
-  "/":     { "redirect": "/home" },
-  "/old":  { "redirect": "/new" },
-  "/top":  { "binette": "/home.bina" }
-}
-```
-
-- `redirect`: そのパスへ転送する
-- `binette`: 既定とは別のビネットを出す（値はそのまま `fetch` に渡す）
-- 1つのルートには、どちらか一方だけを書きます。知らない欄は無視します。
-- キーは完全一致だけです。ワイルドカードなどは、必要になったら欄を足して対応します（例: `"match": "prefix"`）。
-- `/login` のようなパスも、Scene は特別扱いしません。
+現状の実装には `{ "redirect": "/new" }` の完全一致による転送が残っていますが、形と適用範囲はまだ最終仕様ではありません。入口自身の転送は `routes["/"].redirect` ではなく、入口の `type: "redirect"` と `content` に書きます。
 
 ### 始めたときの行き先
 
-- `routes` に `/` があれば、それに従います（例: `{ "redirect": "/home" }` なら `/home` へ）。
-- `routes` に `/` が無ければ、`/settings` へ移ります。
-- 始めたときではなく、自分で `/` を開いたときに `routes` に `/` が無ければ、ほかのパスと同じく、フロントが決めた対応でビネットを取ります。
+直接開いたパスを維持します。起動時に Scene 内の `/` を開いていて、入口の取得中も URL が変わらなかった場合だけ、次の規則で行き先を決めます。
+
+- 入口自身が `type: "redirect"` なら、その `content` へ移ります。入口の転送を `routes["/"].redirect` には書きません。
+- 入口が転送でない場合、現在の暫定実装では `routes` に `/` があればその指定に従います。
+- 入口が転送でなく、`routes` に `/` も無ければ、`/settings` へ移ります。
+- 起動後に `/` へ移動したときも、入口が転送ならその `content` へ移ります。入口が転送でなく `routes` に `/` も無ければ、既定の `/index.bina` を取得します。
 
 ### 固定の URL
 
 `/settings` だけです。Coulisses の `routes` やビネットでは上書きできません。
 
-Scene が始まる前（EbinaStation では未ログインのとき）は、Binette は動きません。ログイン画面や、URL を直接開いたときの扱いはフロントの実装次第で、この仕様の範囲外です。
+Scene が始まる前（EbinaStation では未ログインのとき）は、Binette は動きません。ログイン画面や、Scene を始めるかどうかの判断はフロントの実装次第で、この仕様の範囲外です。
 
 ## 設定画面（`/settings`）
 
@@ -182,15 +198,14 @@ Scene が始まる前（EbinaStation では未ログインのとき）は、Bine
 
 ```
 設定（/settings）
-├── シェルの項目（アプリ ID は shell）: テーマ、接続先・ユーザー、バージョン、ストレージ、ログアウト
-└── アプリ: 入口の設定のビネットの settings に書かれた項目
+└── アプリ: 入口のビネットの settings に書かれた項目
     ├── ノート → /notes/settings
     └── 写真   → /photos/settings
 ```
 
-- シェルの項目は、Scene が用意しておき、フロントがそれぞれを「出す / 出さない」で選びます。テーマやログアウトのようにフロントの実装に依るものは、出すときに処理も一緒に渡します。
-- アプリの項目は Coulisses が入口の設定のビネットの `settings` で足します。押したときに何をするか（サーバー側のデータの管理など）は Coulisses の実装者が決めます。
-- 入口の設定のビネットが無いときは、シェルの項目だけを出します。
+- Scene の固定画面は入口のビネットの `settings` に書かれたアプリへのリンクを表示します。テーマ、接続先、ユーザーなどフロント固有の情報は表示しません。
+- アプリの項目は Coulisses が入口のビネットの `settings` で指定します。リンク先で何を表示・操作するかはアプリの実装者が決めます。
+- 入口のビネットに `settings` が無い、または空の場合、固定画面には見出しだけを表示します。
 
 ## ストレージ
 
@@ -199,7 +214,7 @@ Scene が始まる前（EbinaStation では未ログインのとき）は、Bine
 
 ## 未決のこと
 
-- `type: "settings"` の画面に並べられる項目の種類（表示、ボタン、切り替え、選択など）と、その書き方
+- `routes` の形と適用範囲。対象ページからの遷移や転送をどう記述するか
 - `html` / `js` のビネットがどのアプリのものかを、パス（`/notes/…`）で決めるか、`app` の欄で決めるか
 - `sh.storage` の API
 - アプリがシェルの部品（ヘッダーなど）を使えるようにするか。`<sh-header>` は一旦やめた
@@ -213,14 +228,13 @@ Scene が始まる前（EbinaStation では未ログインのとき）は、Bine
 
 - Coulisses の `defineBinette` による形式検証と `createCoulisses` による `.bina`・asset 配信（GET / HEAD、任意の CORS）
 
-- `html` / `js` / `settings` と中身無しの形式検査、`app`、入口の `routes` とアプリの設定一覧
-- `createScene({ fetch, binette, entry, navigate, sh, settings, … })` による入口の取得、始めたときの遷移、画面切り替えと後始末
-- 固定の `/settings` にテーマ、接続先・ユーザー、バージョン、ログアウトとアプリの入口を Shadow DOM で表示（渡された項目だけ）
+- `html` / `js` / `redirect` と中身無しの形式検査、`app`、入口の `routes` とアプリの設定一覧
+- `new Scene({ element, serverURL, fetch?, base?, … })` による入口の取得、始めたときの遷移、画面切り替えと後始末
+- 固定の `/settings` に入口 Binette のアプリ一覧を Shadow DOM で表示
 - 中身無し・404 の基本画面、読み込みエラーと再試行
-- ビネットと asset は同じフロント提供の `fetch` で取得。Scene は Solid・WAKE・殻に依存しない
-- ebina-front は `/settings.bina` を入口にし、`/` は `/index.bina` に対応。専用のログアウト画面とシェルのカスタム要素は廃止
+- ビネットと asset は同じ `fetch`（標準、またはフロント提供）で取得。Scene は Solid・WAKE・殻に依存しない
+- Scene の入口は固定の `/index.bina`。通常の画面パスには `.bina` を付けて取得し、`routes` に取得先は書かない。専用のログアウト画面とシェルのカスタム要素は廃止
 
 まだのこと:
 
-- アプリの `settings` 型の画面はタイトルと未対応の案内だけ。設定項目の種類・描画は未実装
 - `sh.storage` とストレージの設定項目

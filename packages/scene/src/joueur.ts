@@ -1,18 +1,19 @@
 import type { AssetResolver } from "./resolve";
 import type { Binette } from "@binette/core";
 
-export interface PlaybackOptions {
+export interface JoueurOptions {
   sh: object;
   resolver: AssetResolver;
   onNavigate?: (path: string) => void;
   signal?: AbortSignal;
+  base?: string;
 }
 
-export interface BinettePlayback { dispose(): void }
+export interface BinetteJoueur { dispose(): void }
 
-const active = new WeakMap<HTMLElement, BinettePlayback>();
+const active = new WeakMap<HTMLElement, BinetteJoueur>();
 
-export async function play(container: HTMLElement, binette: Binette, options: PlaybackOptions): Promise<BinettePlayback> {
+export async function joueur(container: HTMLElement, binette: Binette, options: JoueurOptions): Promise<BinetteJoueur> {
   active.get(container)?.dispose();
   const root = container.shadowRoot ?? container.attachShadow({ mode: "open" });
   root.replaceChildren();
@@ -24,13 +25,15 @@ export async function play(container: HTMLElement, binette: Binette, options: Pl
     const link = event.composedPath().find((node): node is HTMLAnchorElement => node instanceof HTMLAnchorElement);
     if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
     const href = link.getAttribute("href");
-    if (!href || /^[a-z][a-z\d+.-]*:/i.test(href) || href.startsWith("//")) return;
+    if (!href) return;
     const url = new URL(href, document.baseURI);
     if (url.origin !== location.origin) return;
+    const base = (options.base ?? "/").replace(/\/$/, "");
+    if (base && url.pathname !== base && !url.pathname.startsWith(`${base}/`)) return;
     event.preventDefault();
     options.onNavigate(url.pathname + url.search + url.hash);
   };
-  const playback: BinettePlayback = {
+  const joueur: BinetteJoueur = {
     dispose() {
       if (disposed) return;
       disposed = true;
@@ -39,19 +42,19 @@ export async function play(container: HTMLElement, binette: Binette, options: Pl
       try { cleanup?.(); } finally {
         for (const url of urls) URL.revokeObjectURL(url);
         urls.clear();
-        if (active.get(container) === playback) {
+        if (active.get(container) === joueur) {
           active.delete(container);
           root.replaceChildren();
         }
       }
     },
   };
-  const abort = () => playback.dispose();
-  active.set(container, playback);
+  const abort = () => joueur.dispose();
+  active.set(container, joueur);
   options.signal?.addEventListener("abort", abort, { once: true });
   if (options.signal?.aborted) {
-    playback.dispose();
-    return playback;
+    joueur.dispose();
+    return joueur;
   }
   root.addEventListener("click", navigate);
   const asset = async (name: string) => {
@@ -66,10 +69,11 @@ export async function play(container: HTMLElement, binette: Binette, options: Pl
     return response.text();
   };
   try {
+    if (binette.type === "redirect") return joueur;
     const styles = await Promise.all(Object.entries(binette.assets ?? {}).filter(([, value]) => value.type === "css").map(([name]) => assetText(name)));
-    if (disposed) return playback;
+    if (disposed) return joueur;
     const content = binette.content ?? (binette.entry ? await assetText(binette.entry) : undefined);
-    if (disposed) return playback;
+    if (disposed) return joueur;
     const host = document.createElement("div");
     for (const css of styles) {
       const style = document.createElement("style");
@@ -86,7 +90,7 @@ export async function play(container: HTMLElement, binette: Binette, options: Pl
         URL.revokeObjectURL(url);
         urls.delete(url);
       }
-      if (disposed) return playback;
+      if (disposed) return joueur;
       if (typeof module.mount !== "function") throw new Error("Binette に mount 関数がありません。");
       const result: unknown = await module.mount(host, { ...options.sh, asset });
       if (typeof result === "function") {
@@ -94,9 +98,9 @@ export async function play(container: HTMLElement, binette: Binette, options: Pl
         else cleanup = result as () => void;
       }
     }
-    return playback;
+    return joueur;
   } catch (error) {
-    playback.dispose();
+    joueur.dispose();
     throw error;
   }
 }

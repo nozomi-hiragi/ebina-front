@@ -6,7 +6,7 @@ Node と標準 Fetch API を使う、フレームワークに依存しないフ�
 import { createCoulisses, defineBinette } from "@binette/coulisses";
 const binette = defineBinette({ binette: "0.1" });
 const handler = createCoulisses({ root: "/absolute/path/to/station" });
-const response = await handler(new Request("http://localhost/settings.bina"));
+const response = await handler(new Request("http://localhost/index.bina"));
 ```
 
 GET / HEAD でファイルを配信し、`.bina` は形式を検証します。公開ディレクトリ外（シンボリックリンクを含む）は配信しません。`cors` に許可する origin を渡すと CORS ヘッダーと OPTIONS 応答が有効になります。

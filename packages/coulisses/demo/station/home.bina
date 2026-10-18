@@ -2,7 +2,7 @@
   "binette": "0.1",
   "type": "html",
   "title": "Binette デモ",
-  "content": "<main><h1>Binette デモ</h1><p>静的なファイルを fetch して、Binette だけで画面を表示します。</p><nav aria-label=\"デモのメニュー\"><p><a href=\"/hello\">サンプルを開く</a></p><p><a href=\"/settings\">設定を開く</a></p></nav></main>",
+  "content": "<main><h1>Binette デモ</h1><p>静的なファイルを fetch して、Binette だけで画面を表示します。</p><nav aria-label=\"デモのメニュー\"><p><a href=\"/hello\">サンプルを開く</a></p><p><a href=\"/settings\">設定を開く</a></p><p><a href=\"/redirect\">転送を試す</a></p></nav></main>",
   "assets": {
     "style": {
       "type": "css",
