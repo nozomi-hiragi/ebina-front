@@ -4,7 +4,7 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 
 ## 状態
 
-トップ / ログイン / 登録と、ログイン後の画面を Station から受け取る Binette 形式で表示する殻を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。Binette の仕様は [docs/binette.md](docs/binette.md)、ebina-front での使い方は [docs/ebina-front.md](docs/ebina-front.md) を参照してください。
+トップ / ログイン / 登録と、ログイン後の画面を Station から受け取る Binette 形式で表示する殻を実装しています。同梱のテスト用サーバー（`dev-server/`）に対して、パスキー（WebAuthn）の登録と、WAKE によるログイン・セッション管理（KX / SM / ET）が動きます。Binette の仕様は [binette の docs/spec.md](https://github.com/nozomi-hiragi/binette/blob/main/docs/spec.md)、ebina-front での使い方は [docs/ebina-front.md](docs/ebina-front.md) を参照してください。
 
 ## 技術スタック
 
@@ -23,9 +23,7 @@ EbinaStation のフロントエンド（v2、SolidJS で作り直し中）。
 npm install
 npm run dev         # http://localhost:5173/ebina-station/
 npm run dev:server  # テスト用サーバー http://localhost:8787
-npm run build       # 型チェック（core、scene、coulisses、src/、dev-server/）後、build/ に出力
-npm run demo -w @binette/coulisses # 配信デモ（http://localhost:8790）
-npm run demo -w @binette/scene # 再生デモ（http://localhost:5175/）
+npm run build       # 型チェック（src/、dev-server/）後、build/ に出力
 npm run preview     # build/ の内容をローカルで確認
 ```
 
@@ -64,15 +62,15 @@ npm run preview     # build/ の内容をローカルで確認
 
 | パス         | ページ                 |
 | ------------ | ---------------------- |
-| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン後は入口 `/index.bina` を表示（`type: "redirect"` なら転送） |
+| `/`          | 未ログイン時はトップ（`pages/Top.tsx`）、ログイン後は入口 `/index.bina` を表示（`redirect` があれば転送） |
 | `/login`     | ログイン（`pages/Login.tsx`） |
 | `/register`  | パスキー登録（`pages/Register.tsx`）。クエリ `server` と `token` が必要で、テスト用サーバーの登録 URL から開く |
-| `/settings`  | Scene の固定の設定画面（General と `/settings.bina` のセクション） |
+| `/settings`  | Scene の固定の設定画面（General と、読んだビネットの `settings` のセクション） |
 | その他       | パスに `.bina` を付けた Station の Binette（例: `/a/b` → `/a/b.bina`）。取得先が 404 なら「見つかりません」 |
 
-Scene は入口 `/index.bina` を読み込みます。`type: "redirect"` のビネットは `content` に書いた Scene 内パスへ転送します。固定 `/settings` には `/settings.bina`（`type: "settings"`）のセクションを差し込みます。`routes` の形は検討中で、以下は現状の実装です。テスト用サーバーは `/index.bina`（`/settings` への転送）と `/settings.bina`（ログアウトのセクションだけ）だけを返すので、ログイン後は設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持し、既定の対応でビネットを取得します。
+Scene は入口 `/index.bina` を読み込みます。`redirect` を持つビネットはそのパスへ転送します。入口が 404 なら `/` を `/settings` へ転送します。固定 `/settings` には、読んだビネットの `settings` のセクションを差し込みます。`routes` の形は検討中で、以下は現状の実装です。テスト用サーバーは `/index.bina`（`/settings` への転送と、ログアウトのセクション）だけを返すので、ログイン後は設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持し、既定の対応でビネットを取得します。
 
-ログイン後の画面は Binette を Shadow DOM 内で再生します。`packages/core/`（型と形式検証）、`packages/scene/`（再生）、`packages/coulisses/`（配信）は独立した npm ワークスペースです。ebina-front の Solid コンポーネント、WAKE、セッション管理に依存せず、scene と coulisses は core だけに依存します。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
+ログイン後の画面は Binette を Shadow DOM 内で再生します。再生には npm の `@binette/scene` を使います。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 
 アプリは `/ebina-station/` で配信されます。Vite の `base`（`vite.config.ts`）と Router の `base`（`src/App.tsx`）の両方で指定しています。
 
@@ -111,10 +109,6 @@ src/
 │   └── login/       # ログイン画面専用の部品（serverSelection）
 └── pages/            # 各ページ
 dev-server/          # テスト用サーバー（index.ts: 起動と登録 URL 表示, app.ts: API, store.ts: メモリ保存）
-packages/core/      # @binette/core: Binette の型と形式検証
-packages/scene/     # @binette/scene: ブラウザでの再生とデモ
-packages/coulisses/ # @binette/coulisses: ファイル配信とデモ
-docs/binette.md      # Binette の仕様（形式、再生、シェル、ルーティング、設定画面）
 docs/ebina-front.md  # ebina-front での Binette の使い方
 public/              # 静的ファイル（favicon.svg, apple-touch-icon.png）
 ```

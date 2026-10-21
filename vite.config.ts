@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   base: "/ebina-station/",
-  plugins: [solid({ exclude: /packages\/scene\// }), tailwindcss()],
+  plugins: [solid(), tailwindcss()],
   build: {
     outDir: "build",
   },

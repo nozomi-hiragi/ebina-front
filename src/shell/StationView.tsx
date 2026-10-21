@@ -42,11 +42,10 @@ export default function StationView() {
       }
     };
     const scene = new Scene({
-      element: container,
       serverURL: "wake://station/",
       base: "/ebina-station/",
       fetch: frontFetch,
-      // Station の /settings.bina が element セクションの component で指定する部品
+      // ビネットの settings の element セクションが component で指定する部品
       components: {
         logout: (element) => render(() => (
           <button type="button" onClick={async () => {
@@ -57,9 +56,11 @@ export default function StationView() {
         ), element),
       },
     });
+    container.append(scene.element);
     onCleanup(() => {
       disposed = true;
       scene.dispose();
+      scene.element.remove();
     });
     void scene.start();
   });
