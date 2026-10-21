@@ -157,6 +157,12 @@ export function wakeErrorCode(err: unknown): string | undefined {
     : undefined;
 }
 
+// Station 自身がセッションを拒んだ 401 か。Station はその 401 にだけ Ebina-Station-Error: unauthorized を付ける
+// （アプリの応答の ebina- ヘッダーは Station が除くので、アプリの 401 はここで false になる）
+export function isStationUnauthorized(response: Response): boolean {
+  return response.status === 401 && response.headers.get("ebina-station-error") === "unauthorized";
+}
+
 export function isReauthError(err: unknown): boolean {
   if (wakeErrorCode(err) === "reauth") return true;
   if (err && typeof err === "object" && "status" in err && (err as { status?: unknown }).status === 401) {
