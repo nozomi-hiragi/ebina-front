@@ -1,6 +1,6 @@
 # ebina-front での Binette の使い方
 
-[Binette の仕様](binette.md) のうち、フロントが決めることを、ebina-front がどう決めているかをまとめます。
+[Binette の仕様](https://github.com/nozomi-hiragi/binette/blob/main/docs/spec.md) のうち、フロントが決めることを、ebina-front がどう決めているかをまとめます。
 
 ## 取得（`fetch`）
 
@@ -17,16 +17,16 @@ WAKE のセッションが切れていたら（`reauth` など）、ログイン
 
 ## パスとビネットの対応
 
-Scene の既定動作で `/a/b` は `/a/b.bina`、`/` は `/index.bina` を取得します。`routes` に取得先は書きません。取得方法は上記の URL スキームに従い、取得先が 404 の場合は「見つかりません」を表示します。固定 `/settings` は画面のビネットを取得せず、差し込むセクションを `/settings.bina` から取得します。
+Scene の既定動作で `/a/b` は `/a/b.bina`、`/` は `/index.bina` を取得します。`routes` に取得先は書きません。取得方法は上記の URL スキームに従い、取得先が 404 の場合は「見つかりません」を表示します。固定 `/settings` は画面のビネットを取得せず、読んだビネットの `settings` からセクションを集めます。入口 `/index.bina` が 404 のときは、Scene が `/` を `/settings` へ転送します。
 
-`routes` の形と適用範囲は検討中です。入口自身の転送は `/index.bina` の `type: "redirect"` と `content` で指定します。
+`routes` の形と適用範囲は検討中です。入口自身の転送は `/index.bina` の `redirect` で指定します。
 
 ## Scene を始めるとき
 
-`element` に表示先を渡し、`serverURL: "wake://station/"` と `base: "/ebina-station/"` を指定します。`start()` が初期表示まで行い、以後の URL の更新と戻る・進むは Scene が管理します。`base` は WAKE などの取得先 URL には付きません。
+`serverURL: "wake://station/"` と `base: "/ebina-station/"` を指定して Scene を作り、`scene.element` を表示先に置きます。`start()` が初期表示まで行い、以後の URL の更新と戻る・進むは Scene が管理します。`base` は WAKE などの取得先 URL には付きません。
 
 ログインした直後に Scene を始めます。未ログインのときは、トップ（`/`）以外をログイン画面へ移します。ログイン画面と登録画面は ebina-front の画面で、Binette ではありません。
 
 ## テーマとログイン情報
 
-テーマの選択は ebina-front の画面側で管理し、`ebina-theme`（localStorage）に保存します。接続先とユーザー情報もログイン用のフロント UI で扱います。これらの情報は Scene の固定 `/settings` には渡しません。ログアウトは ebina-front が `components` に `logout` の部品として登録し、Station の `/settings.bina` が element セクションの `component: "logout"` で表示場所を決めます。
+テーマの選択は ebina-front の画面側で管理し、`ebina-theme`（localStorage）に保存します。接続先とユーザー情報もログイン用のフロント UI で扱います。これらの情報は Scene の固定 `/settings` には渡しません。ログアウトは ebina-front が `components` に `logout` の部品として登録し、Station のビネットが `settings` の element セクションの `component: "logout"` で表示場所を決めます。
