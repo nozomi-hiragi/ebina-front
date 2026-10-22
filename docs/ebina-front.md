@@ -13,7 +13,7 @@ WAKE を通らないもの（`https://…`）は、Station がログイン無し
 
 たとえば `/a/b.bina` は `wake://station/a/b.bina` になります。絶対 URL は維持し、相対 URL は `serverURL` のディレクトリを基準に解決します。ログイン先の `active.server` は WAKE の HTTP transport 接続先で、リソース URL の基点である `serverURL` とは別です。
 
-WAKE のセッションが切れていたら（`reauth` など）、ログイン画面へ戻します。
+WAKE のセッションが切れていたら（`reauth` など）、ログイン画面へ戻します。ET の応答が 401 のときは、ヘッダー `Ebina-Station-Error: unauthorized`（Station がセッションを拒んだ印。アプリはこの印を付けられません）があるときだけログイン画面へ戻します。それ以外の 401 はアプリの応答として、そのまま Scene に返します。
 
 ## パスとビネットの対応
 

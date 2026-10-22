@@ -3,7 +3,7 @@ import { render } from "solid-js/web";
 import { useNavigate } from "@solidjs/router";
 import { Scene } from "@binette/scene";
 import { clearSession, session } from "../auth/session";
-import { isReauthError, wakeClient } from "../auth/wake";
+import { isReauthError, isStationUnauthorized, wakeClient } from "../auth/wake";
 
 export default function StationView() {
   const navigate = useNavigate();
@@ -34,7 +34,8 @@ export default function StationView() {
           headers: init?.headers ? Array.from(new Headers(init.headers).entries()) : undefined,
           body,
         });
-        if (response.status === 401) { goToLogin(); throw response; }
+        // Station のセッション切れだけログイン画面へ戻す。アプリの 401 はアプリの応答としてそのまま返す
+        if (isStationUnauthorized(response)) { goToLogin(); throw response; }
         return response;
       } catch (error) {
         if (isReauthError(error)) goToLogin();
