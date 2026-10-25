@@ -31,7 +31,7 @@ npm run preview     # build/ の内容をローカルで確認
 
 ### テスト用サーバー
 
-`dev-server/` には認証を試すための開発専用サーバーがあります。本番用のサーバーではありません。Node が TypeScript を直接実行し、Hono と `@wake-protocol/server` を使っています。パスキー登録は WAKE の範囲外のため、`@simplewebauthn/server` で検証します。データはメモリ上にのみ保持します。
+`dev-server/` には認証を試すための開発専用サーバーがあります。本番用のサーバーではありません。Node が TypeScript を直接実行し、Hono と `@wake-protocol/server` を使っています。パスキー登録は WAKE の範囲外のため、`@simplewebauthn/server` で検証します。データはメモリ上にのみ保持します。ログイン後に見せるビネットとファイルは `dev-server/station/` に置き、`@binette/coulisses` がパノプリとして WAKE-ET で配ります。中身は起動時に一度だけ読むので、変えたら再起動してください。
 
 起動するとターミナルに登録 URL（QR コード付き）を表示します。環境変数の既定値は次のとおりです。
 
@@ -68,7 +68,7 @@ npm run preview     # build/ の内容をローカルで確認
 | `/settings`  | Scene の固定の設定画面（General と、読んだビネットの `settings` のセクション） |
 | その他       | パスに `.bina` を付けた Station の Binette（例: `/a/b` → `/a/b.bina`）。取得先が 404 なら「見つかりません」 |
 
-Scene は入口 `/index.bina` を読み込みます。`redirect` を持つビネットはそのパスへ転送します。入口が 404 なら `/` を `/settings` へ転送します。固定 `/settings` には、読んだビネットの `settings` のセクションを差し込みます。`routes` の形は検討中で、以下は現状の実装です。テスト用サーバーは `/index.bina`（`/settings` への転送と、ログアウトのセクション）だけを返すので、ログイン後は設定画面が出ます。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持し、既定の対応でビネットを取得します。
+Scene は入口 `/index.bina` を読み込みます。`redirect` を持つビネットはそのパスへ転送します。入口が 404 なら `/` を `/settings` へ転送します。固定 `/settings` には、読んだビネットの `settings` のセクションを差し込みます。テスト用サーバーの入口は `/home` へ転送し、設定画面にアプリの一覧とログアウトのセクションを足します。`/hello` は js のサンプル画面です。ページ読み込み時に `/` 以外を直接開いた場合は、そのパスを維持し、既定の対応でビネットを取得します。
 
 ログイン後の画面は Binette を Shadow DOM 内で再生します。再生には npm の `@binette/scene` を使います。未ログインのときは、トップ（`/`）以外のパスをログイン画面へ移します。
 
@@ -108,7 +108,7 @@ src/
 │   ├── ui/          # 共通 UI 部品（Button, PageTitle, icons）
 │   └── login/       # ログイン画面専用の部品（serverSelection）
 └── pages/            # 各ページ
-dev-server/          # テスト用サーバー（index.ts: 起動と登録 URL 表示, app.ts: API, store.ts: メモリ保存）
+dev-server/          # テスト用サーバー（index.ts: 起動と登録 URL 表示, app.ts: API, store.ts: メモリ保存, station/: 配るビネットとファイル）
 docs/ebina-front.md  # ebina-front での Binette の使い方
 public/              # 静的ファイル（favicon.svg, apple-touch-icon.png）
 ```

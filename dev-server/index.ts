@@ -1,4 +1,6 @@
 import { serve } from "@hono/node-server";
+import { fileURLToPath } from "node:url";
+import { createCoulisses, importPanoplie } from "@binette/coulisses";
 import QRCode from "qrcode";
 import { createApp } from "./app.ts";
 import { createStore } from "./store.ts";
@@ -12,7 +14,10 @@ const USER_NAME = env.USER_NAME ?? "テストユーザー";
 
 const front = new URL(FRONT_URL);
 const store = createStore();
-const app = createApp({ rpID: front.hostname, rpName: "EbinaStation", origin: front.origin }, store);
+// 起動時に一度だけ読む。station/ を変えたら再起動する
+const panoplie = await importPanoplie(fileURLToPath(new URL("./station/", import.meta.url)));
+const coulisses = createCoulisses({ panoplie });
+const app = createApp({ rpID: front.hostname, rpName: "EbinaStation", origin: front.origin }, store, coulisses);
 
 store.createUser(USER_ID, USER_NAME);
 const { token, code, expiresAt } = store.issueRegistrationToken(USER_ID);

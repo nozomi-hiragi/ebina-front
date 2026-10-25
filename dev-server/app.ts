@@ -22,6 +22,7 @@ import type {
   WakeCredential,
   WakeServer,
 } from "@wake-protocol/server";
+import type { Coulisses } from "@binette/coulisses";
 import type { Store } from "./store.ts";
 
 export type Config = {
@@ -58,24 +59,30 @@ function etJson(status: number, value: unknown): EtHandlerResponse {
   };
 }
 
-export function createApp(config: Config, store: Store) {
+export function createApp(config: Config, store: Store, coulisses: Coulisses) {
   const credentials = new MemoryCredentialStore();
   const wakeStore = new MemoryWakeStore();
 
   // ET の中の URL は wake://station/… で表す。URL の振り分けはこちらで行う
-  const etHandler: EtHandler = (req, auth) => {
+  const etHandler: EtHandler = async (req, auth) => {
     if (req.method === "GET" && req.url === "wake://station/me") {
       const user = store.getUser(auth.userId);
       if (!user) return etJson(404, { error: { code: "not_found" } });
       return etJson(200, { id: user.id, name: user.name });
     }
-    // 入口は設定画面への転送と、設定画面に差し込むフロントのログアウト部品だけにする
-    if (req.method === "GET" && req.url === "wake://station/index.bina") {
-      return etJson(200, {
-        binette: "0.1",
-        redirect: "/settings",
-        settings: [{ order: 10, label: "アカウント", type: "element", component: "logout" }],
-      });
+    // ビネットと asset は Coulisses に任せる。wake://station/… のパスをそのまま渡す
+    const prefix = "wake://station/";
+    if (req.url.startsWith(prefix)) {
+      const res = await coulisses.fetch(
+        new Request(`http://station/${req.url.slice(prefix.length)}`, { method: req.method }),
+      );
+      if (res.status !== 404) {
+        return {
+          status: res.status,
+          headers: Array.from(res.headers.entries()),
+          body: new Uint8Array(await res.arrayBuffer()),
+        };
+      }
     }
     return etJson(404, { error: { code: "not_found" } });
   };
