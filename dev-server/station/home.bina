@@ -1,0 +1,11 @@
+{
+  "binette": "0.1",
+  "title": "ホーム",
+  "entry": "main",
+  "assets": {
+    "main": {
+      "type": "html",
+      "content": "<main><h1>EbinaStation</h1><p>開発用サーバーが配るビネットです。見出しの色は入口の全体の CSS で付けています。</p><nav aria-label=\"メニュー\"><p><a href=\"hello\">サンプルを開く</a></p><p><a href=\"settings\">設定を開く</a></p><p><a href=\"missing\">無いページを開く</a></p></nav></main>"
+    }
+  }
+}

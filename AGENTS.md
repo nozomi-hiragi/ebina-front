@@ -5,7 +5,7 @@ AI エージェント向けの作業ルール。人間向けの説明は [README
 ## プロジェクト概要
 
 - EbinaStation のフロントエンド。v2 として SolidJS で作り直し中
-- 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後は Scene が固定の入口 `/index.bina` を読み、`/` では入口の中身を表示する。入口が `redirect` を持てばそのパスへ移る。入口の転送を `routes["/"].redirect` には書かない。入口が 404 なら Scene が `/` を `/settings` へ転送する。通常の画面パスには `.bina` を付けて取得し（`/` は `/index.bina`）、`routes` に `binette` は書かない。取得先が 404 なら「見つかりません」を表示する。`routes` の形と適用範囲は検討中。設定画面は General と、読んだビネットの `settings`（セクションの配列）を `order` 順に並べる（General は 0、小さいほど上）。ログアウトなどフロントの操作は、フロントが `components` で登録した部品をビネットの `settings` の element セクションから指定して出す。シェルのカスタム要素は登録しない
+- 現在はトップ / ログイン / 登録、パスキー登録と WAKE（KX / SM / ET）によるログイン・セッション管理、Station から受け取る Binette の再生まで。ログイン後は Scene が固定の入口 `/index.bina` を読み、`/` では入口の中身を表示する。入口が `redirect` を持てばそのパスへ移る。入口が 404 なら Scene が `/` を `/settings` へ転送する。通常の画面パスには `.bina` を付けて取得する（`/` は `/index.bina`）。対応表は書かない。取得先が 404 なら「見つかりません」を表示する。設定画面は General と、読んだビネットの `settings`（セクションの配列）を `order` 順に並べる（General は 0、小さいほど上）。ログアウトなどフロントの操作は、フロントが `components` で登録した部品をビネットの `settings` の element セクションから指定して出す。シェルのカスタム要素は登録しない
 - Binette は npm の `@binette/scene` を使う。仕様は binette リポジトリの [docs/spec.md](https://github.com/nozomi-hiragi/binette/blob/main/docs/spec.md)。ebina-front での使い方（パスとビネットの対応、WAKE での取得など）は `docs/ebina-front.md` を参照
 - 旧 React 版は git の履歴にある。必要な機能は履歴を参考にしつつ、そのまま移植せず作り直す
 
@@ -73,7 +73,7 @@ npm run preview
 - SolidJS + @solidjs/router + Vite + TypeScript
 - Tailwind CSS v4 + daisyUI v5
 - アプリは `/ebina-station/` 配下で配信する（`vite.config.ts` の `base` と `src/App.tsx` の Router `base`）
-- テスト用サーバー（`dev-server/`）: Node で TS を直接実行、Hono、`@wake-protocol/server`、メモリ保存。登録は WAKE の範囲外で `@simplewebauthn/server` による検証を残す。開発専用で、本番サーバーではない
+- テスト用サーバー（`dev-server/`）: Node で TS を直接実行、Hono、`@wake-protocol/server`、メモリ保存。登録は WAKE の範囲外で `@simplewebauthn/server` による検証を残す。ビネットとファイルは `@binette/coulisses` で配る。開発専用で、本番サーバーではない
 
 - フロントのログイン・セッションは `@wake-protocol/client` を使う。セッション鍵はサーバーごとに分けた IndexedDB に保存し、localStorage は接続先と表示用ユーザー情報だけを持つ（認証トークンは保存しない）
 
@@ -93,7 +93,7 @@ src/
 │   ├── ui/        # 共通 UI 部品（Button, PageTitle, icons）
 │   └── login/     # ログイン画面専用の部品（serverSelection）
 └── pages/         # 画面（1 画面 1 ファイル）
-dev-server/        # テスト用サーバー（index.ts, app.ts, store.ts）
+dev-server/        # テスト用サーバー（index.ts, app.ts, store.ts, station/ に配るビネットとファイル）
 docs/ebina-front.md # ebina-front での Binette の使い方
 public/            # favicon.svg, apple-touch-icon.png
 ```
@@ -104,6 +104,7 @@ public/            # favicon.svg, apple-touch-icon.png
 - import は相対パスで、拡張子 `.ts` を付ける
 - `src/api/station.ts` と `dev-server/app.ts` の API 契約（パス・リクエスト・レスポンス）は必ず両方いっしょに変える
 - WAKE-ET で運ぶ URL は `wake://station/…` で表す（例: `wake://station/me`）。振り分けは `dev-server/app.ts` の `etHandler` で行い、未知の URL には 404 `{"error":{"code":"not_found"}}` を返す
+- ビネットと asset は `dev-server/station/` に `.bina` とファイルで置く（`wake://station/a/b.bina` は `station/a/b.bina`）。`etHandler` は API 以外の `wake://station/…` を Coulisses に渡す。起動時に一度だけ読む
 
 ## コーディング規約
 
